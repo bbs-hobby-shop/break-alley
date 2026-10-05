@@ -44,9 +44,30 @@ STRONG_BREAK_SIGNALS = [
 ]
 
 
+# Title words that mark a video as NOT a buy-in break even when it is a
+# scheduled stream (recaps, vlogs, collection tours, maildays).
+NON_BREAK_TITLE_WORDS = [
+    r"\brecap\b",
+    r"\bhighlights?\b",
+    r"\bvlog\b",
+    r"\bcollection\b",
+    r"\bmail\s*days?\b",
+    r"\bunboxing\b",
+]
+
+
 def looks_like_real_break(title: str, fmt: str | None) -> bool:
-    """True only for titles that read like actual buy-in break listings."""
+    """True for titles that read like actual buy-in break listings.
+
+    Candidates are already live/upcoming streams matching break queries, so
+    the bar is: a detected break format, the word "break" in the title, or a
+    strong break signal — minus explicit non-break content (recaps, vlogs).
+    """
+    if any(re.search(p, title, re.IGNORECASE) for p in NON_BREAK_TITLE_WORDS):
+        return False
     if fmt and fmt != "unknown":
+        return True
+    if "break" in title.lower():
         return True
     return any(re.search(p, title, re.IGNORECASE) for p in STRONG_BREAK_SIGNALS)
 
