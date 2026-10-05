@@ -56,6 +56,32 @@ def upsert_break(conn, row: dict) -> None:
     conn.execute(UPSERT_BREAK_SQL, row)
 
 
+# Self-healing schema migration for the cron pollers (they don't run
+# schema.sql — only the web service does on deploy). Idempotent: safe to
+# run at the start of every ingest run.
+SCHEMA_MIGRATIONS = """
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'breaks') THEN
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'breaks_source_check') THEN
+            ALTER TABLE breaks DROP CONSTRAINT breaks_source_check;
+        END IF;
+        ALTER TABLE breaks ADD CONSTRAINT breaks_source_check
+            CHECK (source IN ('ebay', 'youtube', 'twitch'));
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'breaks_format_check') THEN
+            ALTER TABLE breaks DROP CONSTRAINT breaks_format_check;
+        END IF;
+        ALTER TABLE breaks ADD CONSTRAINT breaks_format_check
+            CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','unknown'));
+    END IF;
+END $$;
+"""
+
+
+def ensure_schema(conn) -> None:
+    conn.execute(SCHEMA_MIGRATIONS)
+
+
 SEARCH_SQL = """
 SELECT id, source, source_url, breaker, product_raw, product_normalized,
        sport, format, price, currency, starts_at, is_live,

@@ -158,6 +158,14 @@ def main() -> int:
     args = parser.parse_args()
     if args.demo:
         return run_demo()
+    # Self-healing schema: the cron pollers don't run schema.sql (only the
+    # web service does on deploy), so each run ensures the check constraints
+    # are current before inserting. Idempotent and cheap.
+    try:
+        with db.get_conn() as conn:
+            db.ensure_schema(conn)
+    except Exception as exc:
+        print(f"schema ensure failed (continuing): {exc}", file=sys.stderr)
     if args.source == "youtube":
         return run_youtube()
     if args.source == "twitch":
