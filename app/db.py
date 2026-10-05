@@ -61,13 +61,13 @@ SELECT id, source, source_url, breaker, product_raw, product_normalized,
        sport, format, price, currency, starts_at, is_live,
        slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url
 FROM breaks
-WHERE (%(q)s IS NULL OR title_raw ILIKE '%%' || %(q)s || '%%'
-       OR COALESCE(product_normalized, '') ILIKE '%%' || %(q)s || '%%')
-  AND (%(sport)s IS NULL OR sport = %(sport)s)
-  AND (%(format)s IS NULL OR format = %(format)s)
-  AND (%(max_price)s IS NULL OR price IS NULL OR price <= %(max_price)s)
-  AND (%(source)s IS NULL OR source = %(source)s)
-  AND (%(live_only)s IS NULL OR is_live = %(live_only)s)
+WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
+       OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
+  AND (CAST(%(sport)s AS TEXT) IS NULL OR sport = %(sport)s)
+  AND (CAST(%(format)s AS TEXT) IS NULL OR format = %(format)s)
+  AND (CAST(%(max_price)s AS NUMERIC) IS NULL OR price IS NULL OR price <= %(max_price)s)
+  AND (CAST(%(source)s AS TEXT) IS NULL OR source = %(source)s)
+  AND (CAST(%(live_only)s AS BOOLEAN) IS NULL OR is_live = %(live_only)s)
 ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
 LIMIT 200;
 """
