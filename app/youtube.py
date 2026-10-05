@@ -33,7 +33,7 @@ Pipeline per run:
 """
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -80,12 +80,16 @@ def is_upcoming_or_live(row: dict) -> bool:
     """True only for streams happening now or with a confirmed future date.
 
     Old/past streams and videos with no parseable scheduled time are dropped —
-    there's no point listing a break you can no longer join.
+    there's no point listing a break you can no longer join. Live streams must
+    have started within the last 24h: YouTube sometimes reports ancient zombie
+    "live" broadcasts that never properly ended.
     """
+    now = datetime.now(timezone.utc)
     if row.get("is_live"):
-        return True
+        started = _parse_ts(row.get("starts_at"))
+        return started is not None and started > now - timedelta(days=1)
     starts_at = _parse_ts(row.get("starts_at"))
-    return starts_at is not None and starts_at > datetime.now(timezone.utc)
+    return starts_at is not None and starts_at > now
 
 
 def get_api_key() -> str:
