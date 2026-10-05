@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% if b %}{{ b.title_raw }} — Break Alley{% else %}Break not found{% endif %}</title>
+<title>{% if b %}{{ b.display_title }} — Break Alley{% else %}Break not found{% endif %}</title>
 <style>
   :root {
     --bg: #0a0e1c; --card: #151c38; --card2: #1a2242; --line: #26305c;
@@ -31,6 +31,7 @@
   .tags { display: flex; flex-wrap: wrap; gap: .4rem; font-size: .78rem; margin-bottom: 1.4rem; }
   .tag { background: rgba(255,255,255,.07); border-radius: 20px; padding: .25rem .75rem; color: var(--muted); font-weight: 600; }
   .tag.live { background: var(--red); color: #fff; font-weight: 800; }
+  .tag.date { background: rgba(0,230,118,.14); color: var(--green); font-weight: 800; }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .7rem; margin-bottom: 1.8rem; }
   .stat { background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 12px; padding: .8rem 1rem; }
   .stat .k { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
@@ -54,18 +55,20 @@
   {% if error %}<div class="error">{{ error }}</div>
   {% elif b %}
   <div class="detail">
-    <h1>{{ b.title_raw }}</h1>
+    <h1>{{ b.display_title }}</h1>
     <div class="tags">
       {% if b.is_live %}<span class="tag live">● LIVE NOW</span>{% endif %}
+      {% if b.date_label and not b.is_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
+      {% if b.break_no %}<span class="tag">{{ b.break_no }}</span>{% endif %}
       <span class="tag">{{ b.source|title }}</span>
       {% if b.sport %}<span class="tag">{{ b.sport|title }}</span>{% endif %}
-      {% if b.format %}<span class="tag">{{ b.format.replace('_',' ')|title }}</span>{% endif %}
+      {% if b.format and b.format != 'unknown' %}<span class="tag">{{ b.format.replace('_',' ')|title }}</span>{% endif %}
     </div>
     <div class="stats">
       {% if b.price %}<div class="stat"><div class="k">Per slot</div><div class="v green">${{ b.price }}</div></div>{% endif %}
       {% if b.breaker %}<div class="stat"><div class="k">Breaker</div><div class="v" style="font-size:1rem">{{ b.breaker }}</div></div>{% endif %}
       {% if b.slots_remaining is not none %}<div class="stat"><div class="k">Slots left</div><div class="v">{{ b.slots_remaining }}</div></div>{% endif %}
-      {% if b.starts_at %}<div class="stat"><div class="k">Starts</div><div class="v" style="font-size:1rem">{{ b.starts_at }}</div></div>{% endif %}
+      {% if b.date_label %}<div class="stat"><div class="k">Starts</div><div class="v" style="font-size:1rem">{{ b.date_label }}</div></div>{% endif %}
     </div>
     <a class="cta" href="{{ b.affiliate_url or b.source_url }}" target="_blank" rel="noopener sponsored">
       {% if b.source == 'ebay' %}Grab your slot on eBay →{% else %}Watch on {{ b.source|title }} →{% endif %}

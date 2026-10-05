@@ -4,9 +4,13 @@ V1 approach: keyword/regex matching. Good enough to start; the product alias
 table (products.py / products DB table) is curated by hand and grows over time.
 """
 import re
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
+from zoneinfo import ZoneInfo
 
 from .products import PRODUCTS
+
+CENTRAL = ZoneInfo("America/Chicago")
 
 SPORT_KEYWORDS = {
     # Only unambiguous sport words here. Brand words (panini, topps, bowman,
@@ -150,3 +154,103 @@ def normalize_ebay_item(item: dict, affiliate_url: str | None = None) -> dict:
         "affiliate_url": affiliate_url,
         "expires_at": None,
     }
+
+
+# ---------------------------------------------------------------------------
+# Display formatting: turn raw stream/listing titles into clean card titles.
+# ---------------------------------------------------------------------------
+
+# Acronyms and codes that stay uppercase when calming an ALL-CAPS title.
+_TITLE_ACRONYMS = {
+    "PYT", "PYC", "PYS", "PYD", "NFL", "NBA", "MLB", "NHL", "UFC", "PGA",
+    "FIFA", "EPL", "UD", "RT", "GB", "CT", "DT", "HD", "TV", "FB", "BB",
+}
+
+# Words with non-standard casing worth preserving.
+_TITLE_SPECIAL_CASE = {
+    "ebay": "eBay",
+    "topps": "Topps",
+    "panini": "Panini",
+    "upper": "Upper",
+    "prizm": "Prizm",
+}
+
+
+def _cap_word(word: str) -> str:
+    """Capitalize the first letter, lowercase the rest (punctuation kept)."""
+    out, first = [], True
+    for ch in word:
+        if ch.isalpha() and first:
+            out.append(ch.upper())
+            first = False
+        elif ch.isalpha():
+            out.append(ch.lower())
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def display_title(title: str) -> str:
+    """Clean a raw title for display.
+
+    Collapses whitespace; if the title is mostly ALL CAPS (typical of
+    streamer titles), converts to title case while keeping acronyms
+    (PYT, NFL, ...) and special casings (eBay) intact.
+    """
+    t = re.sub(r"\s+", " ", (title or "")).strip()
+    if not t:
+        return t
+    letters = [c for c in t if c.isalpha()]
+    shouty = bool(letters) and (
+        sum(1 for c in letters if c.isupper()) / len(letters) >= 0.6
+    )
+    if not shouty:
+        return t
+    words = []
+    for word in t.split(" "):
+        core = word.strip("()#,.:!?\"'").upper()
+        if core in _TITLE_ACRONYMS:
+            words.append(word)  # keep acronym as-is
+        elif core.lower() in _TITLE_SPECIAL_CASE:
+            # preserve e.g. eBay inside longer tokens like "eBayLive"
+            words.append(re.sub(
+                core.lower(), _TITLE_SPECIAL_CASE[core.lower()],
+                word, flags=re.IGNORECASE,
+            ))
+        else:
+            words.append(_cap_word(word))
+    return " ".join(words)
+
+
+def extract_break_number(title: str) -> str | None:
+    """'Break #12' from a title, else None."""
+    m = re.search(r"break\s*#\s*(\d+)", title or "", re.IGNORECASE)
+    return f"Break #{m.group(1)}" if m else None
+
+
+def date_label(value) -> str | None:
+    """Friendly Central-time label: 'Today · 7:30 PM', 'Tomorrow · 8:00 PM',
+    or 'Sat Oct 11 · 7:30 PM'. Accepts datetimes or ISO strings."""
+    if not value:
+        return None
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if not isinstance(value, datetime):
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    local = value.astimezone(CENTRAL)
+    today = datetime.now(CENTRAL).date()
+    try:
+        t = local.strftime("%-I:%M %p")
+    except ValueError:  # non-Linux strftime
+        t = local.strftime("%I:%M %p").lstrip("0")
+    day = local.date()
+    if day == today:
+        return f"Today · {t}"
+    if day == today + timedelta(days=1):
+        return f"Tomorrow · {t}"
+    return f"{local.strftime('%a %b %d')} · {t}"

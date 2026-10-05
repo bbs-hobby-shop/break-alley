@@ -11,11 +11,21 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from . import db
+from .normalizer import date_label, display_title, extract_break_number
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 app = FastAPI(title="Box Break Finder")
+
+
+def _enrich(row: dict) -> dict:
+    """Add display-ready fields: cleaned title, break number, date label."""
+    title = row.get("title_raw") or ""
+    row["display_title"] = display_title(title)
+    row["break_no"] = extract_break_number(title)
+    row["date_label"] = date_label(row.get("starts_at"))
+    return row
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -33,11 +43,13 @@ def search(
     source = source or None
     try:
         with db.get_conn() as conn:
-            results = db.search_breaks(
-                conn, q=q or None, sport=sport, format=format,
-                max_price=max_price, source=source,
-                live_only=True if live else None,
-            )
+            results = [
+                _enrich(dict(r)) for r in db.search_breaks(
+                    conn, q=q or None, sport=sport, format=format,
+                    max_price=max_price, source=source,
+                    live_only=True if live else None,
+                )
+            ]
         error = None
     except Exception as exc:  # DB not up / not migrated yet
         results, error = [], f"Database unavailable: {exc}"
@@ -55,6 +67,8 @@ def detail(request: Request, break_id: int):
     try:
         with db.get_conn() as conn:
             row = db.get_break(conn, break_id)
+            if row:
+                row = _enrich(dict(row))
         error = None if row else "Break not found."
     except Exception as exc:
         row, error = None, f"Database unavailable: {exc}"

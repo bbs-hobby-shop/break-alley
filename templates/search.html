@@ -92,6 +92,7 @@
   .tags { display: flex; flex-wrap: wrap; gap: .35rem; font-size: .72rem; }
   .tag { background: rgba(255,255,255,.07); border-radius: 20px; padding: .18rem .65rem; color: var(--muted); font-weight: 600; }
   .tag.live { background: var(--red); color: #fff; font-weight: 800; }
+  .tag.date { background: rgba(0,230,118,.14); color: var(--green); font-weight: 800; }
   .tag.slots-low { background: rgba(255,159,28,.15); color: var(--orange); font-weight: 800; }
   .right { text-align: right; flex-shrink: 0; }
   .price { font-size: 1.45rem; font-weight: 900; color: var(--green); }
@@ -153,11 +154,13 @@
       <a class="card {% if b.is_live %}is-live{% endif %}" href="/break/{{ b.id }}">
         <div class="thumb">{{ (b.sport or '?')[:2]|upper }}</div>
         <div class="meta">
-          <p class="title">{{ b.title_raw }}</p>
+          <p class="title">{{ b.display_title }}</p>
           <div class="tags">
             {% if b.is_live %}<span class="tag live">● LIVE</span>{% endif %}
+            {% if b.date_label and not b.is_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
+            {% if b.break_no %}<span class="tag">{{ b.break_no }}</span>{% endif %}
             <span class="tag">{{ b.source|title }}</span>
-            {% if b.format %}<span class="tag">{{ b.format.replace('_',' ')|title }}</span>{% endif %}
+            {% if b.format and b.format != 'unknown' %}<span class="tag">{{ b.format.replace('_',' ')|title }}</span>{% endif %}
             {% if b.breaker %}<span class="tag">{{ b.breaker }}</span>{% endif %}
             {% if b.slots_remaining is not none %}
               <span class="tag {% if b.slots_remaining <= 5 %}slots-low{% endif %}">{{ b.slots_remaining }} slots left</span>
