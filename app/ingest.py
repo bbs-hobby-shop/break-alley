@@ -112,13 +112,17 @@ def run_youtube() -> int:
     rows = youtube.fetch_all_break_streams()
     print(f"fetched {len(rows)} normalized YouTube breaks")
     n = 0
+    # YouTube data is transient (live/upcoming streams), so each run wipes
+    # and rewrites the youtube slice in ONE transaction: stale streams vanish
+    # instead of lingering forever, and a failed run rolls back cleanly.
     with db.get_conn() as conn:
+        conn.execute("DELETE FROM breaks WHERE source = 'youtube'")
         for row in rows:
             if not row.get("source_url"):
                 continue
             db.upsert_break(conn, row)
             n += 1
-    print(f"upserted {n} YouTube breaks")
+    print(f"replaced youtube slice with {n} YouTube breaks")
     return 0
 
 

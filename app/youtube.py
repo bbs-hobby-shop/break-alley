@@ -33,6 +33,7 @@ Pipeline per run:
      normalizer.normalize_ebay_item)
 """
 import os
+import re
 import sys
 
 import httpx
@@ -52,6 +53,27 @@ DEFAULT_SEARCH_QUERIES = [
     "card break",
     "box break pyt",
 ]
+
+
+# Strong title signals of a REAL buy-in break (not a recap, vlog, or casual
+# opening). A video is kept when the normalizer detected a break format
+# (pyt/random/division/hit_draft/personal/case_break) OR any of these match.
+STRONG_BREAK_SIGNALS = [
+    r"break\s*#\s*\d+",          # "Break #12"
+    r"#\d+\s*(pyt|break)",       # "#12 PYT Break"
+    r"\bslots?\b",               # "slots left", "8 slots"
+    r"\bspots?\b.{0,20}\b(left|available|open|for sale)\b",
+    r"live\s*fills?",            # "live fills"
+    r"pick\s*your",              # "pick your team/division"
+    r"\bgroup\s*break\b",
+]
+
+
+def looks_like_real_break(title: str, fmt: str) -> bool:
+    """True only for videos that read like actual buy-in break listings."""
+    if fmt and fmt != "unknown":
+        return True
+    return any(re.search(p, title, re.IGNORECASE) for p in STRONG_BREAK_SIGNALS)
 
 
 def get_api_key() -> str:
@@ -192,14 +214,19 @@ def fetch_all_break_streams() -> list[dict]:
     n_detail_calls = (len(video_ids) + 49) // 50 if video_ids else 0
     details = videos_details(video_ids)
 
-    # 3. normalize
+    # 3. normalize + keep only real buy-in breaks
     rows: list[dict] = []
+    n_dropped = 0
     for vid in video_ids:
         row = normalize_youtube_video(vid, candidates[vid], details.get(vid))
         if row and row.get("source_url"):
-            rows.append(row)
+            if looks_like_real_break(row["title_raw"], row.get("format")):
+                rows.append(row)
+            else:
+                n_dropped += 1
 
     units = estimate_quota_units(n_searches, n_detail_calls)
     print(f"youtube: {n_searches} searches + {n_detail_calls} detail calls "
-          f"= ~{units} quota units; {len(rows)} breaks normalized")
+          f"= ~{units} quota units; {len(rows)} breaks kept, "
+          f"{n_dropped} non-break videos filtered out")
     return rows
