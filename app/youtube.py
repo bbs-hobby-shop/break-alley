@@ -50,13 +50,14 @@ VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
 
 EVENT_TYPES = ["live", "upcoming"]
 
-# Break-format-specific queries only: every term here applies (almost)
-# exclusively to sports card box breaks, so the candidate pool starts clean.
-# 8 queries x 2 event types = 16 searches = ~1,600 units/run;
+# Break-format-specific queries plus one broad net ("box break") so plainly
+# titled breaks ("2024 Topps Chrome 2 Box Break") are still discovered.
+# The title filter (not the query) is what guarantees quality, so the broad
+# query is safe. 8 queries x 2 event types = 16 searches = ~1,600 units/run;
 # 4 runs/day ~= 6,400 units/day (~64% of the 10k quota).
 DEFAULT_SEARCH_QUERIES = [
+    "box break",
     "pyt box break",
-    "pick your team break",
     "random team box break",
     "player break",
     "case break",
