@@ -35,6 +35,7 @@ Pipeline per run:
 import os
 import re
 import sys
+from datetime import datetime, timezone
 
 import httpx
 
@@ -74,6 +75,28 @@ def looks_like_real_break(title: str, fmt: str) -> bool:
     if fmt and fmt != "unknown":
         return True
     return any(re.search(p, title, re.IGNORECASE) for p in STRONG_BREAK_SIGNALS)
+
+
+def _parse_ts(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def is_upcoming_or_live(row: dict) -> bool:
+    """True only for streams happening now or with a confirmed future date.
+
+    Old/past streams and videos with no parseable scheduled time are dropped —
+    there's no point listing a break you can no longer join.
+    """
+    if row.get("is_live"):
+        return True
+    starts_at = _parse_ts(row.get("starts_at"))
+    return starts_at is not None and starts_at > datetime.now(timezone.utc)
 
 
 def get_api_key() -> str:
@@ -214,19 +237,20 @@ def fetch_all_break_streams() -> list[dict]:
     n_detail_calls = (len(video_ids) + 49) // 50 if video_ids else 0
     details = videos_details(video_ids)
 
-    # 3. normalize + keep only real buy-in breaks
+    # 3. normalize + keep only real, joinable breaks
     rows: list[dict] = []
     n_dropped = 0
     for vid in video_ids:
         row = normalize_youtube_video(vid, candidates[vid], details.get(vid))
         if row and row.get("source_url"):
-            if looks_like_real_break(row["title_raw"], row.get("format")):
+            if (looks_like_real_break(row["title_raw"], row.get("format"))
+                    and is_upcoming_or_live(row)):
                 rows.append(row)
             else:
                 n_dropped += 1
 
     units = estimate_quota_units(n_searches, n_detail_calls)
     print(f"youtube: {n_searches} searches + {n_detail_calls} detail calls "
-          f"= ~{units} quota units; {len(rows)} breaks kept, "
-          f"{n_dropped} non-break videos filtered out")
+          f"= ~{units} quota units; {len(rows)} upcoming breaks kept, "
+          f"{n_dropped} dropped (non-break, past, or no confirmed date)")
     return rows
