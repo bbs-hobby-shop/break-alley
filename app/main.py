@@ -25,10 +25,6 @@ def _enrich(row: dict) -> dict:
     row["display_title"] = display_title(title)
     row["break_no"] = extract_break_number(title)
     row["date_label"] = date_label(row.get("starts_at"))
-    sport = row.get("sport")
-    row["sport_badge"] = (
-        sport[:2].upper() if sport and sport != "other" else "?"
-    )
     return row
 
 
@@ -36,20 +32,18 @@ def _enrich(row: dict) -> dict:
 def search(
     request: Request,
     q: str | None = Query(default=None),
-    sport: str | None = Query(default=None),
     format: str | None = Query(default=None),
     max_price: float | None = Query(default=None),
     source: str | None = Query(default=None),
     live: bool = Query(default=False),
 ):
-    sport = sport or None
     format = format or None
     source = source or None
     try:
         with db.get_conn() as conn:
             results = [
                 _enrich(dict(r)) for r in db.search_breaks(
-                    conn, q=q or None, sport=sport, format=format,
+                    conn, q=q or None, format=format,
                     max_price=max_price, source=source,
                     live_only=True if live else None,
                 )
@@ -59,9 +53,8 @@ def search(
         results, error = [], f"Database unavailable: {exc}"
     return templates.TemplateResponse(request, "search.html", {
         "results": results, "error": error,
-        "q": q or "", "sport": sport or "", "format": format or "",
+        "q": q or "", "format": format or "",
         "max_price": max_price or "", "source": source or "", "live": live,
-        "sports": ["football", "basketball", "baseball", "soccer", "hockey"],
         "formats": ["pyt", "random", "division", "hit_draft", "personal", "case_break", "group_break"],
     })
 

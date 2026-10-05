@@ -56,12 +56,6 @@
     padding: 0 1.8rem; font-size: 1rem; font-weight: 800; color: #04120a;
     background: var(--green); border: 0; border-radius: 12px; cursor: pointer;
   }
-  .pills { display: flex; gap: .5rem; overflow-x: auto; padding: 1.1rem 0 .2rem; }
-  .pills a {
-    flex-shrink: 0; text-decoration: none; color: var(--muted); font-weight: 700; font-size: .9rem;
-    background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: .5rem 1.1rem;
-  }
-  .pills a.on { color: #04120a; background: var(--green); border-color: var(--green); }
   main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
   .toolbar { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1rem 0 1.2rem; }
   .toolbar select, .toolbar input[type=number] {
@@ -147,20 +141,15 @@
   <h2>Every break. Every platform. <em>One place.</em></h2>
   <p>Live and upcoming box breaks from across the hobby — search, filter, jump in.</p>
   <form class="searchbar" method="get" action="/">
-    <input type="text" name="q" value="{{ q }}" placeholder="Try &quot;Prizm football&quot; or &quot;Bowman chrome&quot;…">
+    <input type="text" name="q" value="{{ q }}" placeholder="Try &quot;Prizm&quot; or &quot;Bowman chrome&quot;…">
     <button type="submit">Find breaks</button>
   </form>
-  <div class="pills">
-    <a href="/" class="{% if not sport %}on{% endif %}">All sports</a>
-    {% for s in sports %}<a href="/?sport={{ s }}" class="{% if sport == s %}on{% endif %}">{{ s|title }}</a>{% endfor %}
-  </div>
 </div>
 
 <main>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form class="toolbar" method="get" action="/">
     <input type="hidden" name="q" value="{{ q }}">
-    {% if sport %}<input type="hidden" name="sport" value="{{ sport }}">{% endif %}
     <select name="format">
       <option value="">Any format</option>
       {% for f in formats %}<option value="{{ f }}" {% if format == f %}selected{% endif %}>{{ f.replace('_',' ')|title }}</option>{% endfor %}
@@ -181,7 +170,7 @@
     {% if results %}
       {% for b in results %}
       <a class="card {% if b.is_live %}is-live{% endif %}" href="/break/{{ b.id }}">
-        <div class="thumb">{{ b.sport_badge }}</div>
+        <div class="thumb">📦</div>
         <div class="meta">
           <p class="title">{{ b.display_title }}</p>
           <div class="tags">
