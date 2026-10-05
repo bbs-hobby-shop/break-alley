@@ -181,7 +181,7 @@
     {% if results %}
       {% for b in results %}
       <a class="card {% if b.is_live %}is-live{% endif %}" href="/break/{{ b.id }}">
-        <div class="thumb">{{ (b.sport or '?')[:2]|upper }}</div>
+        <div class="thumb">{{ b.sport_badge }}</div>
         <div class="meta">
           <p class="title">{{ b.display_title }}</p>
           <div class="tags">

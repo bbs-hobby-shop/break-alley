@@ -25,6 +25,10 @@ def _enrich(row: dict) -> dict:
     row["display_title"] = display_title(title)
     row["break_no"] = extract_break_number(title)
     row["date_label"] = date_label(row.get("starts_at"))
+    sport = row.get("sport")
+    row["sport_badge"] = (
+        sport[:2].upper() if sport and sport != "other" else "?"
+    )
     return row
 
 

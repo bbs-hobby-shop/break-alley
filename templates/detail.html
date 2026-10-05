@@ -71,7 +71,7 @@
       {% if b.date_label and not b.is_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
       {% if b.break_no %}<span class="tag">{{ b.break_no }}</span>{% endif %}
       <span class="tag">{{ b.source|title }}</span>
-      {% if b.sport %}<span class="tag">{{ b.sport|title }}</span>{% endif %}
+      {% if b.sport and b.sport != 'other' %}<span class="tag">{{ b.sport|title }}</span>{% endif %}
       {% if b.format and b.format != 'unknown' %}<span class="tag">{{ b.format.replace('_',' ')|title }}</span>{% endif %}
     </div>
     <div class="stats">
