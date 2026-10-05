@@ -6,7 +6,7 @@
 
 databases:
   - name: break-alley-db
-    plan: basic
+    plan: 0.1c-256mb # cheapest paid Postgres (~$6/mo); free tier risks data expiry
 
 services:
   # ---- Web app (FastAPI) ----
