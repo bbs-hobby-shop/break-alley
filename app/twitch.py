@@ -189,9 +189,14 @@ def normalize_twitch_channel(channel: dict, stream: dict | None = None) -> dict 
     }
 
 
-def fetch_all_break_streams() -> list[dict]:
+def fetch_all_break_streams() -> tuple[list[dict], int]:
     """Run every configured search query, enrich live hits, and return
     normalized break rows. Prints counts only — never credentials.
+
+    Returns (rows, n_successful_searches). When n_successful_searches is 0 the
+    API never answered (rate-limited or outage) — that is a failed poll, NOT
+    an empty result, and callers must keep the existing slice instead of
+    wiping it.
     """
     token = get_app_token()  # fail fast with a clear message when unset
     queries = search_queries()
@@ -234,4 +239,4 @@ def fetch_all_break_streams() -> list[dict]:
 
     print(f"twitch: {n_searches} searches + {n_enrich} enrich calls; "
           f"{len(rows)} live breaks kept, {n_dropped} non-break streams dropped")
-    return rows
+    return rows, n_searches

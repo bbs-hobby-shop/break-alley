@@ -109,8 +109,15 @@ def run_youtube() -> int:
     if not config.youtube_configured():
         print("YOUTUBE_API_KEY not set — nothing to do.", file=sys.stderr)
         return 1
-    rows = youtube.fetch_all_break_streams()
+    rows, n_searches = youtube.fetch_all_break_streams()
     print(f"fetched {len(rows)} normalized YouTube breaks")
+    if n_searches == 0:
+        # Total API failure (quota exhausted, rate-limited, or outage): keep
+        # the existing slice instead of blanking the live site. Non-zero exit
+        # marks the cron run as failed in the Render dashboard.
+        print("youtube: all searches failed — keeping existing slice",
+              file=sys.stderr)
+        return 1
     n = 0
     # YouTube data is transient (live/upcoming streams), so each run wipes
     # and rewrites the youtube slice in ONE transaction: stale streams vanish
@@ -131,8 +138,15 @@ def run_twitch() -> int:
         print("TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET not set — nothing to do.",
               file=sys.stderr)
         return 1
-    rows = twitch.fetch_all_break_streams()
+    rows, n_searches = twitch.fetch_all_break_streams()
     print(f"fetched {len(rows)} normalized Twitch breaks")
+    if n_searches == 0:
+        # Total API failure (rate-limited or outage): keep the existing slice
+        # instead of blanking the live site. Non-zero exit marks the cron run
+        # as failed in the Render dashboard.
+        print("twitch: all searches failed — keeping existing slice",
+              file=sys.stderr)
+        return 1
     n = 0
     # Twitch data is transient (currently-live streams), so each run wipes
     # and rewrites the twitch slice in ONE transaction: ended streams vanish

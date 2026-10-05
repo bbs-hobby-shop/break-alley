@@ -199,9 +199,14 @@ def normalize_youtube_video(
     }
 
 
-def fetch_all_break_streams() -> list[dict]:
+def fetch_all_break_streams() -> tuple[list[dict], int]:
     """Run every configured (query, event type) search, fetch details for the
     deduped video ids, and return normalized break rows.
+
+    Returns (rows, n_successful_searches). When n_successful_searches is 0 the
+    API never answered (quota exhausted, rate-limited, or outage) — that is a
+    failed poll, NOT an empty result, and callers must keep the existing slice
+    instead of wiping it.
 
     Prints quota usage (counts only — never the key).
     """
@@ -251,4 +256,4 @@ def fetch_all_break_streams() -> list[dict]:
     print(f"youtube: {n_searches} searches + {n_detail_calls} detail calls "
           f"= ~{units} quota units; {len(rows)} upcoming breaks kept, "
           f"{n_non_break} non-break / {n_past} past / {n_no_date} no-date dropped")
-    return rows
+    return rows, n_searches
