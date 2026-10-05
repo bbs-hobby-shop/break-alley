@@ -44,8 +44,9 @@ STRONG_BREAK_SIGNALS = [
 ]
 
 
-# Title words that mark a video as NOT a buy-in break even when it is a
-# scheduled stream (recaps, vlogs, collection tours, maildays).
+# Title words that mark a video as NOT a sports-card buy-in break even when it
+# is a scheduled stream: recaps/vlogs/etc, and non-sports card games (Pokemon,
+# Yu-Gi-Oh, Magic, Lorcana...). Brian wants sports card box breaks only.
 NON_BREAK_TITLE_WORDS = [
     r"\brecap\b",
     r"\bhighlights?\b",
@@ -53,6 +54,17 @@ NON_BREAK_TITLE_WORDS = [
     r"\bcollection\b",
     r"\bmail\s*days?\b",
     r"\bunboxing\b",
+    # trading card games that are not sports cards
+    r"\bpokemon\b",
+    r"\byu[\s-]?gi[\s-]?oh\b",
+    r"\byugioh\b",
+    r"\bmagic\b.{0,15}\bgathering\b",
+    r"\bmtg\b",
+    r"\blorcana\b",
+    r"\bone\s*piece\b",
+    r"\bdigimon\b",
+    r"\bdragon\s*ball\b",
+    r"\bflesh\s+and\s+blood\b",
 ]
 
 

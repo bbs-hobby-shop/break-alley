@@ -50,19 +50,19 @@ VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
 
 EVENT_TYPES = ["live", "upcoming"]
 
-# Broad queries on purpose: each search costs 100 units, so a few wide nets
-# beat many narrow ones. Queries are matched against stream titles.
+# Break-format-specific queries only: every term here applies (almost)
+# exclusively to sports card box breaks, so the candidate pool starts clean.
 # 8 queries x 2 event types = 16 searches = ~1,600 units/run;
 # 4 runs/day ~= 6,400 units/day (~64% of the 10k quota).
 DEFAULT_SEARCH_QUERIES = [
-    "box break",
-    "card break",
-    "box break pyt",
+    "pyt box break",
+    "pick your team break",
+    "random team box break",
+    "player break",
     "case break",
-    "random team break",
     "group break",
+    "division break",
     "box mixer break",
-    "box break live",
 ]
 
 
