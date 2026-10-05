@@ -6,7 +6,7 @@
 
 databases:
   - name: break-alley-db
-    plan: starter
+    plan: basic
 
 services:
   # ---- Web app (FastAPI) ----
