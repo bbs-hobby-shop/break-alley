@@ -228,18 +228,22 @@ def fetch_all_break_streams() -> list[dict]:
 
     # 3. normalize + keep only real, joinable breaks
     rows: list[dict] = []
-    n_dropped = 0
+    n_non_break = n_past = n_no_date = 0
     for vid in video_ids:
         row = normalize_youtube_video(vid, candidates[vid], details.get(vid))
-        if row and row.get("source_url"):
-            if (looks_like_real_break(row["title_raw"], row.get("format"))
-                    and is_upcoming_or_live(row)):
-                rows.append(row)
-            else:
-                n_dropped += 1
+        if not (row and row.get("source_url")):
+            continue
+        if not looks_like_real_break(row["title_raw"], row.get("format")):
+            n_non_break += 1
+        elif is_upcoming_or_live(row):
+            rows.append(row)
+        elif _parse_ts(row.get("starts_at")) is None:
+            n_no_date += 1
+        else:
+            n_past += 1
 
     units = estimate_quota_units(n_searches, n_detail_calls)
     print(f"youtube: {n_searches} searches + {n_detail_calls} detail calls "
           f"= ~{units} quota units; {len(rows)} upcoming breaks kept, "
-          f"{n_dropped} dropped (non-break, past, or no confirmed date)")
+          f"{n_non_break} non-break / {n_past} past / {n_no_date} no-date dropped")
     return rows
