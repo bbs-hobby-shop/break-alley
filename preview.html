@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Break Alley — every break, every platform, one place</title>
+<style>
+  :root {
+    --bg: #0a0e1c;
+    --bg2: #10162e;
+    --card: #151c38;
+    --card2: #1a2242;
+    --line: #26305c;
+    --text: #f2f4ff;
+    --muted: #8b93b8;
+    --green: #00e676;
+    --green-dim: rgba(0, 230, 118, .12);
+    --purple: #7c5cff;
+    --red: #ff3b5c;
+    --orange: #ff9f1c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; color: var(--text); background: var(--bg);
+    background-image: radial-gradient(900px 400px at 15% -5%, rgba(124,92,255,.14), transparent),
+                      radial-gradient(800px 380px at 90% 0%, rgba(0,230,118,.08), transparent);
+    min-height: 100vh;
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,14,28,.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    padding: .9rem 1.5rem; display: flex; align-items: center; gap: 1rem;
+  }
+  .logo { font-weight: 900; font-size: 1.35rem; letter-spacing: .5px; }
+  .logo span { color: var(--green); }
+  .live-pill {
+    margin-left: auto; font-size: .8rem; font-weight: 700; color: #fff;
+    background: var(--red); border-radius: 20px; padding: .3rem .8rem;
+    display: flex; align-items: center; gap: .4rem;
+  }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  .hero { max-width: 1080px; margin: 0 auto; padding: 2.2rem 1.5rem 0; }
+  .hero h2 { margin: 0 0 .4rem; font-size: 2rem; font-weight: 900; letter-spacing: -.5px; }
+  .hero h2 em { font-style: normal; color: var(--green); }
+  .hero p { margin: 0 0 1.4rem; color: var(--muted); }
+  .searchbar { display: flex; gap: .6rem; }
+  .searchbar input {
+    flex: 1; padding: .9rem 1.1rem; font-size: 1.05rem; color: var(--text);
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; outline: none;
+  }
+  .searchbar input:focus { border-color: var(--green); }
+  .searchbar button {
+    padding: 0 1.8rem; font-size: 1rem; font-weight: 800; color: #04120a;
+    background: var(--green); border: 0; border-radius: 12px; cursor: pointer;
+  }
+  .pills { display: flex; gap: .5rem; overflow-x: auto; padding: 1.1rem 0 .2rem; }
+  .pills a {
+    flex-shrink: 0; text-decoration: none; color: var(--muted); font-weight: 700; font-size: .9rem;
+    background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: .5rem 1.1rem;
+  }
+  .pills a.on { color: #04120a; background: var(--green); border-color: var(--green); }
+  main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1rem 0 1.2rem; }
+  .toolbar select, .toolbar input[type=number] {
+    background: var(--card); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: .55rem .8rem; font-size: .9rem;
+  }
+  .toolbar .live-toggle { display: flex; align-items: center; gap: .4rem; font-size: .9rem; font-weight: 700; color: var(--muted); }
+  .toolbar .go { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: .55rem 1.1rem; font-weight: 700; cursor: pointer; }
+  .section-label { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px; color: var(--muted); margin: 1.4rem 0 .8rem; text-transform: uppercase; }
+  .grid { display: grid; gap: .8rem; }
+  .card {
+    display: flex; gap: 1rem; align-items: center; text-decoration: none; color: inherit;
+    background: linear-gradient(180deg, var(--card2), var(--card));
+    border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.25rem;
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  .card:hover { transform: translateY(-2px); border-color: var(--green); }
+  .card.is-live { border-left: 4px solid var(--red); }
+  .thumb {
+    width: 64px; height: 64px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--purple), #3b2d8f);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 1.3rem; color: #fff;
+  }
+  .card.is-live .thumb { background: linear-gradient(135deg, var(--red), #8f1d33); }
+  .meta { flex: 1; min-width: 0; }
+  .title { font-weight: 700; margin: 0 0 .35rem; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tags { display: flex; flex-wrap: wrap; gap: .35rem; font-size: .72rem; }
+  .tag { background: rgba(255,255,255,.07); border-radius: 20px; padding: .18rem .65rem; color: var(--muted); font-weight: 600; }
+  .tag.live { background: var(--red); color: #fff; font-weight: 800; }
+  .tag.slots-low { background: rgba(255,159,28,.15); color: var(--orange); font-weight: 800; }
+  .right { text-align: right; flex-shrink: 0; }
+  .price { font-size: 1.45rem; font-weight: 900; color: var(--green); }
+  .per { font-size: .72rem; color: var(--muted); }
+  .empty, .error { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 2.5rem; text-align: center; color: var(--muted); }
+  .error { border-color: var(--red); color: #ff8ba0; }
+  footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2.5rem 0; }
+  footer b { color: var(--text); }
+  @media (max-width: 640px) {
+    .hero h2 { font-size: 1.5rem; }
+    .price { font-size: 1.15rem; }
+    .card { padding: .85rem 1rem; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo">BREAK <span>ALLEY</span></div>
+  <div class="live-pill"><span class="live-dot"></span>LIVE NOW</div>
+</header>
+
+<div class="hero">
+  <h2>Every break. Every platform. <em>One place.</em></h2>
+  <p>Live and upcoming box breaks from across the hobby — search, filter, jump in.</p>
+  <form class="searchbar" method="get" action="/">
+    <input type="text" name="q" value="" placeholder="Try &quot;Prizm football&quot; or &quot;Bowman chrome&quot;…">
+    <button type="submit">Find breaks</button>
+  </form>
+  <div class="pills">
+    <a href="/" class="on">All sports</a>
+    <a href="/?sport=football" class="">Football</a><a href="/?sport=basketball" class="">Basketball</a><a href="/?sport=baseball" class="">Baseball</a><a href="/?sport=soccer" class="">Soccer</a><a href="/?sport=hockey" class="">Hockey</a>
+  </div>
+</div>
+
+<main>
+  
+  <form class="toolbar" method="get" action="/">
+    <input type="hidden" name="q" value="">
+    
+    <select name="format">
+      <option value="">Any format</option>
+      <option value="pyt" >Pyt</option><option value="random" >Random</option><option value="division" >Division</option><option value="hit_draft" >Hit Draft</option><option value="personal" >Personal</option><option value="case_break" >Case Break</option>
+    </select>
+    <input type="number" name="max_price" value="" min="0" step="0.01" placeholder="Max $">
+    <select name="source">
+      <option value="">All platforms</option>
+      <option value="ebay" >eBay</option>
+      <option value="youtube" >YouTube</option>
+      <option value="twitch" >Twitch</option>
+    </select>
+    <label class="live-toggle"><input type="checkbox" name="live" value="1" > Live only</label>
+    <button class="go" type="submit">Apply</button>
+  </form>
+
+  <div class="section-label">Breaks</div>
+  <div class="grid">
+    
+      
+      <a class="card " href="/break/1">
+        <div class="thumb">FO</div>
+        <div class="meta">
+          <p class="title">2024 Panini Prizm Football Hobby 5-Box Break #12 PYT — Dallas Cowboys</p>
+          <div class="tags">
+            
+            <span class="tag">Ebay</span>
+            <span class="tag">Pyt</span>
+            <span class="tag">dfwcardbreaks</span>
+            
+              <span class="tag ">8 slots left</span>
+            
+          </div>
+        </div>
+        <div class="right">
+          <div class="price">$34.99</div><div class="per">per slot</div>
+        </div>
+      </a>
+      
+      <a class="card " href="/break/2">
+        <div class="thumb">BA</div>
+        <div class="meta">
+          <p class="title">2024 Bowman Chrome Baseball Hobby 3-Box Random Team Break</p>
+          <div class="tags">
+            
+            <span class="tag">Ebay</span>
+            <span class="tag">Random</span>
+            <span class="tag">cardvaultbreaks</span>
+            
+              <span class="tag ">14 slots left</span>
+            
+          </div>
+        </div>
+        <div class="right">
+          <div class="price">$24.99</div><div class="per">per slot</div>
+        </div>
+      </a>
+      
+      <a class="card is-live" href="/break/3">
+        <div class="thumb">BA</div>
+        <div class="meta">
+          <p class="title">2023-24 Panini Select Basketball Mega 10-Box Division Break</p>
+          <div class="tags">
+            <span class="tag live">● LIVE</span>
+            <span class="tag">Youtube</span>
+            <span class="tag">Division</span>
+            <span class="tag">HoopsRips</span>
+            
+          </div>
+        </div>
+        <div class="right">
+          
+        </div>
+      </a>
+      
+      <a class="card is-live" href="/break/4">
+        <div class="thumb">FO</div>
+        <div class="meta">
+          <p class="title">LIVE NOW — 2024 Topps Chrome Football 6-Box PYT Break</p>
+          <div class="tags">
+            <span class="tag live">● LIVE</span>
+            <span class="tag">Twitch</span>
+            <span class="tag">Pyt</span>
+            <span class="tag">BoxBreakersLive</span>
+            
+          </div>
+        </div>
+        <div class="right">
+          
+        </div>
+      </a>
+      
+      <a class="card " href="/break/5">
+        <div class="thumb">FO</div>
+        <div class="meta">
+          <p class="title">2024 Topps Chrome Football 2-Box Hit Draft Break #7</p>
+          <div class="tags">
+            
+            <span class="tag">Ebay</span>
+            <span class="tag">Hit Draft</span>
+            <span class="tag">dfwcardbreaks</span>
+            
+              <span class="tag slots-low">3 slots left</span>
+            
+          </div>
+        </div>
+        <div class="right">
+          <div class="price">$19.99</div><div class="per">per slot</div>
+        </div>
+      </a>
+      
+      <a class="card " href="/break/6">
+        <div class="thumb">FO</div>
+        <div class="meta">
+          <p class="title">2024 Panini Illusions Football 4-Box PYT — Friday 8PM ET</p>
+          <div class="tags">
+            
+            <span class="tag">Youtube</span>
+            <span class="tag">Pyt</span>
+            <span class="tag">LuckyPulls</span>
+            
+          </div>
+        </div>
+        <div class="right">
+          
+        </div>
+      </a>
+      
+      <a class="card " href="/break/7">
+        <div class="thumb">?</div>
+        <div class="meta">
+          <p class="title">Pokemon 151 Booster Box Opening w/ Giveaways</p>
+          <div class="tags">
+            
+            <span class="tag">Twitch</span>
+            <span class="tag">Personal</span>
+            <span class="tag">BoxBreakersAustralia</span>
+            
+          </div>
+        </div>
+        <div class="right">
+          
+        </div>
+      </a>
+      
+      <a class="card " href="/break/8">
+        <div class="thumb">SO</div>
+        <div class="meta">
+          <p class="title">2022 Panini Mosaic Soccer Road to World Cup Hobby Box — Personal Break</p>
+          <div class="tags">
+            
+            <span class="tag">Ebay</span>
+            <span class="tag">Personal</span>
+            <span class="tag">pitchcards</span>
+            
+              <span class="tag slots-low">1 slots left</span>
+            
+          </div>
+        </div>
+        <div class="right">
+          <div class="price">$59.99</div><div class="per">per slot</div>
+        </div>
+      </a>
+      
+    
+  </div>
+</main>
+<footer><b>Break Alley</b> · the aggregator — breaks happen on the source platforms. eBay listings land once our API access is approved.</footer>
+</body>
+</html>
