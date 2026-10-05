@@ -58,7 +58,7 @@ def search(
         "q": q or "", "sport": sport or "", "format": format or "",
         "max_price": max_price or "", "source": source or "", "live": live,
         "sports": ["football", "basketball", "baseball", "soccer", "hockey"],
-        "formats": ["pyt", "random", "division", "hit_draft", "personal", "case_break"],
+        "formats": ["pyt", "random", "division", "hit_draft", "personal", "case_break", "group_break"],
     })
 
 

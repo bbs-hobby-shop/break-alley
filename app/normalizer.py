@@ -27,8 +27,9 @@ FORMAT_PATTERNS = [
     ("random", [r"\brandom\b", r"\brandom team\b"]),
     ("division", [r"\bdivision\b"]),
     ("hit_draft", [r"hit\s*draft"]),
-    ("personal", [r"\bpersonal\b"]),
+    ("personal", [r"\bpersonals?\b"]),
     ("case_break", [r"\bcase break\b", r"\bcase\b.*\bbreak\b"]),
+    ("group_break", [r"\bgroup\s*breaks?\b", r"#groupbreaks?\b"]),
 ]
 
 # Strong title signals of a REAL buy-in break (not a recap, vlog, or casual
@@ -69,23 +70,42 @@ NON_BREAK_TITLE_WORDS = [
     r"\bdigimon\b",
     r"\bdragon\s*ball\b",
     r"\bflesh\s+and\s+blood\b",
+    r"\betb\b",  # Elite Trainer Box = Pokemon
+]
+
+
+# Words that put "break" in a sports-card context. A title containing the
+# standalone word "break(s)" is only kept when one of these is also present —
+# this kills programming tutorials ("break & continue"), sermons
+# ("break every bondage"), and fantasy shows ("break down").
+BREAK_CONTEXT_WORDS = [
+    r"\bbox(es)?\b", r"\bcase\b", r"\bpacks?\b", r"\bcards?\b",
+    r"\bteams?\b", r"\bplayers?\b", r"\bdivisions?\b",
+    r"\bmixer\b", r"\bslots?\b", r"\bspots?\b", r"\bdrafts?\b",
+    r"\bgroups?\b", r"\bpersonals?\b", r"\bpyt\b",
+    r"\bchrome\b", r"\bhobby\b", r"\bjumbo\b", r"\bmega\b", r"\bblaster\b",
+    r"#?sportscards?\b", r"#?groupbreaks?\b",
 ]
 
 
 def looks_like_real_break(title: str, fmt: str | None) -> bool:
-    """True for titles that read like actual buy-in break listings.
+    """True for titles that read like actual sports-card buy-in break listings.
 
     Candidates are already live/upcoming streams matching break queries, so
-    the bar is: a detected break format, the word "break" in the title, or a
-    strong break signal — minus explicit non-break content (recaps, vlogs).
+    the bar is: a detected break format, a strong break signal, or the
+    standalone word "break(s)" alongside sports-card context words —
+    minus explicit non-break content (recaps, vlogs, TCGs).
     """
     if any(re.search(p, title, re.IGNORECASE) for p in NON_BREAK_TITLE_WORDS):
         return False
     if fmt and fmt != "unknown":
         return True
-    if "break" in title.lower():
+    if any(re.search(p, title, re.IGNORECASE) for p in STRONG_BREAK_SIGNALS):
         return True
-    return any(re.search(p, title, re.IGNORECASE) for p in STRONG_BREAK_SIGNALS)
+    return bool(
+        re.search(r"(?:\bbreaks?\b|#groupbreaks?\b|#breaks?\b)", title, re.IGNORECASE)
+        and any(re.search(p, title, re.IGNORECASE) for p in BREAK_CONTEXT_WORDS)
+    )
 
 
 def _first_match(text: str, patterns: dict | list) -> str | None:
