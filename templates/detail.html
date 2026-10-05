@@ -46,6 +46,16 @@
   .cta:hover { filter: brightness(1.08); }
   .note { text-align: center; color: var(--muted); font-size: .82rem; margin-top: .9rem; }
   .error { background: var(--card); border: 1px solid var(--red); color: #ff8ba0; border-radius: 16px; padding: 2rem; text-align: center; }
+  @media (max-width: 640px) {
+    header.top { padding: .8rem 1rem; }
+    main { padding: 1rem; }
+    .detail { padding: 1.25rem; border-radius: 16px; }
+    .detail h1 { font-size: 1.25rem; }
+    .stats { grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: 1.4rem; }
+    .stat { padding: .7rem .85rem; }
+    .stat .v { font-size: 1.05rem; }
+    .cta { font-size: 1.05rem; padding: 1rem; min-height: 56px; }
+  }
 </style>
 </head>
 <body>
