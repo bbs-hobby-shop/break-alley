@@ -27,6 +27,29 @@ FORMAT_PATTERNS = [
     ("case_break", [r"\bcase break\b", r"\bcase\b.*\bbreak\b"]),
 ]
 
+# Strong title signals of a REAL buy-in break (not a recap, vlog, or casual
+# opening). A stream/video is kept when a break format was detected above
+# OR any of these match. Shared by the YouTube and Twitch ingesters.
+STRONG_BREAK_SIGNALS = [
+    r"break\s*#\s*\d+",          # "Break #12"
+    r"#\d+\s*(pyt|break)",       # "#12 PYT Break"
+    r"\bslots?\b",               # "slots left", "8 slots"
+    r"\bspots?\b.{0,20}\b(left|available|open|for sale)\b",
+    r"live\s*fills?",            # "live fills"
+    r"pick\s*your",              # "pick your team/division"
+    r"\bgroup\s*break\b",
+    r"\bmixer\b",                # "10 Box Mixer"
+    r"\d+\s*box.{0,25}\bbreak\b",  # "32 Box PLAYER Break"
+    r"\bteams?\b.{0,25}\b(available|left|open|for sale)\b",
+]
+
+
+def looks_like_real_break(title: str, fmt: str | None) -> bool:
+    """True only for titles that read like actual buy-in break listings."""
+    if fmt and fmt != "unknown":
+        return True
+    return any(re.search(p, title, re.IGNORECASE) for p in STRONG_BREAK_SIGNALS)
+
 
 def _first_match(text: str, patterns: dict | list) -> str | None:
     items = patterns.items() if isinstance(patterns, dict) else patterns

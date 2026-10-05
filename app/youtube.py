@@ -12,15 +12,14 @@ raising cadence or query count):
 
   Per run:  Q queries x E event types searches + ceil(unique_videos / 50)
             detail calls
-  Default:  3 queries x 2 event types (live, upcoming) = 6 searches
-            = 600 units
-            ~150 unique videos -> 3 detail calls = 3 units
-            ~= 603 units/run
+  Default:  8 queries x 2 event types (live, upcoming) = 16 searches
+            = 1600 units
+            ~300 unique videos -> 6 detail calls = 6 units
+            ~= 1606 units/run
 
-  Cadence:  every 6 hours (4 runs/day) -> ~2,412 units/day (~24% of quota).
-  That leaves ~7,500 units/day of headroom for query growth or extra runs.
+  Cadence:  every 6 hours (4 runs/day) -> ~6,425 units/day (~64% of quota).
   Do NOT run this every 15 minutes like eBay: hourly runs at the default
-  query count would already burn ~14,500 units/day — over quota.
+  query count would already burn ~38,500 units/day — way over quota.
 
 The query list is configurable without code changes via the
 YOUTUBE_SEARCH_QUERIES env var (comma-separated, overrides the default list).
@@ -33,14 +32,18 @@ Pipeline per run:
      normalizer.normalize_ebay_item)
 """
 import os
-import re
 import sys
 from datetime import datetime, timezone
 
 import httpx
 
 from . import config
-from .normalizer import detect_format, detect_sport, normalize_product
+from .normalizer import (
+    detect_format,
+    detect_sport,
+    looks_like_real_break,
+    normalize_product,
+)
 
 SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
@@ -49,32 +52,18 @@ EVENT_TYPES = ["live", "upcoming"]
 
 # Broad queries on purpose: each search costs 100 units, so a few wide nets
 # beat many narrow ones. Queries are matched against stream titles.
+# 8 queries x 2 event types = 16 searches = ~1,600 units/run;
+# 4 runs/day ~= 6,400 units/day (~64% of the 10k quota).
 DEFAULT_SEARCH_QUERIES = [
     "box break",
     "card break",
     "box break pyt",
+    "case break",
+    "random team break",
+    "group break",
+    "box mixer break",
+    "box break live",
 ]
-
-
-# Strong title signals of a REAL buy-in break (not a recap, vlog, or casual
-# opening). A video is kept when the normalizer detected a break format
-# (pyt/random/division/hit_draft/personal/case_break) OR any of these match.
-STRONG_BREAK_SIGNALS = [
-    r"break\s*#\s*\d+",          # "Break #12"
-    r"#\d+\s*(pyt|break)",       # "#12 PYT Break"
-    r"\bslots?\b",               # "slots left", "8 slots"
-    r"\bspots?\b.{0,20}\b(left|available|open|for sale)\b",
-    r"live\s*fills?",            # "live fills"
-    r"pick\s*your",              # "pick your team/division"
-    r"\bgroup\s*break\b",
-]
-
-
-def looks_like_real_break(title: str, fmt: str) -> bool:
-    """True only for videos that read like actual buy-in break listings."""
-    if fmt and fmt != "unknown":
-        return True
-    return any(re.search(p, title, re.IGNORECASE) for p in STRONG_BREAK_SIGNALS)
 
 
 def _parse_ts(value: str | None) -> datetime | None:

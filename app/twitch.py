@@ -36,19 +36,30 @@ import time
 import httpx
 
 from . import config
-from .normalizer import detect_format, detect_sport, normalize_product
+from .normalizer import (
+    detect_format,
+    detect_sport,
+    looks_like_real_break,
+    normalize_product,
+)
 
 TOKEN_URL = "https://id.twitch.tv/oauth2/token"
 SEARCH_URL = "https://api.twitch.tv/helix/search/channels"
 STREAMS_URL = "https://api.twitch.tv/helix/streams"
 
 # Broad queries on purpose: search matches against channel name/title.
-# The enrichment + normalizer filters to actual break content via titles.
+# The enrichment + break-signal filter keep only actual break content.
+# Twitch has no search quota like YouTube (rate limit is 800 req/min),
+# so a wider query list is cheap.
 DEFAULT_SEARCH_QUERIES = [
     "box break",
     "card break",
     "case break",
     "group break",
+    "box breaks",
+    "card breaks",
+    "live box break",
+    "sports card break",
 ]
 
 _token_cache: dict = {}
@@ -206,16 +217,21 @@ def fetch_all_break_streams() -> list[dict]:
     n_enrich = (len(user_ids) + 99) // 100 if user_ids else 0
     streams = enrich_streams(user_ids, token)
 
-    # 3. normalize — only channels confirmed still live via enrichment
+    # 3. normalize — only channels confirmed still live via enrichment,
+    # and only streams whose title reads like a real buy-in break
     rows: list[dict] = []
+    n_dropped = 0
     for uid in user_ids:
         stream = streams.get(uid)
         if not stream:
             continue  # went offline between search and enrichment
         row = normalize_twitch_channel(candidates[uid], stream)
         if row and row.get("source_url"):
-            rows.append(row)
+            if looks_like_real_break(row["title_raw"], row.get("format")):
+                rows.append(row)
+            else:
+                n_dropped += 1
 
     print(f"twitch: {n_searches} searches + {n_enrich} enrich calls; "
-          f"{len(rows)} live breaks normalized")
+          f"{len(rows)} live breaks kept, {n_dropped} non-break streams dropped")
     return rows

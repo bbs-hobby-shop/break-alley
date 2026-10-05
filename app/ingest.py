@@ -134,13 +134,17 @@ def run_twitch() -> int:
     rows = twitch.fetch_all_break_streams()
     print(f"fetched {len(rows)} normalized Twitch breaks")
     n = 0
+    # Twitch data is transient (currently-live streams), so each run wipes
+    # and rewrites the twitch slice in ONE transaction: ended streams vanish
+    # instead of lingering as stale "live" rows.
     with db.get_conn() as conn:
+        conn.execute("DELETE FROM breaks WHERE source = 'twitch'")
         for row in rows:
             if not row.get("source_url"):
                 continue
             db.upsert_break(conn, row)
             n += 1
-    print(f"upserted {n} Twitch breaks")
+    print(f"replaced twitch slice with {n} Twitch breaks")
     return 0
 
 
