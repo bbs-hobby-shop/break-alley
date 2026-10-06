@@ -587,7 +587,7 @@ WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT
        OR (CAST(%(region)s AS TEXT) = 'intl'
            AND country IS NOT NULL AND country <> 'US'))
 ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
-LIMIT 200;
+LIMIT 1000;
 """
 
 
