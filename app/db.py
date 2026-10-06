@@ -582,7 +582,8 @@ WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT
   AND (CAST(%(source)s AS TEXT) IS NULL OR source = %(source)s)
   AND (CAST(%(live_only)s AS BOOLEAN) IS NULL OR is_live = %(live_only)s)
   AND (CAST(%(region)s AS TEXT) IS NULL
-       OR (CAST(%(region)s AS TEXT) = 'us' AND country = 'US')
+       OR (CAST(%(region)s AS TEXT) = 'us'
+           AND (country IS NULL OR country = 'US'))
        OR (CAST(%(region)s AS TEXT) = 'intl'
            AND country IS NOT NULL AND country <> 'US'))
 ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
