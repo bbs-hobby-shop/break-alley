@@ -236,6 +236,22 @@ def test_roster_country_known_override():
     print("ok test_roster_country_known_override")
 
 
+def test_roster_country_title_fallback():
+    # Discovered channels match KNOWN_COUNTRIES_BY_TITLE by title substring.
+    conn = FakeConn(roster_channels=[
+        {"channel_id": CH_A, "title": "ByThaCard", "country": None},
+    ])
+    with patch([(youtube_roster, "_get", fake_roster_get),
+                (youtube, "_get", fake_youtube_get),
+                (youtube_roster, "channel_countries", lambda ids: {}),
+                (youtube_roster, "KNOWN_COUNTRIES", {}),
+                (youtube_roster, "KNOWN_COUNTRIES_BY_TITLE", {"bythacard": "TW"}),
+                (config, "YOUTUBE_API_KEY", "fake-key")]):
+        rows, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
+    assert rows and all(r["country"] == "TW" for r in rows), rows
+    print("ok test_roster_country_title_fallback")
+
+
 def test_region_filter_in_search():
     # region flows into search_breaks and constrains on country.
     conn = FakeConn()

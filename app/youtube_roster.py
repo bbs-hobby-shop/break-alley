@@ -31,6 +31,7 @@ Pipeline per run:
      youtube slice lifecycle) + stamp roster last_hit_at / last_checked_at
 """
 import os
+import re
 import sys
 
 import httpx
@@ -67,6 +68,27 @@ KNOWN_COUNTRIES = {
     # Out Of The Box: Ottawa ON brick & mortar
     "UC3XMSBs56tO133hlF_N8VQQ": "CA",
 }
+
+# Title-substring fallback for discovered channels whose IDs aren't in
+# KNOWN_COUNTRIES (e.g. search-poller discoveries). Matched case-insensitively
+# against the roster channel title; same confidence bar as above.
+KNOWN_COUNTRIES_BY_TITLE = {
+    # ByThaCard: Taiwan group-break operation (traditional Chinese titles)
+    "bythacard": "TW",
+    # KwiatuCards: Polish breaker (Polish-language break titles)
+    "kwiatucards": "PL",
+}
+
+
+def _override_country(cid: str, title: str | None) -> str | None:
+    """Curated country for a channel, by ID then title substring."""
+    if cid in KNOWN_COUNTRIES:
+        return KNOWN_COUNTRIES[cid]
+    t = re.sub(r"[^a-z0-9]", "", (title or "").lower())
+    for sub, country in KNOWN_COUNTRIES_BY_TITLE.items():
+        if sub in t:
+            return country
+    return None
 
 
 def uploads_playlist_id(channel_id: str) -> str:
@@ -134,6 +156,7 @@ def fetch_roster_breaks(conn):
     # snippet.country first (1 unit per 50 channels), then the curated
     # KNOWN_COUNTRIES overrides for channels that don't set one.
     country_of = {ch["channel_id"]: ch.get("country") for ch in channels}
+    title_of = {ch["channel_id"]: ch.get("title") for ch in channels}
     missing = [cid for cid, c in country_of.items() if not c]
     n_country_calls = 0
     if missing:
@@ -145,8 +168,10 @@ def fetch_roster_breaks(conn):
             api_map = {}
         fresh = {cid: c for cid, c in api_map.items() if c}
         for cid in missing:
-            if cid not in fresh and cid in KNOWN_COUNTRIES:
-                fresh[cid] = KNOWN_COUNTRIES[cid]
+            if cid not in fresh:
+                override = _override_country(cid, title_of.get(cid))
+                if override:
+                    fresh[cid] = override
         n_filled = db.set_channel_countries(conn, fresh)
         country_of.update(fresh)
         if n_filled:
