@@ -162,3 +162,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def test_user_stats_sql():
+    conn = FakeConn(one={"c": 3}, rows=[{"email": "a@b.com", "created_at": None}])
+    stats = db.user_stats(conn)
+    assert stats["total"] == 3
+    assert len(stats["latest"]) == 1
+    sqls = [s for s, _ in conn.executes]
+    assert any("FROM users" in s and "24 hours" in s for s in sqls)
+    assert any("7 days" in s for s in sqls)
+    print("ok test_user_stats_sql")

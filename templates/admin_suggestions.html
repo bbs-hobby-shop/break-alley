@@ -54,6 +54,19 @@
 
   {% if error %}<div class="err">{{ error }}</div>{% endif %}
 
+  {% if stats %}
+  <h2>Signups</h2>
+  <div class="row">
+    <div class="input">{{ stats.total }} total <span class="meta">· {{ stats.today }} today · {{ stats.week }} this week</span></div>
+    {% if stats.latest %}
+    <div class="meta" style="margin-top:.5rem">Latest:</div>
+    {% for u in stats.latest %}
+    <div class="meta">{{ u.email }} — {{ u.created_at.strftime('%b %d, %Y %I:%M %p') if u.created_at else '' }}</div>
+    {% endfor %}
+    {% endif %}
+  </div>
+  {% endif %}
+
   <h2>Pending ({{ pending|length }})</h2>
   {% if pending %}
     {% for s in pending %}

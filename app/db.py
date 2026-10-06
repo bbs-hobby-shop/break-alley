@@ -290,6 +290,21 @@ def delete_saved_search(conn, user_id: int, search_id: int) -> None:
     )
 
 
+def user_stats(conn) -> dict:
+    """Signup growth snapshot for the admin page."""
+    total = conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()["c"]
+    today = conn.execute(
+        "SELECT COUNT(*) AS c FROM users WHERE created_at >= NOW() - INTERVAL '24 hours'"
+    ).fetchone()["c"]
+    week = conn.execute(
+        "SELECT COUNT(*) AS c FROM users WHERE created_at >= NOW() - INTERVAL '7 days'"
+    ).fetchone()["c"]
+    latest = [dict(r) for r in conn.execute(
+        "SELECT email, created_at FROM users ORDER BY created_at DESC LIMIT 10"
+    ).fetchall()]
+    return {"total": total, "today": today, "week": week, "latest": latest}
+
+
 # Self-healing schema migration for the cron pollers (they don't run
 # schema.sql — only the web service does on deploy). Idempotent: safe to
 # run at the start of every ingest run.

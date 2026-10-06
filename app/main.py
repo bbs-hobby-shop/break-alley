@@ -123,13 +123,15 @@ def admin_suggestions(request: Request, key: str | None = Query(default=None)):
             pending = db.list_breaker_suggestions(conn, status="pending")
             reviewed = db.list_breaker_suggestions(conn)[:50]
             reviewed = [r for r in reviewed if r["status"] != "pending"]
+            stats = db.user_stats(conn)
     except Exception as exc:
         return templates.TemplateResponse(request, "admin_suggestions.html", {
             "denied": False, "error": f"Database unavailable: {exc}",
             "pending": [], "reviewed": [], "key": key or "",
         })
     return templates.TemplateResponse(request, "admin_suggestions.html", {
-        "denied": False, "pending": pending, "reviewed": reviewed, "key": key or "",
+        "denied": False, "pending": pending, "reviewed": reviewed,
+        "stats": stats, "key": key or "",
     })
 
 
