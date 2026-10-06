@@ -115,6 +115,9 @@ def run_ebay() -> int:
                     row["video_platform"] = video["video_platform"]
                     row["break_time_text"] = video["break_time_text"]
                     row["video_links"] = video["video_links"]
+                    # Standardize eBay break times to match other platforms (Brian 2026-10-06)
+                    if video.get("break_starts_at") and not row.get("starts_at"):
+                        row["starts_at"] = video["break_starts_at"]
                     if video["video_links"]:
                         n_video += 1
                 except Exception as e:

@@ -247,7 +247,6 @@
           <div class="tags">
             {% if b.is_live %}<span class="tag live">● LIVE</span>{% endif %}
             {% if b.date_label and not b.is_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
-            {% if b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
             {% if b.break_no %}<span class="tag">{{ b.break_no }}</span>{% endif %}
             <span class="tag">{{ b.source|title }}</span>
             {% if b.format and b.format != 'unknown' %}<span class="tag">{{ format_labels.get(b.format, b.format) }}</span>{% endif %}

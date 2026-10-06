@@ -25,6 +25,47 @@ TIME_PATTERNS = [
     r"break\s*night\s*(?:at\s*)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*(?:CT|ET|PT|MT)?)",
 ]
 
+# Timezone abbreviations to IANA names for break time parsing
+TZ_MAP = {
+    "PT": "US/Pacific", "PST": "US/Pacific", "PDT": "US/Pacific",
+    "MT": "US/Mountain", "MST": "US/Mountain", "MDT": "US/Mountain",
+    "CT": "US/Central", "CST": "US/Central", "CDT": "US/Central",
+    "ET": "US/Eastern", "EST": "US/Eastern", "EDT": "US/Eastern",
+}
+
+
+def parse_break_time(text: str) -> str | None:
+    """Parse '1:30PM PST' style text into an ISO datetime string (assumes today,
+    or tomorrow if the time already passed). Returns None if unparseable."""
+    if not text:
+        return None
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    m = re.match(
+        r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*([A-Z]{2,4})?",
+        text.strip(),
+        re.IGNORECASE,
+    )
+    if not m:
+        return None
+    hour, minute, ampm, tz_abbr = m.groups()
+    hour, minute = int(hour), int(minute or 0)
+    if ampm.lower() == "pm" and hour != 12:
+        hour += 12
+    if ampm.lower() == "am" and hour == 12:
+        hour = 0
+
+    tz_name = TZ_MAP.get((tz_abbr or "CT").upper(), "US/Central")
+    tz = ZoneInfo(tz_name)
+    now = datetime.now(tz)
+    dt = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    # If the time already passed today, assume tomorrow
+    if dt <= now:
+        from datetime import timedelta
+        dt = dt + timedelta(days=1)
+    return dt.isoformat()
+
 # Platform URL patterns: (regex, platform name)
 PLATFORM_URL_PATTERNS = [
     (r'youtube\.com/@([^/"\s<]+)', "YouTube"),
@@ -113,11 +154,15 @@ def extract_video_info(item: dict) -> dict:
     video_url = links[0]["url"] if links else None
     video_platform = links[0]["platform"] if links else None
 
+    # Parse break time into a datetime for standard formatting (Brian 2026-10-06)
+    break_starts_at = parse_break_time(break_time_text) if break_time_text else None
+
     return {
         "video_links": links,
         "video_url": video_url,
         "video_platform": video_platform,
         "break_time_text": break_time_text,
+        "break_starts_at": break_starts_at,
     }
 
 
