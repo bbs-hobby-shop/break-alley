@@ -576,38 +576,23 @@ def ensure_schema(conn) -> None:
 
 
 SEARCH_SQL = """
-WITH ranked AS (
-    SELECT id, source, source_url, breaker, product_raw, product_normalized,
-           sport, format, price, currency, starts_at, is_live,
-           slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
-           country, group_key,
-           ROW_NUMBER() OVER (
-               PARTITION BY COALESCE(group_key, 'solo:' || id::TEXT)
-               ORDER BY price ASC NULLS LAST, fetched_at DESC
-           ) AS rn,
-           COUNT(*) OVER (
-               PARTITION BY COALESCE(group_key, 'solo:' || id::TEXT)
-           ) AS group_count
-    FROM breaks
-    WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
-           OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
-      AND (CAST(%(sport)s AS TEXT) IS NULL OR sport = %(sport)s)
-      AND (CAST(%(format)s AS TEXT) IS NULL OR format = %(format)s)
-      AND (CAST(%(max_price)s AS NUMERIC) IS NULL OR price IS NULL OR price <= %(max_price)s)
-      AND (CAST(%(source)s AS TEXT) IS NULL OR source = %(source)s)
-      AND (CAST(%(live_only)s AS BOOLEAN) IS NULL OR is_live = %(live_only)s)
-      AND (CAST(%(region)s AS TEXT) IS NULL
-           OR (CAST(%(region)s AS TEXT) = 'us'
-               AND (country IS NULL OR country = 'US'))
-           OR (CAST(%(region)s AS TEXT) = 'intl'
-               AND country IS NOT NULL AND country <> 'US'))
-)
 SELECT id, source, source_url, breaker, product_raw, product_normalized,
        sport, format, price, currency, starts_at, is_live,
        slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
-       country, group_key, group_count
-FROM ranked
-WHERE rn = 1
+       country, group_key
+FROM breaks
+WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
+       OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
+  AND (CAST(%(sport)s AS TEXT) IS NULL OR sport = %(sport)s)
+  AND (CAST(%(format)s AS TEXT) IS NULL OR format = %(format)s)
+  AND (CAST(%(max_price)s AS NUMERIC) IS NULL OR price IS NULL OR price <= %(max_price)s)
+  AND (CAST(%(source)s AS TEXT) IS NULL OR source = %(source)s)
+  AND (CAST(%(live_only)s AS BOOLEAN) IS NULL OR is_live = %(live_only)s)
+  AND (CAST(%(region)s AS TEXT) IS NULL
+       OR (CAST(%(region)s AS TEXT) = 'us'
+           AND (country IS NULL OR country = 'US'))
+       OR (CAST(%(region)s AS TEXT) = 'intl'
+           AND country IS NOT NULL AND country <> 'US'))
 ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
 LIMIT 1000;
 """
@@ -615,10 +600,36 @@ LIMIT 1000;
 
 def search_breaks(conn, q=None, sport=None, format=None, max_price=None,
                   source=None, live_only=None, region=None):
-    return conn.execute(SEARCH_SQL, {
+    rows = conn.execute(SEARCH_SQL, {
         "q": q, "sport": sport, "format": format, "max_price": max_price,
         "source": source, "live_only": live_only, "region": region,
     }).fetchall()
+    # Deduplicate eBay team-by-team listings: one card per break group.
+    # Keep the cheapest listing per group (buyer-friendly); attach the count.
+    seen: dict[str, dict] = {}
+    out: list[dict] = []
+    for r in rows:
+        gk = r.get("group_key")
+        if not gk:
+            r["group_count"] = 1
+            out.append(r)
+            continue
+        existing = seen.get(gk)
+        if existing is None:
+            r["group_count"] = 1
+            seen[gk] = r
+            out.append(r)
+        else:
+            existing["group_count"] = existing.get("group_count", 1) + 1
+            # Keep the cheaper listing as the representative
+            rp, ep = r.get("price"), existing.get("price")
+            if rp is not None and (ep is None or rp < ep):
+                # Swap: r becomes the representative, preserve count
+                idx = out.index(existing)
+                r["group_count"] = existing["group_count"]
+                out[idx] = r
+                seen[gk] = r
+    return out
 
 
 def get_break(conn, break_id: int):
