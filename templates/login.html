@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — Break Alley</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --bg: #0a0e1c; --card: #151c38; --line: #26305c; --text: #f2f4ff;
+          --muted: #8b93b8; --green: #00e676; --red: #ff3b5c; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
+         color: var(--text); background: var(--bg); min-height: 100vh;
+         display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+  .box { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--line);
+         border-radius: 16px; padding: 2rem; }
+  h1 { margin: 0 0 1.4rem; font-size: 1.5rem; font-weight: 900; }
+  h1 span { color: var(--green); }
+  label { display: block; font-size: .82rem; font-weight: 700; color: var(--muted); margin: 0 0 .35rem; }
+  input[type=email], input[type=password] { width: 100%; background: var(--bg); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: .8rem 1rem; font-size: 1rem; margin-bottom: 1rem; }
+  input:focus { border-color: var(--green); outline: none; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  button { width: 100%; padding: .85rem; font-size: 1rem; font-weight: 800; color: #04120a;
+    background: var(--green); border: 0; border-radius: 10px; cursor: pointer; }
+  .err { background: rgba(255,59,92,.12); border: 1px solid var(--red); border-radius: 10px;
+    padding: .7rem .9rem; font-size: .88rem; margin-bottom: 1rem; }
+  .alt { text-align: center; margin-top: 1.2rem; font-size: .88rem; color: var(--muted); }
+  .alt a { color: var(--green); font-weight: 700; }
+  .home { display: block; text-align: center; margin-top: .8rem; font-size: .85rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>Break <span>Alley</span></h1>
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  <form method="post" action="/login">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label for="email">Email</label>
+    <input id="email" type="email" name="email" required autocomplete="email">
+    <label for="password">Password</label>
+    <input id="password" type="password" name="password" required autocomplete="current-password">
+    <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button type="submit">Sign in</button>
+  </form>
+  <div class="alt">New here? <a href="/signup">Create an account</a></div>
+  <a class="home" href="/">← back to breaks</a>
+</div>
+</body>
+</html>

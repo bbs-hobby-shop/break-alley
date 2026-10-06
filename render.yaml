@@ -35,6 +35,8 @@ services:
         sync: false
       - key: ADMIN_KEY
         sync: false
+      - key: SECRET_KEY
+        sync: false
 
   # ---- Pollers (cron jobs, $1/mo each) ----
   - type: cron

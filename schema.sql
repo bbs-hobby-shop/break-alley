@@ -74,6 +74,33 @@ CREATE TABLE IF NOT EXISTS breaker_suggestions (
 );
 CREATE INDEX IF NOT EXISTS idx_breaker_suggestions_status ON breaker_suggestions (status);
 
+-- User accounts (optional perks: favorite breakers, saved searches).
+-- Browsing stays free; accounts only unlock personal features.
+CREATE TABLE IF NOT EXISTS users (
+    id            SERIAL PRIMARY KEY,
+    email         TEXT NOT NULL UNIQUE,          -- stored lowercased
+    password_hash TEXT NOT NULL,                 -- bcrypt
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS user_favorites (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    breaker    TEXT NOT NULL,                    -- breaker display name
+    channel_id TEXT,                             -- YouTube UC id when known
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, breaker)
+);
+CREATE TABLE IF NOT EXISTS saved_searches (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name       TEXT NOT NULL,
+    q          TEXT,
+    format     TEXT,
+    source     TEXT,
+    max_price  NUMERIC,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches (user_id);
+
 -- Canonical products + known title aliases for normalization.
 CREATE TABLE IF NOT EXISTS products (
     id             SERIAL PRIMARY KEY,

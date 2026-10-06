@@ -187,6 +187,109 @@ def review_breaker_suggestion(conn, suggestion_id: int, approved: bool,
     )
 
 
+# ---------------------------------------------------------------------------
+# User accounts
+# ---------------------------------------------------------------------------
+
+def create_user(conn, email: str, password_hash: str) -> int:
+    """Insert a user; email is stored lowercased. Raises on duplicate."""
+    cur = conn.execute(
+        """INSERT INTO users (email, password_hash)
+           VALUES (%(email)s, %(password_hash)s) RETURNING id""",
+        {"email": email.strip().lower(), "password_hash": password_hash},
+    )
+    return cur.fetchone()["id"]
+
+
+def get_user_by_email(conn, email: str) -> dict | None:
+    row = conn.execute(
+        "SELECT * FROM users WHERE email = %(email)s",
+        {"email": email.strip().lower()},
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def get_user_by_id(conn, user_id: int) -> dict | None:
+    row = conn.execute(
+        "SELECT * FROM users WHERE id = %(id)s", {"id": user_id}
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def add_favorite(conn, user_id: int, breaker: str, channel_id: str | None = None) -> None:
+    conn.execute(
+        """INSERT INTO user_favorites (user_id, breaker, channel_id)
+           VALUES (%(user_id)s, %(breaker)s, %(channel_id)s)
+           ON CONFLICT (user_id, breaker) DO NOTHING""",
+        {"user_id": user_id, "breaker": breaker.strip()[:120],
+         "channel_id": channel_id},
+    )
+
+
+def remove_favorite(conn, user_id: int, breaker: str) -> None:
+    conn.execute(
+        "DELETE FROM user_favorites WHERE user_id = %(user_id)s AND breaker = %(breaker)s",
+        {"user_id": user_id, "breaker": breaker},
+    )
+
+
+def list_favorites(conn, user_id: int) -> list[dict]:
+    return [dict(r) for r in conn.execute(
+        """SELECT breaker, channel_id, created_at FROM user_favorites
+           WHERE user_id = %(user_id)s ORDER BY created_at DESC""",
+        {"user_id": user_id},
+    ).fetchall()]
+
+
+def favorite_breakers(conn, user_id: int) -> set[str]:
+    return {r["breaker"] for r in list_favorites(conn, user_id)}
+
+
+def breaks_for_breakers(conn, breakers: list[str], limit: int = 100) -> list[dict]:
+    """Live-first breaks from the given breaker names (for My Breakers)."""
+    if not breakers:
+        return []
+    return [dict(r) for r in conn.execute(
+        """SELECT id, source, source_url, breaker, product_raw, product_normalized,
+                  sport, format, price, currency, starts_at, is_live,
+                  slots_total, slots_remaining, thumbnail_url, title_raw
+           FROM breaks
+           WHERE breaker = ANY(%(breakers)s)
+           ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
+           LIMIT %(limit)s""",
+        {"breakers": breakers, "limit": limit},
+    ).fetchall()]
+
+
+def save_search(conn, user_id: int, name: str, q: str | None,
+                format: str | None, source: str | None,
+                max_price: float | None) -> int:
+    cur = conn.execute(
+        """INSERT INTO saved_searches (user_id, name, q, format, source, max_price)
+           VALUES (%(user_id)s, %(name)s, %(q)s, %(format)s, %(source)s, %(max_price)s)
+           RETURNING id""",
+        {"user_id": user_id, "name": name.strip()[:80], "q": q,
+         "format": format, "source": source, "max_price": max_price},
+    )
+    return cur.fetchone()["id"]
+
+
+def list_saved_searches(conn, user_id: int) -> list[dict]:
+    return [dict(r) for r in conn.execute(
+        """SELECT id, name, q, format, source, max_price, created_at
+           FROM saved_searches WHERE user_id = %(user_id)s
+           ORDER BY created_at DESC""",
+        {"user_id": user_id},
+    ).fetchall()]
+
+
+def delete_saved_search(conn, user_id: int, search_id: int) -> None:
+    conn.execute(
+        "DELETE FROM saved_searches WHERE id = %(id)s AND user_id = %(user_id)s",
+        {"id": search_id, "user_id": user_id},
+    )
+
+
 # Self-healing schema migration for the cron pollers (they don't run
 # schema.sql — only the web service does on deploy). Idempotent: safe to
 # run at the start of every ingest run.
@@ -237,6 +340,32 @@ CREATE TABLE IF NOT EXISTS breaker_suggestions (
     reviewed_at   TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_breaker_suggestions_status ON breaker_suggestions (status);
+
+-- User accounts (optional perks: favorite breakers, saved searches).
+CREATE TABLE IF NOT EXISTS users (
+    id            SERIAL PRIMARY KEY,
+    email         TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS user_favorites (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    breaker    TEXT NOT NULL,
+    channel_id TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, breaker)
+);
+CREATE TABLE IF NOT EXISTS saved_searches (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name       TEXT NOT NULL,
+    q          TEXT,
+    format     TEXT,
+    source     TEXT,
+    max_price  NUMERIC,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches (user_id);
 """
 
 

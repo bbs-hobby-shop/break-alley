@@ -49,6 +49,25 @@
     background: var(--red); border-radius: 20px; padding: .3rem .8rem;
     display: flex; align-items: center; gap: .4rem;
   }
+  .auth-link { color: var(--muted); font-size: .88rem; font-weight: 700; text-decoration: none; }
+  .auth-link:hover { color: var(--text); }
+  .auth-link.cta { background: var(--green); color: #04120a; border-radius: 20px; padding: .35rem .9rem; }
+  .auth-form { display: inline; margin: 0; }
+  .auth-form button { background: none; border: 0; color: var(--muted); font-size: .88rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; }
+  .auth-form button:hover { color: var(--text); }
+  .fav-btn { background: none; border: 0; cursor: pointer; font-size: 1rem; line-height: 1;
+    color: var(--muted); padding: .2rem; }
+  .fav-btn.faved { color: var(--orange); }
+  .fav-form { display: inline; }
+  .save-search { display: inline-flex; align-items: center; gap: .4rem; margin-left: .4rem; }
+  .save-search input { background: var(--card); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: .55rem .8rem; font-size: .9rem; }
+  .save-search button { background: var(--card2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: .55rem 1.1rem; font-weight: 700; cursor: pointer; }
+  .card-wrap { position: relative; }
+  .card-wrap .fav-form { position: absolute; right: .9rem; bottom: .65rem; margin: 0; }
+  .card-wrap .fav-login { position: absolute; right: .9rem; bottom: .65rem; text-decoration: none; }
   .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: pulse 1.4s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
   .hero { max-width: 1080px; margin: 0 auto; padding: 2.2rem 1.5rem 0; }
@@ -156,6 +175,13 @@
 <body>
 <header class="top">
   <div class="logo"><img src="/static/logo-mark.webp" alt="Break Alley logo">BREAK <span>ALLEY</span></div>
+  {% if user %}
+    <a class="auth-link" href="/account">★ My Breakers</a>
+    <form method="post" action="/logout" class="auth-form"><button type="submit">Sign out</button></form>
+  {% else %}
+    <a class="auth-link" href="/login">Sign in</a>
+    <a class="auth-link cta" href="/signup">Sign up free</a>
+  {% endif %}
   <div class="live-pill"><span class="live-dot"></span>LIVE NOW</div>
 </header>
 
@@ -185,12 +211,25 @@
     </select>
     <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
     <button class="go" type="submit">Apply</button>
+    {% if user %}
+    <span class="save-search">
+      <form method="post" action="/searches/save" style="display:flex; gap:.4rem;">
+        <input type="text" name="name" placeholder="Name this search…" maxlength="80">
+        <input type="hidden" name="q" value="{{ q }}">
+        <input type="hidden" name="format" value="{{ format }}">
+        <input type="hidden" name="source" value="{{ source }}">
+        <input type="hidden" name="max_price" value="{{ max_price }}">
+        <button type="submit">⚲ Save</button>
+      </form>
+    </span>
+    {% endif %}
   </form>
 
   <div class="section-label">Breaks</div>
   <div class="grid">
     {% if results %}
       {% for b in results %}
+      <div class="card-wrap">
       <a class="card {% if b.is_live %}is-live{% endif %}" href="/break/{{ b.id }}">
         <div class="thumb">📦</div>
         <div class="meta">
@@ -211,6 +250,18 @@
           {% if b.price %}<div class="price">${{ b.price }}</div><div class="per">per slot</div>{% endif %}
         </div>
       </a>
+      {% if b.breaker %}
+        {% if user %}
+        <form class="fav-form" method="post" action="/favorites/toggle">
+          <input type="hidden" name="breaker" value="{{ b.breaker }}">
+          <input type="hidden" name="next" value="/?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
+          <button class="fav-btn {% if b.breaker in favorites %}faved{% endif %}" type="submit" title="{% if b.breaker in favorites %}Unfavorite {{ b.breaker }}{% else %}Favorite {{ b.breaker }}{% endif %}">★</button>
+        </form>
+        {% else %}
+        <a class="fav-btn fav-login" href="/signup" title="Sign up to favorite breakers">☆</a>
+        {% endif %}
+      {% endif %}
+      </div>
       {% endfor %}
     {% elif not error %}
       <div class="empty">No breaks found. Try widening your search — or run the ingester to pull fresh listings.</div>

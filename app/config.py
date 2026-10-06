@@ -18,6 +18,9 @@ TWITCH_CLIENT_SECRET: str = os.environ.get("TWITCH_CLIENT_SECRET", "")
 # Shared secret gating /admin/suggestions (breaker review queue).
 # Set a long random value in Render env vars; Brian bookmarks the URL with ?key=...
 ADMIN_KEY: str = os.environ.get("ADMIN_KEY", "")
+# Secret for signing session cookies. Generate with:
+#   python -c "import secrets; print(secrets.token_urlsafe(32))"
+SECRET_KEY: str = os.environ.get("SECRET_KEY", "")
 
 
 def ebay_configured() -> bool:
