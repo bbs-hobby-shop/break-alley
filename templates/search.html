@@ -86,6 +86,7 @@
   }
   main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
   .toolbar { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1rem 0 1.2rem; }
+  .toolbar-form { display: contents; }
   .toolbar select, .toolbar input[type=number] {
     background: var(--card); color: var(--text); border: 1px solid var(--line);
     border-radius: 10px; padding: .55rem .8rem; font-size: .9rem;
@@ -197,7 +198,8 @@
 
 <main>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
-  <form class="toolbar" method="get" action="/">
+  <div class="toolbar">
+  <form class="toolbar-form" method="get" action="/">
     <input type="hidden" name="q" value="{{ q }}">
     <select name="format">
       <option value="">Any format</option>
@@ -212,19 +214,18 @@
     </select>
     <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
     <button class="go" type="submit">Apply</button>
-    {% if user %}
-    <span class="save-search">
-      <form method="post" action="/searches/save" style="display:flex; gap:.4rem;">
-        <input type="text" name="name" placeholder="Name this search…" maxlength="80">
-        <input type="hidden" name="q" value="{{ q }}">
-        <input type="hidden" name="format" value="{{ format }}">
-        <input type="hidden" name="source" value="{{ source }}">
-        <input type="hidden" name="max_price" value="{{ max_price }}">
-        <button type="submit">⚲ Save</button>
-      </form>
-    </span>
-    {% endif %}
   </form>
+  {% if user %}
+  <form class="save-search" method="post" action="/searches/save">
+    <input type="text" name="name" placeholder="Name this search…" maxlength="80">
+    <input type="hidden" name="q" value="{{ q }}">
+    <input type="hidden" name="format" value="{{ format }}">
+    <input type="hidden" name="source" value="{{ source }}">
+    <input type="hidden" name="max_price" value="{{ max_price }}">
+    <button type="submit">⚲ Save</button>
+  </form>
+  {% endif %}
+  </div>
 
   <div class="section-label">Breaks</div>
   <div class="refreshbar">
