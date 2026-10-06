@@ -54,6 +54,17 @@
   }
   .cta:hover { filter: brightness(1.08); }
   .note { text-align: center; color: var(--muted); font-size: .82rem; margin-top: .9rem; }
+  .watch-section {
+    background: rgba(124,92,255,.08); border: 1px solid var(--purple);
+    border-radius: 14px; padding: 1.2rem; margin-bottom: 1.5rem;
+  }
+  .watch-section h3 { margin: 0 0 .8rem; font-size: 1rem; font-weight: 800; }
+  .watch-time { font-size: 1.25rem; font-weight: 900; color: var(--green); margin-bottom: .9rem; }
+  .watch-btn {
+    display: block; text-align: center; color: #fff; font-size: 1rem; font-weight: 800;
+    padding: .9rem; border-radius: 10px; text-decoration: none; background: var(--purple);
+  }
+  .watch-btn:hover { filter: brightness(1.15); }
   .error { background: var(--card); border: 1px solid var(--red); color: #ff8ba0; border-radius: 16px; padding: 2rem; text-align: center; }
   @media (max-width: 640px) {
     header.top { padding: .8rem 1rem; }
@@ -87,22 +98,19 @@
       {% if b.breaker %}<div class="stat"><div class="k">Breaker</div><div class="v" style="font-size:1rem">{{ b.breaker }}</div></div>{% endif %}
       {% if b.slots_remaining is not none %}<div class="stat"><div class="k">Slots left</div><div class="v">{{ b.slots_remaining }}</div></div>{% endif %}
       {% if b.date_label %}<div class="stat"><div class="k">Starts</div><div class="v" style="font-size:1rem">{{ b.date_label }}</div></div>{% endif %}
-      {% if b.break_time_text %}<div class="stat"><div class="k">Break time</div><div class="v" style="font-size:1rem">{{ b.break_time_text }}</div></div>{% endif %}
     </div>
-    {% if b.video_links %}
-      {% for vl in b.video_links %}
-        {% if vl.url %}
-    <a class="cta" href="{{ vl.url }}" target="_blank" rel="noopener" style="margin-bottom:.5rem; background:var(--purple)">
-      Watch live on {{ vl.platform or 'video' }} →
-    </a>
-        {% elif vl.platform %}
-    <div class="stat" style="margin-bottom:.5rem"><div class="k">Also live on</div><div class="v" style="font-size:1rem">{{ vl.platform }}</div></div>
-        {% endif %}
-      {% endfor %}
-    {% elif b.video_url %}
-    <a class="cta" href="{{ b.video_url }}" target="_blank" rel="noopener" style="margin-bottom:.75rem; background:var(--purple)">
-      Watch live on {{ b.video_platform or 'video' }} →
-    </a>
+    {% if b.break_time_text or b.video_url %}
+    <div class="watch-section">
+      <h3>📺 Watch Live</h3>
+      {% if b.break_time_text %}
+      <div class="watch-time">🕐 {{ b.break_time_text }}</div>
+      {% endif %}
+      {% if b.video_url %}
+      <a class="watch-btn" href="{{ b.video_url }}" target="_blank" rel="noopener">
+        Watch on {{ b.video_platform or 'video' }} →
+      </a>
+      {% endif %}
+    </div>
     {% endif %}
     <a class="cta" href="{{ b.affiliate_url or b.source_url }}" target="_blank" rel="noopener sponsored">
       {% if b.source == 'ebay' %}Grab your slot on eBay →{% else %}Watch on {{ b.source|title }} →{% endif %}
