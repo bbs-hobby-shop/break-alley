@@ -63,11 +63,6 @@
     color: var(--muted); padding: .2rem; }
   .fav-btn.faved { color: var(--orange); }
   .fav-form { display: inline; }
-  .save-search { display: inline-flex; align-items: center; gap: .4rem; margin-top: .7rem; }
-  .save-search input { background: var(--card); color: var(--text); border: 1px solid var(--line);
-    border-radius: 10px; padding: .55rem .8rem; font-size: .9rem; }
-  .save-search button { background: var(--card2); color: var(--text); border: 1px solid var(--line);
-    border-radius: 10px; padding: .55rem 1.1rem; font-weight: 700; cursor: pointer; }
   .card-wrap { position: relative; min-width: 0; }
   .card-wrap .fav-form { position: absolute; right: .9rem; bottom: .65rem; margin: 0; }
   .card-wrap .fav-login { position: absolute; right: .9rem; bottom: .65rem; text-decoration: none; }
@@ -216,17 +211,6 @@
       <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
     </div>
   </form>
-  {% if user %}
-  <form class="save-search" method="post" action="/searches/save">
-    <input type="text" name="name" placeholder="Name this search…" maxlength="80">
-    <input type="hidden" name="q" value="{{ q }}">
-    <input type="hidden" name="format" value="{{ format }}">
-    <input type="hidden" name="source" value="{{ source }}">
-    <input type="hidden" name="max_price" value="{{ max_price }}">
-    <input type="hidden" name="region" value="{{ region }}">
-    <button type="submit">⚲ Save</button>
-  </form>
-  {% endif %}
 </div>
 
 <main>
