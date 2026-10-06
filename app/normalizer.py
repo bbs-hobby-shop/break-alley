@@ -26,7 +26,7 @@ SPORT_KEYWORDS = {
 # else a real break is still a box break, so the generic bucket catches it.
 FORMAT_PATTERNS = [
     ("pyt", [r"\bpyt\b", r"pick your team", r"\bteam break\b", r"\bplayer break\b"]),
-    ("random", [r"\brandom\b", r"\brandom team\b", r"\bdivision\b"]),
+    ("random", [r"\brandom\b", r"\brandom team\b", r"\bdivisions?\b.{0,20}\bbreak\b"]),
     ("personal", [r"\bpersonals?\b"]),
     ("case_break", [r"\bcase break\b", r"\bcase\b.*\bbreak\b"]),
     ("box_break", [r"\bbox break\b", r"\bgroup\s*breaks?\b", r"#groupbreaks?\b"]),
@@ -94,6 +94,9 @@ NON_BREAK_TITLE_WORDS = [
     r"\bodds\b",
     r"\bspins?\b",
     r"\bjackpot\b",
+    r"\bpacanele\b",  # Romanian for slot machines
+    r"\bwatch\s*party\b",
+    r"\bpreview\b",
     # Giveaways are not buy-in breaks
     r"\bgiveaway\b",
     r"\bfree\b.{0,30}\bbreak\b",

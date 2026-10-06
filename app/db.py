@@ -610,7 +610,8 @@ def purge_junk_breaks(conn) -> int:
     giveaways, etc.). Self-healing: removes junk that slipped through before
     the filter was tightened. Returns the number deleted."""
     from .normalizer import NON_BREAK_TITLE_WORDS
-    pattern = "|".join(f"(?:{p})" for p in NON_BREAK_TITLE_WORDS)
+    # NOTE: PostgreSQL ~* uses POSIX regex — no (?:...) non-capturing groups.
+    pattern = "|".join(f"({p})" for p in NON_BREAK_TITLE_WORDS)
     return conn.execute(
         "DELETE FROM breaks WHERE title_raw ~* %(pattern)s",
         {"pattern": pattern},
