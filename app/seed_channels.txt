@@ -45,4 +45,6 @@ UClWK6tQu4FqYr7XRjyueVTg  # Hobby Guru Breaks — high-end breaks (new, active)
 UC_hvzI1dLYbA6J2iq4iZAow  # Poke Boyz Trading — Pokemon/One Piece/Lorcana rip-n-ships
 UCFUYkV1czMHHLCv-wrEbGQw  # VictoryRoadTCG — Pokemon/One Piece live breaks
 UCNRq66ynHGXKDUJ1Y0Xrfsw  # Roaring Sensei — paid live rips (Pokemon/One Piece/sports)
-# HELD: Platinum Card Breaks — real operation but documented integrity issues (theft on camera 2022, sued by Blowout, banned by Panini/Fanatics) — Brian's call
+# EXCLUDED per Brian (2026-10-06): Platinum Card Breaks — documented integrity
+# issues (theft on camera 2022, sued by Blowout, banned by Panini/Fanatics).
+# Do not add.
