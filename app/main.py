@@ -84,7 +84,7 @@ def search(
         "user": user, "favorites": favorites,
         "refresh_running": _public_refresh_running(),
         "updated_ago": updated_ago,
-        "formats": ["pyt", "random", "division", "hit_draft", "personal", "case_break", "group_break"],
+        "formats": ["pyt", "random", "division", "hit_draft", "personal", "case_break", "group_break", "team_break", "player_break", "box_break"],
     })
 
 

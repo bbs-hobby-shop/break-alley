@@ -30,6 +30,9 @@ FORMAT_PATTERNS = [
     ("personal", [r"\bpersonals?\b"]),
     ("case_break", [r"\bcase break\b", r"\bcase\b.*\bbreak\b"]),
     ("group_break", [r"\bgroup\s*breaks?\b", r"#groupbreaks?\b"]),
+    ("team_break", [r"\bteam break\b"]),
+    ("player_break", [r"\bplayer break\b"]),
+    ("box_break", [r"\bbox break\b"]),
 ]
 
 # Strong title signals of a REAL buy-in break (not a recap, vlog, or casual

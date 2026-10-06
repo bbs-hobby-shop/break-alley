@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS breaks (
     product_raw     TEXT,                       -- product text as seen in the wild
     product_normalized TEXT,                    -- canonical product name (nullable until matched)
     sport           TEXT CHECK (sport IN ('football','basketball','baseball','soccer','hockey','other')),
-    format          TEXT CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','unknown')),
+    format          TEXT CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown')),
     price           NUMERIC(10,2),
     currency        TEXT DEFAULT 'USD',
     starts_at       TIMESTAMPTZ,                -- scheduled start (streams); NULL for eBay slot listings
@@ -122,6 +122,6 @@ BEGIN
             ALTER TABLE breaks DROP CONSTRAINT breaks_format_check;
         END IF;
         ALTER TABLE breaks ADD CONSTRAINT breaks_format_check
-            CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','unknown'));
+            CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown'));
     END IF;
 END $$;

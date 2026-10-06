@@ -347,7 +347,7 @@ BEGIN
             ALTER TABLE breaks DROP CONSTRAINT breaks_format_check;
         END IF;
         ALTER TABLE breaks ADD CONSTRAINT breaks_format_check
-            CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','unknown'));
+            CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown'));
     END IF;
 END $$;
 
