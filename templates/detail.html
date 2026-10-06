@@ -99,13 +99,20 @@
       {% if b.slots_remaining is not none %}<div class="stat"><div class="k">Slots left</div><div class="v">{{ b.slots_remaining }}</div></div>{% endif %}
       {% if b.date_label %}<div class="stat"><div class="k">Starts</div><div class="v" style="font-size:1rem">{{ b.date_label }}</div></div>{% endif %}
     </div>
-    {% if b.break_time_text or b.video_url %}
+    {% if b.break_time_text or b.video_links or b.video_url %}
     <div class="watch-section">
       <h3>📺 Watch Live</h3>
       {% if b.break_time_text %}
       <div class="watch-time">🕐 {{ b.break_time_text }}</div>
       {% endif %}
-      {% if b.video_url %}
+      {% for vl in b.video_links or [] %}
+      {% if vl.url %}
+      <a class="watch-btn" href="{{ vl.url }}" target="_blank" rel="noopener" style="margin-bottom:.5rem">
+        Watch on {{ vl.platform or 'video' }} →
+      </a>
+      {% endif %}
+      {% endfor %}
+      {% if not b.video_links and b.video_url %}
       <a class="watch-btn" href="{{ b.video_url }}" target="_blank" rel="noopener">
         Watch on {{ b.video_platform or 'video' }} →
       </a>
