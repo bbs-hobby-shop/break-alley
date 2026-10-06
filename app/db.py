@@ -608,11 +608,20 @@ def get_break(conn, break_id: int):
 def purge_junk_breaks(conn) -> int:
     """Delete breaks whose titles match non-break patterns (casino, betting,
     giveaways, etc.). Self-healing: removes junk that slipped through before
-    the filter was tightened. Returns the number deleted."""
+    the filter was tightened. Returns the number deleted.
+
+    NOTE: Filtering happens in Python, not SQL — PostgreSQL's POSIX regex
+    doesn't support \\b word boundaries the same way Python does.
+    """
+    import re
     from .normalizer import NON_BREAK_TITLE_WORDS
-    # NOTE: PostgreSQL ~* uses POSIX regex — no (?:...) non-capturing groups.
-    pattern = "|".join(f"({p})" for p in NON_BREAK_TITLE_WORDS)
+    pattern = "|".join(f"(?:{p})" for p in NON_BREAK_TITLE_WORDS)
+    rows = conn.execute("SELECT id, title_raw FROM breaks").fetchall()
+    junk_ids = [r["id"] for r in rows
+                if r["title_raw"] and re.search(pattern, r["title_raw"], re.IGNORECASE)]
+    if not junk_ids:
+        return 0
     return conn.execute(
-        "DELETE FROM breaks WHERE title_raw ~* %(pattern)s",
-        {"pattern": pattern},
+        "DELETE FROM breaks WHERE id = ANY(%(ids)s)",
+        {"ids": junk_ids},
     ).rowcount
