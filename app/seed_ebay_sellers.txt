@@ -10,6 +10,29 @@ chamaxcards
 941sportscards
 1of1cardshop
 gamedaylegends  # Brian approved 2026-10-06 (memorabilia breaks OK)
+# Added 2026-10-06 — 22 verified via eBay store audit (Brian approved)
+jackpotbreakers
+bodegacards
+junkwaxvintage
+cardlinesbreaks
+bakersfield_hobby
+chomps_live_breaks
+chefssportscards
+breaksntakes2
+hobby_legends
+blezsportscards
+smitty_ripz
+bigtimecards_collectibles
+topptiercards
+dogfatherbreaks
+joshodeezy
+123tcg
+viprips
+thepullpenlive
+stlcards6  # hybrid: breaks + singles
+bigwrangs  # hybrid: breaks + WWE/singles
+thetcgbrothers  # hybrid: breaks + sealed wax
+adam-12!  # hybrid: breaks + singles (Greg's Cards Comics and Cars)
 #
 # REJECTED:
 # michaeljacksonmarket (memorabilia seller, no break slots — 2026-10-06)
