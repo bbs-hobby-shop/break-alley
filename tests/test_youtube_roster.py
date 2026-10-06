@@ -256,7 +256,8 @@ def test_ingest_run_writes():
     assert len(conn.sqls_containing("INSERT INTO breaks")) == 2, "2 kept rows upserted"
     assert not conn.sqls_containing("DELETE FROM breaks"), "roster never wipes the slice"
     hit_upserts = [p for s, p in conn.executes
-                   if "ON CONFLICT (channel_id)" in s and "VALUES" in s]
+                   if "ON CONFLICT (channel_id)" in s and "VALUES" in s
+                   and "last_hit_at" in s]  # hit stamps only, not manual seeds
     assert any(p["channel_id"] == CH_A for p in hit_upserts), "hit channel stamped"
     assert conn.sqls_containing("last_checked_at"), "checked channels stamped"
     assert conn.sqls_containing("FROM breaks"), "seed backfill ran"
