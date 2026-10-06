@@ -126,6 +126,27 @@ def seed_youtube_channels_from_breaks(conn) -> int:
     ).rowcount
 
 
+def seed_manual_channels(conn, channel_ids: list[str]) -> int:
+    """Upsert hand-picked channel IDs (from app/seed_channels.txt) as
+    source='manual'. Idempotent: safe to run at the start of every roster
+    poll. Returns the number of channels added."""
+    n = 0
+    for cid in channel_ids:
+        cid = (cid or "").strip()
+        if not cid or cid.startswith("#"):
+            continue
+        # allow trailing "  # comment" on the line
+        cid = cid.split("#", 1)[0].strip().split()[0]
+        cur = conn.execute(
+            """INSERT INTO youtube_channels (channel_id, source)
+               VALUES (%(cid)s, 'manual')
+               ON CONFLICT (channel_id) DO NOTHING""",
+            {"cid": cid},
+        )
+        n += cur.rowcount
+    return n
+
+
 # Self-healing schema migration for the cron pollers (they don't run
 # schema.sql — only the web service does on deploy). Idempotent: safe to
 # run at the start of every ingest run.

@@ -15,6 +15,7 @@ Twitch every ~15-30 min (see app/twitch.py rate-limit notes).
 """
 import argparse
 import sys
+from pathlib import Path
 
 from . import config, db, ebay, twitch, youtube, youtube_roster
 from .normalizer import normalize_ebay_item
@@ -152,6 +153,14 @@ def run_youtube_roster() -> int:
         n_seeded = db.seed_youtube_channels_from_breaks(conn)
         if n_seeded:
             print(f"youtube-roster: seeded {n_seeded} channels from breaks table")
+        # Hand-picked channels (Brian's list) from app/seed_channels.txt
+        seed_path = Path(__file__).with_name("seed_channels.txt")
+        n_manual = 0
+        if seed_path.exists():
+            lines = seed_path.read_text().splitlines()
+            n_manual = db.seed_manual_channels(conn, lines)
+            if n_manual:
+                print(f"youtube-roster: seeded {n_manual} manual channels")
         rows, hit_channel_ids, checked, stats = youtube_roster.fetch_roster_breaks(conn)
         if stats["n_channels"] > 0 and stats["n_api_ok"] == 0:
             # Total API failure (quota exhausted, rate-limited, or outage):

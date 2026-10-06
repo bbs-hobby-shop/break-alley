@@ -1,0 +1,10 @@
+# Manual YouTube channel roster seeds — one channel ID per line.
+#
+# How to add a breaker Brian names:
+#   1. Resolve their handle/URL to a channel ID (UC...). Page-fetch the
+#      channel URL and read the canonical link — costs zero API quota.
+#   2. Append the bare channel ID below (comments with # are ignored).
+#   3. Commit + push. The next roster poll upserts them as source='manual'.
+#
+# Example:
+#   UCxxxxxxxxxxxxxxxxxxxxxx  # Some Breaker Name

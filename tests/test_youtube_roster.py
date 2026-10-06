@@ -46,6 +46,8 @@ class FakeConn:
             return FakeResult(rows=self.roster_channels)
         if "FROM breaks" in sql and "INSERT INTO youtube_channels" in sql:
             return FakeResult(rowcount=self.seed_rowcount)
+        if "INSERT INTO youtube_channels" in sql and "'manual'" in sql:
+            return FakeResult(rowcount=1)
         return FakeResult()
 
     def sqls_containing(self, needle):
@@ -302,6 +304,26 @@ def test_seed_sql():
     assert "ON CONFLICT (channel_id) DO NOTHING" in sql
     assert "'seed'" in sql
     print("ok test_seed_sql")
+
+
+def test_seed_manual_channels():
+    conn = FakeConn(seed_rowcount=1)
+    lines = [
+        "UCaaaaaaaaaaaaaaaaaaaaaa  # Some Breaker",
+        "# a comment line",
+        "",
+        "UCbbbbbbbbbbbbbbbbbbbbbb",
+        "UCaaaaaaaaaaaaaaaaaaaaaa  # duplicate",
+    ]
+    n = db.seed_manual_channels(conn, lines)
+    # FakeConn returns rowcount=1 per execute: 3 real inserts attempted
+    assert n == 3, n
+    cids = [p["cid"] for _, p in conn.executes]
+    assert cids == ["UCaaaaaaaaaaaaaaaaaaaaaa",
+                    "UCbbbbbbbbbbbbbbbbbbbbbb",
+                    "UCaaaaaaaaaaaaaaaaaaaaaa"], cids
+    assert all("'manual'" in sql for sql, _ in conn.executes)
+    print("ok test_seed_manual_channels")
 
 
 def main():
