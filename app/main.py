@@ -433,7 +433,7 @@ def signup(
     except Exception:
         return templates.TemplateResponse(request, "signup.html", {
             "error": "Something went wrong creating your account. Try again."})
-    resp = RedirectResponse("/account", status_code=303)
+    resp = RedirectResponse("/", status_code=303)
     _set_session_cookie(resp, request, user_id)
     return resp
 
@@ -470,7 +470,7 @@ def login(
         # Same message either way: don't reveal which half was wrong.
         return templates.TemplateResponse(request, "login.html", {
             "error": "Email or password didn't match.", "next": next})
-    dest = next if next.startswith("/") and not next.startswith("//") else "/account"
+    dest = next if next.startswith("/") and not next.startswith("//") else "/"
     resp = RedirectResponse(dest, status_code=303)
     _set_session_cookie(resp, request, user["id"])
     return resp
