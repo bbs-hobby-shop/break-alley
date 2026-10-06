@@ -257,13 +257,48 @@ def run_twitch_roster() -> int:
     return 0
 
 
+# Card release evenings with extra fetch passes (Idea 2026-10-06).
+# (month, day) in America/Chicago -> products releasing.
+RELEASE_NIGHTS = {
+    (10, 7): ["Topps Allen and Ginter Baseball",
+              "Topps Museum Collection Baseball"],
+    (10, 21): ["Upper Deck Stature Hockey",
+               "Panini Obsidian Football",
+               "Topps Heritage Football"],
+    (10, 22): ["Topps Flagship Basketball"],
+    (10, 28): ["Panini Donruss Football",
+               "Panini Crown Royale NWSL Soccer"],
+    (10, 30): ["Bowman U Best Football",
+               "Topps Inception Football"],
+}
+
+
+def run_release_night() -> int:
+    """Extra evening roster pass on card release nights.
+
+    The cron fires daily at 01:00 UTC (8 PM CDT); this no-ops on
+    non-release nights. On release nights it runs the standard YouTube
+    roster poll — same real-buy-in and live-or-future filters, ~107
+    YouTube API units, well within the daily quota.
+    """
+    from zoneinfo import ZoneInfo
+    from datetime import datetime
+    today = datetime.now(ZoneInfo("America/Chicago")).date()
+    products = RELEASE_NIGHTS.get((today.month, today.day))
+    if not products:
+        print(f"release-night: {today} is not a release night — skipping")
+        return 0
+    print(f"release-night: {today} — {', '.join(products)}")
+    return run_youtube_roster()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Box break ingestion runner")
     parser.add_argument("--demo", action="store_true",
                         help="insert demo rows instead of calling APIs")
     parser.add_argument("--source",
                         choices=["ebay", "youtube", "youtube-roster",
-                                 "twitch", "twitch-roster"],
+                                 "twitch", "twitch-roster", "release-night"],
                         default="ebay",
                         help="which source to poll (default: ebay)")
     args = parser.parse_args()
@@ -285,6 +320,8 @@ def main() -> int:
         result = run_twitch()
     elif args.source == "twitch-roster":
         result = run_twitch_roster()
+    elif args.source == "release-night":
+        result = run_release_night()
     else:
         result = run_ebay()
     # Purge junk that slipped through (casino, betting, giveaways, etc.)
