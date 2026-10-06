@@ -70,7 +70,7 @@
 <body>
 <header class="top"><a class="brand" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a><a class="nav-link" href="/">Home</a></header>
 <main>
-  <a class="back" href="/">← All breaks</a>
+  <a class="back" href="/" onclick="if (history.length > 1) { history.back(); return false; }">← Back</a>
   {% if error %}<div class="error">{{ error }}</div>
   {% elif b %}
   <div class="detail">
