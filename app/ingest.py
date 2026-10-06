@@ -97,6 +97,7 @@ def run_ebay() -> int:
     items = ebay.fetch_all_break_listings()
     print(f"fetched {len(items)} raw eBay listings")
     n = 0
+    n_video = 0
     with db.get_conn() as conn:
         for item in items:
             row = normalize_ebay_item(
@@ -104,9 +105,22 @@ def run_ebay() -> int:
             )
             if not row.get("source_url"):
                 continue
+            # Extract video info for new listings before they enter the app
+            # (Brian 2026-10-06: all details must be there before listing goes live)
+            if db.needs_video_info(conn, row["source_url"]):
+                try:
+                    from .ebay_video import extract_for_listing
+                    video = extract_for_listing(row["source_url"])
+                    row["video_url"] = video["video_url"]
+                    row["video_platform"] = video["video_platform"]
+                    row["break_time_text"] = video["break_time_text"]
+                    if video["video_url"]:
+                        n_video += 1
+                except Exception as e:
+                    print(f"video extract failed for {row['source_url']}: {e}")
             db.upsert_break(conn, row)
             n += 1
-    print(f"upserted {n} normalized breaks")
+    print(f"upserted {n} normalized breaks ({n_video} new with video info)")
     return 0
 
 
