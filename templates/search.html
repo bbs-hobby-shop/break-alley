@@ -51,11 +51,6 @@
   .logo { font-weight: 900; font-size: 1.35rem; letter-spacing: .5px; display: flex; align-items: center; gap: .6rem; }
   .logo img { width: 40px; height: 40px; border-radius: 10px; }
   .logo span { color: var(--green); }
-  .live-pill {
-    margin-left: auto; font-size: .8rem; font-weight: 700; color: #fff;
-    background: var(--red); border-radius: 20px; padding: .3rem .8rem;
-    display: flex; align-items: center; gap: .4rem;
-  }
   .auth-link { color: var(--muted); font-size: .88rem; font-weight: 700; text-decoration: none; }
   .auth-link:hover { color: var(--text); }
   .auth-link.cta { background: var(--green); color: #04120a; border-radius: 20px; padding: .35rem .9rem; }
@@ -75,8 +70,6 @@
   .card-wrap { position: relative; }
   .card-wrap .fav-form { position: absolute; right: .9rem; bottom: .65rem; margin: 0; }
   .card-wrap .fav-login { position: absolute; right: .9rem; bottom: .65rem; text-decoration: none; }
-  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: pulse 1.4s infinite; }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
   .hero { max-width: 1080px; margin: 0 auto; padding: 2.2rem 1.5rem 0; }
   .hero h2 { margin: 0 0 .4rem; font-size: 2rem; font-weight: 900; letter-spacing: -.5px; }
   .hero h2 em { font-style: normal; color: var(--green); }
@@ -152,7 +145,6 @@
   @media (max-width: 640px) {
     header.top { padding: .7rem 1rem; }
     .logo { font-size: 1.15rem; }
-    .live-pill { font-size: .72rem; padding: .25rem .65rem; }
     .hero { padding: 1.4rem 1rem 0; }
     .hero h2 { font-size: 1.45rem; }
     .hero p { font-size: .92rem; margin-bottom: 1rem; }
@@ -195,7 +187,6 @@
     <a class="auth-link" href="/login">Sign in</a>
     <a class="auth-link cta" href="/signup">Sign up free</a>
   {% endif %}
-  <div class="live-pill"><span class="live-dot"></span>LIVE NOW</div>
 </header>
 
 <div class="hero">
