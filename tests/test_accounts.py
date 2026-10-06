@@ -160,8 +160,6 @@ def main():
     print("\nAll account tests passed.")
 
 
-if __name__ == "__main__":
-    main()
 
 
 def test_user_stats_sql():
@@ -173,3 +171,137 @@ def test_user_stats_sql():
     assert any("FROM users" in s and "24 hours" in s for s in sqls)
     assert any("7 days" in s for s in sqls)
     print("ok test_user_stats_sql")
+
+
+def test_update_user_email_sql():
+    conn = FakeConn()
+    db.update_user_email(conn, 7, "New@Example.com")
+    sql, params = conn.executes[0]
+    assert "UPDATE users SET email" in sql
+    assert params == {"email": "new@example.com", "id": 7}
+    print("ok test_update_user_email_sql")
+
+
+def test_update_password_hash_sql():
+    conn = FakeConn()
+    db.update_password_hash(conn, 7, "hashed")
+    sql, params = conn.executes[0]
+    assert "UPDATE users SET password_hash" in sql
+    assert params == {"h": "hashed", "id": 7}
+    print("ok test_update_password_hash_sql")
+
+
+def test_delete_user_sql():
+    conn = FakeConn()
+    db.delete_user(conn, 7)
+    sql, params = conn.executes[0]
+    assert sql.strip().startswith("DELETE FROM users")
+    assert params == {"id": 7}
+    print("ok test_delete_user_sql")
+
+
+def test_change_password_route():
+    from fastapi.testclient import TestClient
+    from app import config, main
+    from app.main import app
+
+    pw_hash = auth.hash_password("oldpassword1")
+    user = {"id": 3, "email": "u@x.com", "password_hash": pw_hash,
+            "created_at": None}
+
+    real_get_conn = db.get_conn
+    real_check = auth.check_password
+
+    class Ctx:
+        def __init__(self, conn): self.c = conn
+        def __enter__(self): return self.c
+        def __exit__(self, *a): return False
+
+    saved = {}
+    def fake_get_conn():
+        return Ctx(FakeConn(one={"c": 0}, rows=[]))
+    db.get_conn = fake_get_conn
+    main.db.get_conn = fake_get_conn
+    auth.get_current_user = lambda request: user
+    config.ADMIN_KEY = "x"
+
+    # monkeypatch the update to capture
+    orig_update = db.update_password_hash
+    db.update_password_hash = lambda conn, uid, h: saved.update(uid=uid, h=h)
+    try:
+        c = TestClient(app, raise_server_exceptions=False)
+        # wrong current password -> error page
+        r = c.post("/account/password", data={
+            "current_password": "nope", "new_password": "newpassword1",
+            "confirm_password": "newpassword1"})
+        assert r.status_code == 200 and "Current password is incorrect" in r.text, r.status_code
+        # too short
+        r = c.post("/account/password", data={
+            "current_password": "oldpassword1", "new_password": "short",
+            "confirm_password": "short"})
+        assert "at least 8 characters" in r.text
+        # mismatch
+        r = c.post("/account/password", data={
+            "current_password": "oldpassword1", "new_password": "newpassword1",
+            "confirm_password": "different2"})
+        assert "don&#39;t match" in r.text or "don't match" in r.text
+        # success -> redirect with notice
+        r = c.post("/account/password", data={
+            "current_password": "oldpassword1", "new_password": "newpassword1",
+            "confirm_password": "newpassword1"}, follow_redirects=False)
+        assert r.status_code == 303 and "notice=password_updated" in r.headers["location"], r.headers.get("location")
+        assert saved["uid"] == 3 and auth.check_password("newpassword1", saved["h"])
+    finally:
+        db.get_conn = real_get_conn
+        main.db.get_conn = real_get_conn
+        db.update_password_hash = orig_update
+        del auth.get_current_user
+    print("ok test_change_password_route")
+
+
+def test_delete_account_route():
+    from fastapi.testclient import TestClient
+    from app import main
+    from app.main import app
+
+    pw_hash = auth.hash_password("oldpassword1")
+    user = {"id": 3, "email": "u@x.com", "password_hash": pw_hash, "created_at": None}
+
+    class Ctx:
+        def __init__(self, conn): self.c = conn
+        def __enter__(self): return self.c
+        def __exit__(self, *a): return False
+
+    real_get_conn = db.get_conn
+    deleted = []
+    def fake_get_conn():
+        return Ctx(FakeConn())
+    db.get_conn = fake_get_conn
+    main.db.get_conn = fake_get_conn
+    auth.get_current_user = lambda request: user
+    orig_delete = db.delete_user
+    db.delete_user = lambda conn, uid: deleted.append(uid)
+    try:
+        c = TestClient(app, raise_server_exceptions=False)
+        # missing DELETE confirmation -> error
+        r = c.post("/account/delete", data={"password": "oldpassword1", "confirm": "no"})
+        assert r.status_code == 200 and "Type DELETE" in r.text
+        # wrong password -> error
+        r = c.post("/account/delete", data={"password": "wrong", "confirm": "DELETE"})
+        assert "incorrect" in r.text
+        assert deleted == []
+        # success -> redirect home, cookie cleared
+        r = c.post("/account/delete", data={"password": "oldpassword1", "confirm": "DELETE"},
+                   follow_redirects=False)
+        assert r.status_code == 303 and r.headers["location"] == "/"
+        assert deleted == [3]
+    finally:
+        db.get_conn = real_get_conn
+        main.db.get_conn = real_get_conn
+        db.delete_user = orig_delete
+        del auth.get_current_user
+    print("ok test_delete_account_route")
+
+
+if __name__ == "__main__":
+    main()

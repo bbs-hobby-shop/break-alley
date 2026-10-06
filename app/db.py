@@ -216,6 +216,26 @@ def get_user_by_id(conn, user_id: int) -> dict | None:
     return dict(row) if row else None
 
 
+def update_user_email(conn, user_id: int, email: str) -> None:
+    """Change email (stored lowercased). Raises on duplicate."""
+    conn.execute(
+        "UPDATE users SET email = %(email)s WHERE id = %(id)s",
+        {"email": email.strip().lower(), "id": user_id},
+    )
+
+
+def update_password_hash(conn, user_id: int, password_hash: str) -> None:
+    conn.execute(
+        "UPDATE users SET password_hash = %(h)s WHERE id = %(id)s",
+        {"h": password_hash, "id": user_id},
+    )
+
+
+def delete_user(conn, user_id: int) -> None:
+    """Delete the account; favorites + saved searches cascade."""
+    conn.execute("DELETE FROM users WHERE id = %(id)s", {"id": user_id})
+
+
 def add_favorite(conn, user_id: int, breaker: str, channel_id: str | None = None) -> None:
     conn.execute(
         """INSERT INTO user_favorites (user_id, breaker, channel_id)

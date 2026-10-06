@@ -12,19 +12,27 @@
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
          color: var(--text); background: var(--bg); min-height: 100vh;
          display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
-  .box { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--line);
-         border-radius: 16px; padding: 2rem; }
-  h1 { margin: 0 0 1.4rem; font-size: 1.5rem; font-weight: 900; }
-  h1 span { color: var(--green); }
-  label { display: block; font-size: .82rem; font-weight: 700; color: var(--muted); margin: 0 0 .35rem; }
-  input[type=email], input[type=password] { width: 100%; background: var(--bg); color: var(--text);
-    border: 1px solid var(--line); border-radius: 10px; padding: .8rem 1rem; font-size: 1rem; margin-bottom: 1rem; }
+  .box { width: 100%; max-width: 400px; background: linear-gradient(180deg, #1a2242, #151c38);
+         border: 1px solid var(--line); border-radius: 18px; padding: 2.2rem; }
+  .mark { display: block; width: 64px; height: 64px; border-radius: 14px; margin: 0 auto 1rem; }
+  h1 { margin: 0 0 .35rem; font-size: 1.45rem; font-weight: 900; text-align: center; }
+  p.sub { color: var(--muted); font-size: .9rem; text-align: center; margin: 0 0 1.6rem; }
+  label { display: block; font-size: .8rem; font-weight: 700; color: var(--muted); margin: 0 0 .35rem; }
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-right: 3.4rem; }
+  .pw-toggle { position: absolute; right: .6rem; top: 50%; transform: translateY(-50%);
+    background: none; border: 0; color: var(--muted); font-size: .78rem; font-weight: 700;
+    cursor: pointer; font-family: inherit; }
+  input[type=email], input[type=password], input[type=text] { width: 100%; background: var(--bg);
+    color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+    padding: .8rem 1rem; font-size: 1rem; margin-bottom: 1rem; font-family: inherit; }
   input:focus { border-color: var(--green); outline: none; }
   .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
-  button { width: 100%; padding: .85rem; font-size: 1rem; font-weight: 800; color: #04120a;
-    background: var(--green); border: 0; border-radius: 10px; cursor: pointer; }
+  button.submit { width: 100%; padding: .85rem; font-size: 1rem; font-weight: 800; color: #04120a;
+    background: var(--green); border: 0; border-radius: 10px; cursor: pointer; font-family: inherit; }
+  button.submit:hover { filter: brightness(1.08); }
   .err { background: rgba(255,59,92,.12); border: 1px solid var(--red); border-radius: 10px;
-    padding: .7rem .9rem; font-size: .88rem; margin-bottom: 1rem; }
+    padding: .7rem .9rem; font-size: .88rem; margin-bottom: 1rem; color: #ff8ba0; }
   .alt { text-align: center; margin-top: 1.2rem; font-size: .88rem; color: var(--muted); }
   .alt a { color: var(--green); font-weight: 700; }
   .home { display: block; text-align: center; margin-top: .8rem; font-size: .85rem; color: var(--muted); }
@@ -32,18 +40,23 @@
 </head>
 <body>
 <div class="box">
-  <h1>Break <span>Alley</span></h1>
+  <img class="mark" src="/static/logo-mark.webp" alt="Break Alley">
+  <h1>Welcome back</h1>
+  <p class="sub">Sign in to your Break Alley account</p>
   {% if error %}<div class="err">{{ error }}</div>{% endif %}
   <form method="post" action="/login">
     <input type="hidden" name="next" value="{{ next }}">
     <label for="email">Email</label>
-    <input id="email" type="email" name="email" required autocomplete="email">
+    <input id="email" type="email" name="email" required autocomplete="email" placeholder="you@email.com">
     <label for="password">Password</label>
-    <input id="password" type="password" name="password" required autocomplete="current-password">
+    <div class="pw-wrap">
+      <input id="password" type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+      <button type="button" class="pw-toggle" onclick="var i=document.getElementById('password');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'Show':'Hide';">Show</button>
+    </div>
     <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-    <button type="submit">Sign in</button>
+    <button class="submit" type="submit">Sign in</button>
   </form>
-  <div class="alt">New here? <a href="/signup">Create an account</a></div>
+  <div class="alt">New here? <a href="/signup">Create a free account</a></div>
   <a class="home" href="/">← back to breaks</a>
 </div>
 </body>

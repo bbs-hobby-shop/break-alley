@@ -495,11 +495,15 @@ class _LoginRequired(Exception):
 
 
 @app.get("/account", response_class=HTMLResponse)
-def account(request: Request):
+def account(request: Request, notice: str | None = Query(default=None)):
     try:
         user = _require_user(request)
     except _LoginRequired:
         return RedirectResponse("/login?next=/account", status_code=303)
+    notices = {
+        "email_updated": "Email address updated.",
+        "password_updated": "Password updated.",
+    }
     try:
         with db.get_conn() as conn:
             favs = db.list_favorites(conn, user["id"])
@@ -512,7 +516,100 @@ def account(request: Request):
     return templates.TemplateResponse(request, "account.html", {
         "user": user, "favorites": favs, "live": live,
         "searches": searches, "error": error,
+        "notice": notices.get(notice or ""),
     })
+
+
+def _account_error(request: Request, user: dict, msg: str):
+    """Re-render the account page with an error (keeps favorites/searches)."""
+    try:
+        with db.get_conn() as conn:
+            favs = db.list_favorites(conn, user["id"])
+            live = [_enrich(r) for r in
+                    db.breaks_for_breakers(conn, [f["breaker"] for f in favs])]
+            searches = db.list_saved_searches(conn, user["id"])
+    except Exception:
+        favs, live, searches = [], [], []
+    return templates.TemplateResponse(request, "account.html", {
+        "user": user, "favorites": favs, "live": live,
+        "searches": searches, "error": msg, "notice": "",
+    })
+
+
+@app.post("/account/email")
+def account_change_email(
+    request: Request,
+    new_email: str = Form(default=""),
+    password: str = Form(default=""),
+):
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return RedirectResponse("/login?next=/account", status_code=303)
+    new_email = (new_email or "").strip().lower()
+    if not auth.valid_email(new_email):
+        return _account_error(request, user, "That doesn't look like a valid email address.")
+    if not auth.check_password(password or "", user["password_hash"]):
+        return _account_error(request, user, "Current password is incorrect.")
+    if new_email == user["email"]:
+        return RedirectResponse("/account", status_code=303)
+    try:
+        with db.get_conn() as conn:
+            if db.get_user_by_email(conn, new_email):
+                return _account_error(request, user, "That email is already in use.")
+            db.update_user_email(conn, user["id"], new_email)
+    except Exception:
+        return _account_error(request, user, "Couldn't update your email. Try again.")
+    return RedirectResponse("/account?notice=email_updated", status_code=303)
+
+
+@app.post("/account/password")
+def account_change_password(
+    request: Request,
+    current_password: str = Form(default=""),
+    new_password: str = Form(default=""),
+    confirm_password: str = Form(default=""),
+):
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return RedirectResponse("/login?next=/account", status_code=303)
+    if not auth.check_password(current_password or "", user["password_hash"]):
+        return _account_error(request, user, "Current password is incorrect.")
+    if len(new_password or "") < 8:
+        return _account_error(request, user, "New password must be at least 8 characters.")
+    if new_password != confirm_password:
+        return _account_error(request, user, "New passwords don't match.")
+    try:
+        with db.get_conn() as conn:
+            db.update_password_hash(conn, user["id"], auth.hash_password(new_password))
+    except Exception:
+        return _account_error(request, user, "Couldn't update your password. Try again.")
+    return RedirectResponse("/account?notice=password_updated", status_code=303)
+
+
+@app.post("/account/delete")
+def account_delete(
+    request: Request,
+    password: str = Form(default=""),
+    confirm: str = Form(default=""),
+):
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return RedirectResponse("/login?next=/account", status_code=303)
+    if (confirm or "").strip().upper() != "DELETE":
+        return _account_error(request, user, 'Type DELETE to confirm account deletion.')
+    if not auth.check_password(password or "", user["password_hash"]):
+        return _account_error(request, user, "Password is incorrect.")
+    try:
+        with db.get_conn() as conn:
+            db.delete_user(conn, user["id"])
+    except Exception:
+        return _account_error(request, user, "Couldn't delete your account. Try again.")
+    resp = RedirectResponse("/", status_code=303)
+    resp.delete_cookie(auth.SESSION_COOKIE, path="/")
+    return resp
 
 
 @app.post("/favorites/toggle")
