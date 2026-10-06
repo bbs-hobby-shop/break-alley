@@ -46,6 +46,13 @@ STRONG_BREAK_SIGNALS = [
     r"\bmixer\b",                # "10 Box Mixer"
     r"\d+\s*box.{0,25}\bbreak\b",  # "32 Box PLAYER Break"
     r"\bteams?\b.{0,25}\b(available|left|open|for sale)\b",
+    r"\$\s*\d+(?:\.\d{1,2})?\s*(?:/|per)\s*(?:slots?|spots?|teams?|entr(?:y|ies)|packs?)",
+    # "$25/slot", "$40 per team" — a priced slot is the clearest buy-in proof
+    r"\bbuy[\s-]*in\b(?!\s+bulk\b)",  # "buy in", "buy-in" (not "buy in bulk")
+    r"\bentry\s*fee\b",               # "entry fee"
+    r"\bclaim\b.{0,25}\b(spots?|slots?|teams?|packs?)\b",  # "claim your spot"
+    r"\b(spots?|slots?|teams?)\b.{0,20}\bclaim\b",          # "spots open for claim"
+    r"\bserial\b.{0,20}\bbreak\b",    # "serial # break", "serial number break"
 ]
 
 
