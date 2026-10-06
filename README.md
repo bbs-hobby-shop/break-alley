@@ -11,6 +11,10 @@ for the full product plan.
 - **YouTube ingestion** (`app/youtube.py` + `app/ingest.py --source youtube`):
   Data API v3 `search.list` (live + upcoming) + `videos.list` details,
   normalized into Postgres. Phase 2 complete — see "YouTube quota" below.
+- **YouTube channel roster** (`app/youtube_roster.py` +
+  `app/ingest.py --source youtube-roster`): cheap per-channel monitoring —
+  `playlistItems.list` (1 unit) + batched `videos.list` for known breaker
+  channels, discovered by the search poller. See "Channel roster" below.
 - **Normalizer** (`app/normalizer.py`, `app/products.py`): sport/format
   detection, price parsing, ~20-product alias table.
 - **Break grouping** (`app/grouping.py`): groups eBay slot listings into
@@ -70,6 +74,12 @@ for the full product plan.
    ```
    Run this on a schedule (cron every ~6 hours — see "YouTube quota" below).
 
+   8b. Poll known breaker channels cheaply (same key, no extra setup):
+   ```bash
+   python -m app.ingest --source youtube-roster
+   ```
+   Run on a schedule offset ~3h from the search poll — see "Channel roster".
+
 9. Pull Twitch live break streams (needs `TWITCH_CLIENT_ID` and
    `TWITCH_CLIENT_SECRET` in `.env`, from dev.twitch.tv/console):
    ```bash
@@ -91,16 +101,42 @@ configurable without code changes:
 YouTube Data API v3 free quota is **10,000 units/day**:
 - `search.list` = **100 units/call** (cost is per call, not per result — we
   always request `maxResults=50` for full value)
+- `playlistItems.list` = **1 unit/call** (recent uploads per channel)
 - `videos.list` = **1 unit/call** (up to 50 video ids per call)
 
-Default run: 3 queries × 2 event types (live, upcoming) = 6 searches
-(600 units) + ~3 detail calls ≈ **603 units/run**.
+Search poller default run: 8 queries × 2 event types (live, upcoming) =
+16 searches (1,600 units) + ~6 detail calls ≈ **1,606 units/run**.
 
-Recommended cadence: **every 6 hours (4×/day) ≈ 2,400 units/day (~24%)**,
-leaving headroom for more queries or runs. Do NOT poll YouTube every
-15 minutes like eBay — hourly runs would burn ~14,500 units/day and blow
-the quota. The query list is configurable without code changes:
+Recommended cadence: **every 6 hours (4×/day) ≈ 6,425 units/day (~64%)**,
+leaving headroom. Do NOT poll YouTube every 15 minutes like eBay — hourly
+runs would burn ~38,500 units/day and blow the quota. The query list is
+configurable without code changes:
 `YOUTUBE_SEARCH_QUERIES="box break live,card break"` (comma-separated).
+
+### Channel roster (cheap per-channel monitoring)
+`search.list` is only how we *discover* breaker channels. Once a channel is
+known, the roster poller (`app/youtube_roster.py`,
+`python -m app.ingest --source youtube-roster`) checks its uploads playlist
+directly: 1 unit per channel + batched `videos.list` details. Worst case
+(300 channels × 10 recent videos) ≈ **360 units/run** — versus 1,600 for
+one search run.
+
+How channels get into the roster (`youtube_channels` table):
+- **discovery hook**: every break the search poller keeps upserts its
+  channelId (`source='search'`)
+- **seed backfill**: channel_ids already stored on youtube breaks
+  (`source='seed'`), run automatically at the start of each roster poll
+- **manual**: insert a row with `source='manual'` (e.g. a breaker you found
+  by hand)
+
+Roster polls check the hottest channels first (`last_hit_at` desc), cap at
+`YOUTUBE_ROSTER_MAX_CHANNELS` (default 300), and stamp `last_checked_at` /
+`last_hit_at` per channel. Roster hits upsert into the `youtube` break
+slice without wiping it (the search poller owns the slice lifecycle).
+
+Recommended: add a second Render cron alongside `break-alley-poll-youtube`,
+offset by ~3 hours:
+`python -m app.ingest --source youtube-roster` on `0 3,9,15,21 * * *`.
 
 ## Project layout
 ```
@@ -114,8 +150,9 @@ box-break-app/
     normalizer.py   # sport/format detection, price parsing, product match
     products.py     # starter product alias table (~20 products)
     grouping.py     # group eBay slot listings into breaks
-    youtube.py      # YouTube Data API v3 poller (quota-budgeted)
-    ingest.py       # CLI runner: python -m app.ingest [--source ebay|youtube|twitch] [--demo]
+    youtube.py      # YouTube Data API v3 search poller (quota-budgeted)
+    youtube_roster.py # YouTube channel-roster poller (cheap per-channel watch)
+    ingest.py       # CLI runner: python -m app.ingest [--source ebay|youtube|youtube-roster|twitch] [--demo]
     main.py         # FastAPI + Jinja2 UI
   templates/
     search.html

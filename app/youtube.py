@@ -182,6 +182,7 @@ def normalize_youtube_video(
         "source": "youtube",
         "source_url": url,
         "breaker": snippet.get("channelTitle"),
+        "channel_id": snippet.get("channelId"),  # roster discovery + backfill
         "product_raw": title,
         "product_normalized": normalize_product(title),
         "sport": detect_sport(title),

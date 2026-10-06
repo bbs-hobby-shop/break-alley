@@ -22,8 +22,12 @@ CREATE TABLE IF NOT EXISTS breaks (
     affiliate_url   TEXT,                       -- outbound monetized link (EPN for eBay)
     fetched_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at      TIMESTAMPTZ,
+    channel_id      TEXT,                       -- YouTube channelId (roster discovery + backfill)
     UNIQUE (source, source_url)
 );
+
+-- Migrate existing databases (fresh DBs already have the column above).
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS channel_id TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_breaks_sport      ON breaks (sport);
 CREATE INDEX IF NOT EXISTS idx_breaks_format     ON breaks (format);
@@ -32,6 +36,26 @@ CREATE INDEX IF NOT EXISTS idx_breaks_starts_at  ON breaks (starts_at);
 CREATE INDEX IF NOT EXISTS idx_breaks_source     ON breaks (source);
 CREATE INDEX IF NOT EXISTS idx_breaks_product    ON breaks (product_normalized);
 CREATE INDEX IF NOT EXISTS idx_breaks_title_trgm ON breaks USING gin (title_raw gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_breaks_channel_id ON breaks (channel_id);
+
+-- YouTube channel roster for cheap per-channel monitoring (see
+-- app/youtube_roster.py). Channels land here via the search poller's
+-- discovery hook ('search'), the breaks-table backfill ('seed'), or manual
+-- adds ('manual'). playlistItems.list (1 unit) + batched videos.list
+-- (1 unit per 50 ids) replace search.list (100 units) for known channels.
+CREATE TABLE IF NOT EXISTS youtube_channels (
+    channel_id      TEXT PRIMARY KEY,
+    title           TEXT,                        -- channel display name
+    source          TEXT NOT NULL DEFAULT 'search'
+                    CHECK (source IN ('search', 'manual', 'seed')),
+    added_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_checked_at TIMESTAMPTZ,                 -- last roster poll that covered it
+    last_hit_at     TIMESTAMPTZ,                 -- last poll where it produced a kept break
+    active          BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
+CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
 
 -- Canonical products + known title aliases for normalization.
 CREATE TABLE IF NOT EXISTS products (

@@ -25,12 +25,12 @@ INSERT INTO breaks (
     source, source_url, breaker, product_raw, product_normalized,
     sport, format, price, currency, starts_at, is_live,
     slots_total, slots_remaining, thumbnail_url, title_raw,
-    affiliate_url, expires_at
+    affiliate_url, expires_at, channel_id
 ) VALUES (
     %(source)s, %(source_url)s, %(breaker)s, %(product_raw)s, %(product_normalized)s,
     %(sport)s, %(format)s, %(price)s, %(currency)s, %(starts_at)s, %(is_live)s,
     %(slots_total)s, %(slots_remaining)s, %(thumbnail_url)s, %(title_raw)s,
-    %(affiliate_url)s, %(expires_at)s
+    %(affiliate_url)s, %(expires_at)s, %(channel_id)s
 )
 ON CONFLICT (source, source_url) DO UPDATE SET
     breaker = EXCLUDED.breaker,
@@ -48,12 +48,82 @@ ON CONFLICT (source, source_url) DO UPDATE SET
     title_raw = EXCLUDED.title_raw,
     affiliate_url = EXCLUDED.affiliate_url,
     fetched_at = NOW(),
-    expires_at = EXCLUDED.expires_at;
+    expires_at = EXCLUDED.expires_at,
+    channel_id = EXCLUDED.channel_id;
 """
 
 
 def upsert_break(conn, row: dict) -> None:
+    # channel_id only exists on YouTube rows; default it so eBay/Twitch/demo
+    # rows don't KeyError on the named param.
+    row.setdefault("channel_id", None)
     conn.execute(UPSERT_BREAK_SQL, row)
+
+
+# ---------------------------------------------------------------------------
+# YouTube channel roster (cheap per-channel monitoring; see app/youtube_roster.py)
+# ---------------------------------------------------------------------------
+
+UPSERT_CHANNEL_SQL = """
+INSERT INTO youtube_channels (channel_id, title, source)
+VALUES (%(channel_id)s, %(title)s, %(source)s)
+ON CONFLICT (channel_id) DO UPDATE SET
+    title = COALESCE(EXCLUDED.title, youtube_channels.title),
+    last_hit_at = NOW();
+"""
+
+
+def upsert_youtube_channel(conn, channel_id: str, title: str | None = None,
+                            source: str = "search") -> None:
+    """Discovery hook: add a channel to the roster (or refresh it) and stamp
+    last_hit_at — the channel just produced a kept break."""
+    conn.execute(UPSERT_CHANNEL_SQL, {
+        "channel_id": channel_id, "title": title, "source": source,
+    })
+
+
+def mark_channels_checked(conn, channel_ids: list[str]) -> None:
+    """Stamp last_checked_at for channels a roster poll actually covered."""
+    if not channel_ids:
+        return
+    conn.execute(
+        "UPDATE youtube_channels SET last_checked_at = NOW() "
+        "WHERE channel_id = ANY(%s)",
+        (channel_ids,),
+    )
+
+
+def get_roster_channels(conn, limit: int) -> list[dict]:
+    """Active roster channels for one poll, hottest first.
+
+    Ordering puts channels that recently produced kept breaks first, so when
+    the roster is capped the most productive channels are the ones checked.
+    Among never-hit channels, the least-recently-checked go first.
+    """
+    return conn.execute(
+        """SELECT channel_id, title FROM youtube_channels
+           WHERE active
+           ORDER BY last_hit_at DESC NULLS LAST,
+                    last_checked_at ASC NULLS FIRST
+           LIMIT %s""",
+        (limit,),
+    ).fetchall()
+
+
+def seed_youtube_channels_from_breaks(conn) -> int:
+    """Backfill the roster from channel_ids already stored on youtube breaks.
+
+    Idempotent (ON CONFLICT DO NOTHING): safe to run at the start of every
+    roster poll. Returns the number of channels added.
+    """
+    return conn.execute(
+        """INSERT INTO youtube_channels (channel_id, title, source)
+           SELECT DISTINCT channel_id, MAX(breaker), 'seed'
+           FROM breaks
+           WHERE source = 'youtube' AND channel_id IS NOT NULL
+           GROUP BY channel_id
+           ON CONFLICT (channel_id) DO NOTHING"""
+    ).rowcount
 
 
 # Self-healing schema migration for the cron pollers (they don't run
@@ -75,6 +145,23 @@ BEGIN
             CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','unknown'));
     END IF;
 END $$;
+
+-- Roster table for cheap per-channel YouTube monitoring (schema.sql is the
+-- canonical definition; this keeps cron pollers working on older DBs).
+CREATE TABLE IF NOT EXISTS youtube_channels (
+    channel_id      TEXT PRIMARY KEY,
+    title           TEXT,
+    source          TEXT NOT NULL DEFAULT 'search'
+                    CHECK (source IN ('search', 'manual', 'seed')),
+    added_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_checked_at TIMESTAMPTZ,
+    last_hit_at     TIMESTAMPTZ,
+    active          BOOLEAN NOT NULL DEFAULT TRUE
+);
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS channel_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
+CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
+CREATE INDEX IF NOT EXISTS idx_breaks_channel_id ON breaks (channel_id);
 """
 
 

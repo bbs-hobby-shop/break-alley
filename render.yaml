@@ -66,6 +66,20 @@ services:
         sync: false
 
   - type: cron
+    name: break-alley-poll-youtube-roster
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    schedule: "0 3,9,15,21 * * *"
+    dockerCommand: python -m app.ingest --source youtube-roster
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: break-alley-db
+          property: connectionString
+      - key: YOUTUBE_API_KEY
+        sync: false
+
+  - type: cron
     name: break-alley-poll-twitch
     runtime: docker
     dockerfilePath: ./Dockerfile

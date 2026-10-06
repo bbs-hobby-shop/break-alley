@@ -1,19 +1,22 @@
 """Ingestion runner: eBay / YouTube / Twitch -> normalize -> Postgres upsert.
 
 Usage:
-    python -m app.ingest                  # one eBay poll run (default)
-    python -m app.ingest --source youtube  # one YouTube poll run
-    python -m app.ingest --source twitch   # one Twitch poll run
-    python -m app.ingest --demo            # insert 3 sample rows (no API calls, for UI demo)
+    python -m app.ingest                          # one eBay poll run (default)
+    python -m app.ingest --source youtube         # one YouTube search poll run
+    python -m app.ingest --source youtube-roster  # one YouTube roster poll run
+    python -m app.ingest --source twitch          # one Twitch poll run
+    python -m app.ingest --demo                   # insert 3 sample rows (no API calls, for UI demo)
 
 Intended to run on a schedule (cron / Celery beat): eBay every ~15 min,
-YouTube every ~6 hours (see app/youtube.py quota math),
+YouTube search every ~6 hours (see app/youtube.py quota math),
+YouTube roster every ~6 hours offset from the search poll
+(see app/youtube_roster.py quota math),
 Twitch every ~15-30 min (see app/twitch.py rate-limit notes).
 """
 import argparse
 import sys
 
-from . import config, db, ebay, twitch, youtube
+from . import config, db, ebay, twitch, youtube, youtube_roster
 from .normalizer import normalize_ebay_item
 
 DEMO_ROWS = [
@@ -129,7 +132,46 @@ def run_youtube() -> int:
                 continue
             db.upsert_break(conn, row)
             n += 1
+            # Discovery hook: every kept break teaches the roster a channel
+            # to watch cheaply (1 unit/check instead of 100/search).
+            if row.get("channel_id"):
+                db.upsert_youtube_channel(
+                    conn, row["channel_id"], title=row.get("breaker"))
     print(f"replaced youtube slice with {n} YouTube breaks")
+    return 0
+
+
+def run_youtube_roster() -> int:
+    if not config.youtube_configured():
+        print("YOUTUBE_API_KEY not set — nothing to do.", file=sys.stderr)
+        return 1
+    with db.get_conn() as conn:
+        # Backfill the roster from channel_ids already stored on youtube
+        # breaks (idempotent). The search poller's discovery hook keeps it
+        # growing from here.
+        n_seeded = db.seed_youtube_channels_from_breaks(conn)
+        if n_seeded:
+            print(f"youtube-roster: seeded {n_seeded} channels from breaks table")
+        rows, hit_channel_ids, checked, stats = youtube_roster.fetch_roster_breaks(conn)
+        if stats["n_channels"] > 0 and stats["n_api_ok"] == 0:
+            # Total API failure (quota exhausted, rate-limited, or outage):
+            # nothing was checked, so there is nothing to write. Unlike the
+            # search poller there is no slice to protect (roster runs never
+            # wipe), but a non-zero exit still marks the cron run as failed.
+            print("youtube-roster: all channel checks failed — keeping existing data",
+                  file=sys.stderr)
+            return 1
+        n = 0
+        for row in rows:
+            if not row.get("source_url"):
+                continue
+            db.upsert_break(conn, row)
+            n += 1
+        for cid in hit_channel_ids:
+            db.upsert_youtube_channel(conn, cid)
+        db.mark_channels_checked(conn, checked)
+    print(f"youtube-roster: upserted {n} breaks from {len(checked)} channels "
+          f"(~{stats['units']} quota units)")
     return 0
 
 
@@ -166,7 +208,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Box break ingestion runner")
     parser.add_argument("--demo", action="store_true",
                         help="insert demo rows instead of calling APIs")
-    parser.add_argument("--source", choices=["ebay", "youtube", "twitch"],
+    parser.add_argument("--source",
+                        choices=["ebay", "youtube", "youtube-roster", "twitch"],
                         default="ebay",
                         help="which source to poll (default: ebay)")
     args = parser.parse_args()
@@ -182,6 +225,8 @@ def main() -> int:
         print(f"schema ensure failed (continuing): {exc}", file=sys.stderr)
     if args.source == "youtube":
         return run_youtube()
+    if args.source == "youtube-roster":
+        return run_youtube_roster()
     if args.source == "twitch":
         return run_twitch()
     return run_ebay()
