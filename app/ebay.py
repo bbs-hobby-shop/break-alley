@@ -87,6 +87,25 @@ def search_items(query: str, token: str, limit: int = 200) -> list[dict]:
     return resp.json().get("itemSummaries", []) or []
 
 
+def get_item(item_id: str, token: str) -> dict | None:
+    """Fetch full item details via Browse API getItem. Returns dict or None."""
+    url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
+    try:
+        resp = httpx.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        print(f"getItem failed for {item_id}: {e}")
+        return None
+
+
 def build_affiliate_url(item_url: str | None) -> str | None:
     """Wrap an eBay item URL in an eBay Partner Network rover link when a
     campaign id is configured; otherwise return the plain URL."""
