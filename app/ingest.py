@@ -94,6 +94,28 @@ def run_ebay() -> int:
     if not config.ebay_configured():
         print("EBAY_APP_ID / EBAY_CERT_ID not set — nothing to do.", file=sys.stderr)
         return 1
+    # One-time: parse existing break_time_text into starts_at for standard format
+    # (Brian 2026-10-06: eBay times must match other platforms)
+    try:
+        from .ebay_video import parse_break_time
+        with db.get_conn() as conn:
+            rows = conn.execute(
+                "SELECT id, break_time_text FROM breaks WHERE source='ebay' "
+                "AND break_time_text IS NOT NULL AND starts_at IS NULL"
+            ).fetchall()
+            n_parsed = 0
+            for r in rows:
+                parsed = parse_break_time(r["break_time_text"])
+                if parsed:
+                    conn.execute(
+                        "UPDATE breaks SET starts_at=%s WHERE id=%s",
+                        (parsed, r["id"]),
+                    )
+                    n_parsed += 1
+            if n_parsed:
+                print(f"ebay: parsed {n_parsed} break times into starts_at")
+    except Exception as e:
+        print(f"ebay time backfill failed: {e}", file=sys.stderr)
     items = ebay.fetch_all_break_listings()
     print(f"fetched {len(items)} raw eBay listings")
     n = 0
