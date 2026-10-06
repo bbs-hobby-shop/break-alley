@@ -23,10 +23,13 @@
                       radial-gradient(800px 380px at 90% 0%, rgba(0,230,118,.08), transparent);
     min-height: 100vh;
   }
-  header.top { padding: 1rem 1.5rem; border-bottom: 1px solid var(--line); background: rgba(10,14,28,.92); }
-  header.top a { color: var(--text); text-decoration: none; font-weight: 900; font-size: 1.2rem; display: inline-flex; align-items: center; gap: .55rem; }
-  header.top a img { width: 34px; height: 34px; border-radius: 9px; }
-  header.top a .wordmark span { color: var(--green); }
+  header.top { padding: 1rem 1.5rem; border-bottom: 1px solid var(--line); background: rgba(10,14,28,.92);
+    display: flex; align-items: center; }
+  header.top a.brand { color: var(--text); text-decoration: none; font-weight: 900; font-size: 1.2rem; display: inline-flex; align-items: center; gap: .55rem; }
+  header.top a.brand img { width: 34px; height: 34px; border-radius: 9px; }
+  header.top a.brand .wordmark span { color: var(--green); }
+  header.top a.nav-link { margin-left: auto; color: var(--muted); text-decoration: none; font-weight: 700; font-size: .88rem; }
+  header.top a.nav-link:hover { color: var(--text); }
   main { max-width: 760px; margin: 0 auto; padding: 1.5rem; }
   .back { display: inline-block; margin-bottom: 1rem; color: var(--muted); text-decoration: none; font-weight: 600; }
   .detail {
@@ -65,7 +68,7 @@
 </style>
 </head>
 <body>
-<header class="top"><a href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a></header>
+<header class="top"><a class="brand" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a><a class="nav-link" href="/">Home</a></header>
 <main>
   <a class="back" href="/">← All breaks</a>
   {% if error %}<div class="error">{{ error }}</div>
