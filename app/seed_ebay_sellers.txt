@@ -9,6 +9,7 @@ tombstonecollectibles
 chamaxcards
 941sportscards
 1of1cardshop
+gamedaylegends  # Brian approved 2026-10-06 (memorabilia breaks OK)
 #
 # REJECTED:
 # michaeljacksonmarket (memorabilia seller, no break slots — 2026-10-06)
