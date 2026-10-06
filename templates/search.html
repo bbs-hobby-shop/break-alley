@@ -62,7 +62,7 @@
     color: var(--muted); padding: .2rem; }
   .fav-btn.faved { color: var(--orange); }
   .fav-form { display: inline; }
-  .save-search { display: inline-flex; align-items: center; gap: .4rem; margin-left: .4rem; }
+  .save-search { display: inline-flex; align-items: center; gap: .4rem; margin-top: .7rem; }
   .save-search input { background: var(--card); color: var(--text); border: 1px solid var(--line);
     border-radius: 10px; padding: .55rem .8rem; font-size: .9rem; }
   .save-search button { background: var(--card2); color: var(--text); border: 1px solid var(--line);
@@ -74,25 +74,24 @@
   .hero h2 { margin: 0 0 .4rem; font-size: 2rem; font-weight: 900; letter-spacing: -.5px; }
   .hero h2 em { font-style: normal; color: var(--green); }
   .hero p { margin: 0 0 1.4rem; color: var(--muted); }
-  .searchbar { display: flex; gap: .6rem; }
-  .searchbar input {
-    flex: 1; padding: .9rem 1.1rem; font-size: 1.05rem; color: var(--text);
+  .filters { margin: 0; }
+  .searchrow { display: flex; gap: .6rem; margin-bottom: .6rem; }
+  .searchrow input {
+    flex: 1; min-width: 0; padding: .9rem 1.1rem; font-size: 1.05rem; color: var(--text);
     background: var(--card); border: 1px solid var(--line); border-radius: 12px; outline: none;
+    font-family: inherit;
   }
-  .searchbar input:focus { border-color: var(--green); }
-  .searchbar button {
-    padding: 0 1.8rem; font-size: 1rem; font-weight: 800; color: #04120a;
-    background: var(--green); border: 0; border-radius: 12px; cursor: pointer;
+  .searchrow input:focus { border-color: var(--green); }
+  .searchrow button {
+    padding: 0 1.8rem; font-size: 1rem; font-weight: 800; color: #04120a; white-space: nowrap;
+    background: var(--green); border: 0; border-radius: 12px; cursor: pointer; font-family: inherit;
   }
-  main { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
-  .toolbar { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1rem 0 1.2rem; }
-  .toolbar-form { display: contents; }
-  .toolbar select, .toolbar input[type=number] {
-    background: var(--card); color: var(--text); border: 1px solid var(--line);
-    border-radius: 10px; padding: .55rem .8rem; font-size: .9rem;
+  .filtergrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; align-items: center; }
+  .filtergrid select, .filtergrid input[type=number] {
+    background: var(--card); color: var(--text); border: 1px solid var(--line); width: 100%;
+    border-radius: 10px; padding: .55rem .8rem; font-size: .9rem; font-family: inherit;
   }
-  .toolbar .live-toggle { display: flex; align-items: center; gap: .4rem; font-size: .9rem; font-weight: 700; color: var(--muted); }
-  .toolbar .go { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: .55rem 1.1rem; font-weight: 700; cursor: pointer; }
+  .filtergrid .live-toggle { display: flex; align-items: center; gap: .4rem; font-size: .9rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
   .section-label { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px; color: var(--muted); margin: 1.4rem 0 .8rem; text-transform: uppercase; }
   .res-count { text-transform: none; letter-spacing: 0; font-weight: 600; }
   .refreshbar { display: flex; align-items: center; gap: .8rem; margin: 0 0 .4rem; flex-wrap: wrap; }
@@ -148,17 +147,16 @@
     .hero { padding: 1.4rem 1rem 0; }
     .hero h2 { font-size: 1.45rem; }
     .hero p { font-size: .92rem; margin-bottom: 1rem; }
-    .searchbar input { font-size: 16px; padding: .8rem 1rem; }
-    .searchbar button { padding: 0 1.2rem; min-height: 48px; }
     .pills { padding: .9rem 0 .2rem; }
     .pills a { padding: .55rem 1rem; }
     main { padding: 0 1rem; }
-    .toolbar { display: grid; grid-template-columns: 1fr 1fr; }
-    .toolbar select, .toolbar input[type=number] {
+    .searchrow input { font-size: 16px; padding: .8rem 1rem; }
+    .searchrow button { padding: 0 1.2rem; min-height: 48px; }
+    .filtergrid { grid-template-columns: 1fr 1fr; }
+    .filtergrid select, .filtergrid input[type=number] {
       font-size: 16px; padding: .7rem .8rem; width: 100%; min-height: 48px;
     }
-    .toolbar .live-toggle { grid-column: 1 / -1; min-height: 44px; font-size: 1rem; }
-    .toolbar .go { grid-column: 1 / -1; min-height: 52px; font-size: 1rem; }
+    .filtergrid .live-toggle { grid-column: 1 / -1; min-height: 44px; font-size: 1rem; }
     .section-label { margin: 1.1rem 0 .7rem; }
     .grid { gap: .65rem; }
     .card { padding: .85rem; gap: .75rem; align-items: flex-start; border-radius: 14px; }
@@ -191,30 +189,25 @@
 <div class="hero">
   <h2>Every break. Every platform. <em>One place.</em></h2>
   <p>Live and upcoming box breaks from across the hobby — search, filter, jump in.</p>
-  <form class="searchbar" method="get" action="/">
-    <input type="text" name="q" value="{{ q }}" placeholder="Try &quot;Prizm&quot; or &quot;Bowman chrome&quot;…">
-    <button type="submit">Find breaks</button>
-  </form>
-</div>
-
-<main>
-  {% if error %}<div class="error">{{ error }}</div>{% endif %}
-  <div class="toolbar">
-  <form class="toolbar-form" method="get" action="/">
-    <input type="hidden" name="q" value="{{ q }}">
-    <select name="format">
-      <option value="">Any format</option>
-      {% for f in formats %}<option value="{{ f }}" {% if format == f %}selected{% endif %}>{{ f.replace('_',' ')|title }}</option>{% endfor %}
-    </select>
-    <input type="number" name="max_price" value="{{ max_price }}" min="0" step="0.01" placeholder="Max $">
-    <select name="source">
-      <option value="">All platforms</option>
-      <option value="ebay" {% if source == 'ebay' %}selected{% endif %}>eBay</option>
-      <option value="youtube" {% if source == 'youtube' %}selected{% endif %}>YouTube</option>
-      <option value="twitch" {% if source == 'twitch' %}selected{% endif %}>Twitch</option>
-    </select>
-    <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
-    <button class="go" type="submit">Apply</button>
+  <form class="filters" method="get" action="/">
+    <div class="searchrow">
+      <input type="text" name="q" value="{{ q }}" placeholder="Try &quot;Prizm&quot; or &quot;Bowman chrome&quot;…">
+      <button type="submit">Find breaks</button>
+    </div>
+    <div class="filtergrid">
+      <select name="format" aria-label="Break format">
+        <option value="">Any format</option>
+        {% for f in formats %}<option value="{{ f }}" {% if format == f %}selected{% endif %}>{{ f.replace('_',' ')|title }}</option>{% endfor %}
+      </select>
+      <input type="number" name="max_price" value="{{ max_price }}" min="0" step="0.01" placeholder="Max $" aria-label="Max price">
+      <select name="source" aria-label="Platform">
+        <option value="">All platforms</option>
+        <option value="ebay" {% if source == 'ebay' %}selected{% endif %}>eBay</option>
+        <option value="youtube" {% if source == 'youtube' %}selected{% endif %}>YouTube</option>
+        <option value="twitch" {% if source == 'twitch' %}selected{% endif %}>Twitch</option>
+      </select>
+      <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
+    </div>
   </form>
   {% if user %}
   <form class="save-search" method="post" action="/searches/save">
@@ -226,8 +219,10 @@
     <button type="submit">⚲ Save</button>
   </form>
   {% endif %}
-  </div>
+</div>
 
+<main>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <div class="section-label">Breaks <span class="res-count">{{ results|length }} result{{ 's' if results|length != 1 }} found</span></div>
   <div class="refreshbar">
     <form method="post" action="/refresh">
