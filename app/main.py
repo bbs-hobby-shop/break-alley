@@ -35,11 +35,19 @@ def search(
     request: Request,
     q: str | None = Query(default=None),
     format: str | None = Query(default=None),
-    max_price: float | None = Query(default=None),
+    max_price: str | None = Query(default=None),
     source: str | None = Query(default=None),
     live: bool = Query(default=False),
     suggested: str | None = Query(default=None),
 ):
+    format = format or None
+    source = source or None
+    # max_price arrives as "" when the query string carries empty params
+    # (e.g. after favoriting) — treat blank/invalid as "no cap", never 422.
+    try:
+        max_price_val = float(max_price) if max_price and max_price.strip() else None
+    except (ValueError, TypeError):
+        max_price_val = None
     format = format or None
     source = source or None
     user = auth.get_current_user(request)
@@ -49,7 +57,7 @@ def search(
             results = [
                 _enrich(dict(r)) for r in db.search_breaks(
                     conn, q=q or None, format=format,
-                    max_price=max_price, source=source,
+                    max_price=max_price_val, source=source,
                     live_only=True if live else None,
                 )
             ]
