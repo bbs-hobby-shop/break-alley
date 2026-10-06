@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import auth, config, db, youtube
-from .ingest import run_ebay, run_twitch, run_youtube, run_youtube_roster
+from .ingest import run_ebay, run_twitch_roster, run_youtube, run_youtube_roster
 from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -239,7 +239,7 @@ def admin_reject(
 PUBLIC_REFRESH_COOLDOWN_SECS = 300  # 5 min, global across all visitors
 PUBLIC_REFRESH_SOURCES = (
     ("youtube-roster", run_youtube_roster),
-    ("twitch", run_twitch),
+    ("twitch-roster", run_twitch_roster),
     ("ebay", run_ebay),
 )
 
@@ -317,7 +317,7 @@ def public_refresh(
 REFRESH_COOLDOWN_SECS = 1800  # 30 min between manual refreshes
 REFRESH_SOURCES = (
     ("youtube-roster", run_youtube_roster),
-    ("twitch", run_twitch),
+    ("twitch-roster", run_twitch_roster),
     ("youtube", run_youtube),
     ("ebay", run_ebay),
 )

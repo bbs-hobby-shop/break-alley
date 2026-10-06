@@ -89,7 +89,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     schedule: "*/20 * * * *"
-    dockerCommand: python -m app.ingest --source twitch
+    dockerCommand: python -m app.ingest --source twitch-roster
     envVars:
       - key: DATABASE_URL
         fromDatabase:

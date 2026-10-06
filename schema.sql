@@ -57,6 +57,24 @@ CREATE TABLE IF NOT EXISTS youtube_channels (
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
 
+-- Twitch channel roster: known breaker logins whose live status is polled
+-- via streams?user_login= (100/call). Twitch's Search Channels endpoint
+-- matches channel names, not stream titles, so searching can't find live
+-- breaks — the roster is the only reliable Twitch discovery.
+CREATE TABLE IF NOT EXISTS twitch_channels (
+    login           TEXT PRIMARY KEY,            -- lowercased Twitch login
+    display_name    TEXT,                        -- channel display name
+    source          TEXT NOT NULL DEFAULT 'manual'
+                    CHECK (source IN ('search', 'manual', 'seed')),
+    added_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_checked_at TIMESTAMPTZ,                 -- last roster poll that covered it
+    last_hit_at     TIMESTAMPTZ,                 -- last poll where it produced a kept break
+    active          BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE INDEX IF NOT EXISTS idx_twitch_channels_active   ON twitch_channels (active);
+CREATE INDEX IF NOT EXISTS idx_twitch_channels_last_hit ON twitch_channels (last_hit_at DESC NULLS LAST);
+
 -- Community-suggested breakers. Suggestions land here as 'pending'; a
 -- reviewer (Brian) approves them into youtube_channels as source='manual'
 -- via the admin page, or rejects them. Nothing here touches the roster

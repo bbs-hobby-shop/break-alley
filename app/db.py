@@ -154,6 +154,84 @@ def seed_manual_channels(conn, channel_ids: list[str]) -> int:
     return n
 
 
+# ---------------------------------------------------------------------------
+# Twitch channel roster (cheap per-channel live monitoring; see app/twitch_roster.py)
+# ---------------------------------------------------------------------------
+
+UPSERT_TWITCH_CHANNEL_SQL = """
+INSERT INTO twitch_channels (login, display_name, source)
+VALUES (%(login)s, %(display_name)s, %(source)s)
+ON CONFLICT (login) DO UPDATE SET
+    display_name = COALESCE(EXCLUDED.display_name, twitch_channels.display_name),
+    last_hit_at = NOW();
+"""
+
+
+def upsert_twitch_channel(conn, login: str, display_name: str | None = None,
+                          source: str = "manual") -> None:
+    """Add a Twitch login to the roster (or refresh it) and stamp last_hit_at
+    — the channel just produced a kept break."""
+    login = (login or "").strip().lower()
+    if not login:
+        return
+    conn.execute(UPSERT_TWITCH_CHANNEL_SQL, {
+        "login": login, "display_name": display_name, "source": source,
+    })
+
+
+def mark_twitch_checked(conn, logins: list[str]) -> None:
+    """Stamp last_checked_at for logins a roster poll actually covered."""
+    logins = [(l or "").strip().lower() for l in logins or []]
+    logins = [l for l in logins if l]
+    if not logins:
+        return
+    conn.execute(
+        "UPDATE twitch_channels SET last_checked_at = NOW() "
+        "WHERE login = ANY(%s)",
+        (logins,),
+    )
+
+
+def get_twitch_roster(conn, limit: int) -> list[dict]:
+    """Active roster logins for one poll, hottest first.
+
+    Ordering puts channels that recently produced kept breaks first, so when
+    the roster is capped the most productive channels are the ones checked.
+    Among never-hit channels, the least-recently-checked go first.
+    """
+    return conn.execute(
+        """SELECT login, display_name FROM twitch_channels
+           WHERE active
+           ORDER BY last_hit_at DESC NULLS LAST,
+                    last_checked_at ASC NULLS FIRST
+           LIMIT %s""",
+        (limit,),
+    ).fetchall()
+
+
+def seed_manual_twitch_channels(conn, lines: list[str]) -> int:
+    """Upsert hand-picked Twitch logins (from app/seed_twitch_channels.txt) as
+    source='manual'. Idempotent: safe to run at the start of every roster
+    poll. Returns the number of channels added."""
+    n = 0
+    for line in lines:
+        login = (line or "").strip()
+        if not login or login.startswith("#"):
+            continue
+        # allow trailing "  # comment" on the line
+        login = login.split("#", 1)[0].strip().split()[0].lower()
+        if not login:
+            continue
+        cur = conn.execute(
+            """INSERT INTO twitch_channels (login, source)
+               VALUES (%(login)s, 'manual')
+               ON CONFLICT (login) DO NOTHING""",
+            {"login": login},
+        )
+        n += cur.rowcount
+    return n
+
+
 def add_breaker_suggestion(conn, input_text: str, note: str | None = None) -> int:
     """Queue a community breaker suggestion for review. Returns the new id."""
     cur = conn.execute(
@@ -357,6 +435,20 @@ BEGIN
             CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown'));
     END IF;
 END $$;
+
+-- Roster table for cheap per-channel Twitch live monitoring (schema.sql is
+-- the canonical definition; this keeps cron pollers working on older DBs).
+CREATE TABLE IF NOT EXISTS twitch_channels (
+    login           TEXT PRIMARY KEY,            -- lowercased Twitch login
+    display_name    TEXT,                        -- channel display name
+    source          TEXT NOT NULL DEFAULT 'manual'
+                    CHECK (source IN ('search', 'manual', 'seed')),
+    added_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_checked_at TIMESTAMPTZ,                 -- last roster poll that covered it
+    last_hit_at     TIMESTAMPTZ,                 -- last poll where it produced a kept break
+    active          BOOLEAN NOT NULL DEFAULT TRUE
+);
+CREATE INDEX IF NOT EXISTS idx_twitch_channels_active ON twitch_channels (active);
 
 -- Roster table for cheap per-channel YouTube monitoring (schema.sql is the
 -- canonical definition; this keeps cron pollers working on older DBs).

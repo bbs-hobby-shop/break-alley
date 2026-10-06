@@ -4,20 +4,21 @@ Usage:
     python -m app.ingest                          # one eBay poll run (default)
     python -m app.ingest --source youtube         # one YouTube search poll run
     python -m app.ingest --source youtube-roster  # one YouTube roster poll run
-    python -m app.ingest --source twitch          # one Twitch poll run
+    python -m app.ingest --source twitch          # one Twitch search poll run
+    python -m app.ingest --source twitch-roster   # one Twitch roster poll run
     python -m app.ingest --demo                   # insert 3 sample rows (no API calls, for UI demo)
 
 Intended to run on a schedule (cron / Celery beat): eBay every ~15 min,
 YouTube search every ~6 hours (see app/youtube.py quota math),
 YouTube roster every ~6 hours offset from the search poll
 (see app/youtube_roster.py quota math),
-Twitch every ~15-30 min (see app/twitch.py rate-limit notes).
+Twitch roster every ~20 min (see app/twitch_roster.py).
 """
 import argparse
 import sys
 from pathlib import Path
 
-from . import config, db, ebay, twitch, youtube, youtube_roster
+from . import config, db, ebay, twitch, twitch_roster, youtube, youtube_roster
 from .normalizer import normalize_ebay_item
 
 DEMO_ROWS = [
@@ -213,12 +214,53 @@ def run_twitch() -> int:
     return 0
 
 
+def run_twitch_roster() -> int:
+    if not twitch.twitch_configured():
+        print("TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET not set — nothing to do.",
+              file=sys.stderr)
+        return 1
+    with db.get_conn() as conn:
+        # Hand-picked logins (researched 2026-10-06) from
+        # app/seed_twitch_channels.txt
+        seed_path = Path(__file__).with_name("seed_twitch_channels.txt")
+        n_manual = 0
+        if seed_path.exists():
+            lines = seed_path.read_text().splitlines()
+            n_manual = db.seed_manual_twitch_channels(conn, lines)
+            if n_manual:
+                print(f"twitch-roster: seeded {n_manual} manual channels")
+        rows, hit_logins, checked, stats = twitch_roster.fetch_roster_breaks(conn)
+        if stats["n_channels"] > 0 and stats["n_api_ok"] == 0:
+            # Total API failure (rate-limited or outage): nothing was checked,
+            # so keep the existing slice instead of blanking the live site.
+            # Non-zero exit marks the cron run as failed in the dashboard.
+            print("twitch-roster: streams API failed — keeping existing slice",
+                  file=sys.stderr)
+            return 1
+        n = 0
+        # Twitch data is transient (currently-live streams), so each run wipes
+        # and rewrites the twitch slice in ONE transaction: ended streams vanish
+        # instead of lingering as stale "live" rows.
+        conn.execute("DELETE FROM breaks WHERE source = 'twitch'")
+        for row in rows:
+            if not row.get("source_url"):
+                continue
+            db.upsert_break(conn, row)
+            n += 1
+        for login, display_name in hit_logins.items():
+            db.upsert_twitch_channel(conn, login, display_name=display_name)
+        db.mark_twitch_checked(conn, checked)
+    print(f"twitch-roster: upserted {n} breaks from {len(checked)} channels")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Box break ingestion runner")
     parser.add_argument("--demo", action="store_true",
                         help="insert demo rows instead of calling APIs")
     parser.add_argument("--source",
-                        choices=["ebay", "youtube", "youtube-roster", "twitch"],
+                        choices=["ebay", "youtube", "youtube-roster",
+                                 "twitch", "twitch-roster"],
                         default="ebay",
                         help="which source to poll (default: ebay)")
     args = parser.parse_args()
@@ -238,6 +280,8 @@ def main() -> int:
         return run_youtube_roster()
     if args.source == "twitch":
         return run_twitch()
+    if args.source == "twitch-roster":
+        return run_twitch_roster()
     return run_ebay()
 
 

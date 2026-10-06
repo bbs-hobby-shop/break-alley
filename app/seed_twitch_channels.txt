@@ -1,0 +1,28 @@
+# Manual Twitch roster seeds — one login per line (lowercased).
+#
+# Why a roster: Twitch's Search Channels endpoint matches the query against
+# channel NAMES, not live stream titles, so searching "box break" can never
+# find a live break on a channel named e.g. "LaytonSportsCards". The roster
+# poller checks each login's live status directly via streams?user_login=
+# (100 logins = 1 API call), so it is effectively free to grow.
+#
+# How to add a breaker:
+#   1. Verify the login is really theirs (their own site/socials link it).
+#   2. Append the bare lowercase login below (comments with # are ignored).
+#   3. Commit + push. The next roster poll seeds it as source='manual'.
+#
+# Researched 2026-10-06 (confirmed = linked from the breaker's own
+# site/socials; likely = tracker/name match, see twitch-accounts.md).
+
+laytonsportscards  # Layton Sports Cards — confirmed, 18k followers, active
+backyardbreaks  # Backyard Breaks — confirmed, 91k followers, very active
+da_thelivelounge  # Dave and Adam's Live Lounge — confirmed, active
+steelcitybreakroom  # Steel City Collectibles Break Room — confirmed
+cardboardhobby  # CardBoardHobby — confirmed, affiliate, active
+pokeboyztrading  # Poke Boyz Trading — confirmed, affiliate, active
+roaringsensei  # Roaring Sensei — confirmed, weekly live rips
+vintagebreaks  # Vintage and Modern Breaks — confirmed, likely inactive ("breaks may be over")
+strykerbreaks  # Stryker Breaks — likely (in own YT descriptions; page unverified)
+jaspysbreaks  # Jaspy's Case Breaks — likely (1k followers; dormant since Jun 2025)
+da_2bros1break  # Dave and Adam's sister channel — Chase/personals breaks
+da_nerdout  # Dave and Adam's sister channel — TCG/entertainment
