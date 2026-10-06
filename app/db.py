@@ -603,3 +603,15 @@ def get_break(conn, break_id: int):
     return conn.execute(
         "SELECT * FROM breaks WHERE id = %s", (break_id,)
     ).fetchone()
+
+
+def purge_junk_breaks(conn) -> int:
+    """Delete breaks whose titles match non-break patterns (casino, betting,
+    giveaways, etc.). Self-healing: removes junk that slipped through before
+    the filter was tightened. Returns the number deleted."""
+    from .normalizer import NON_BREAK_TITLE_WORDS
+    pattern = "|".join(f"(?:{p})" for p in NON_BREAK_TITLE_WORDS)
+    return conn.execute(
+        "DELETE FROM breaks WHERE title_raw ~* %(pattern)s",
+        {"pattern": pattern},
+    ).rowcount

@@ -82,6 +82,18 @@ NON_BREAK_TITLE_WORDS = [
     r"\bcollection\b",
     r"\bmail\s*days?\b",
     r"\bunboxing\b",
+    # Casino / gambling — "slots" here means slot machines, not break slots
+    r"\bcasino\b",
+    r"\bslot\s*machines?\b",
+    r"\bgambling\b",
+    r"\bbetting\b",
+    r"\bplayer\s*props?\b",
+    r"\bparlay\b",
+    r"\bsportsbook\b",
+    r"\bodds\b",
+    # Giveaways are not buy-in breaks
+    r"\bgiveaway\b",
+    r"\bfree\b.{0,30}\bbreak\b",
 ]
 
 

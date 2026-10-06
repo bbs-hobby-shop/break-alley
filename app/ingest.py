@@ -278,14 +278,24 @@ def main() -> int:
     except Exception as exc:
         print(f"schema ensure failed (continuing): {exc}", file=sys.stderr)
     if args.source == "youtube":
-        return run_youtube()
-    if args.source == "youtube-roster":
-        return run_youtube_roster()
-    if args.source == "twitch":
-        return run_twitch()
-    if args.source == "twitch-roster":
-        return run_twitch_roster()
-    return run_ebay()
+        result = run_youtube()
+    elif args.source == "youtube-roster":
+        result = run_youtube_roster()
+    elif args.source == "twitch":
+        result = run_twitch()
+    elif args.source == "twitch-roster":
+        result = run_twitch_roster()
+    else:
+        result = run_ebay()
+    # Purge junk that slipped through (casino, betting, giveaways, etc.)
+    try:
+        with db.get_conn() as conn:
+            n_purged = db.purge_junk_breaks(conn)
+            if n_purged:
+                print(f"purged {n_purged} junk breaks")
+    except Exception as exc:
+        print(f"junk purge failed (continuing): {exc}", file=sys.stderr)
+    return result
 
 
 if __name__ == "__main__":
