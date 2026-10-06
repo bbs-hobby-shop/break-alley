@@ -97,6 +97,11 @@ NON_BREAK_TITLE_WORDS = [
     r"\bpacanele\b",  # Romanian for slot machines
     r"\bwatch\s*party\b",
     r"\bpreview\b",
+    # Electrical circuit breakers — "breaker" keyword collision, not box breaks
+    r"\bcircuit\s*breakers?\b",
+    r"\bsquare\s*d\b",
+    r"\b\d+\s*(amp|pole|volt)\b",
+    r"\btiki\b",  # Tiki glasses/mugs, not breaks
     # Giveaways are not buy-in breaks
     r"\bgiveaway\b",
     r"\bfree\b.{0,30}\bbreak\b",

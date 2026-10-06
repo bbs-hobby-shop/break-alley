@@ -102,13 +102,41 @@ def build_affiliate_url(item_url: str | None) -> str | None:
     )
 
 
+def load_ebay_roster() -> set[str]:
+    """Approved eBay seller usernames (lowercased). Empty set = no filtering."""
+    from pathlib import Path
+    path = Path(__file__).with_name("seed_ebay_sellers.txt")
+    sellers = set()
+    if path.exists():
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                # Allow trailing comments
+                sellers.add(line.split("#", 1)[0].strip().lower())
+    return {s for s in sellers if s}
+
+
 def fetch_all_break_listings() -> list[dict]:
-    """Run every configured search query. Returns raw itemSummary dicts."""
+    """Run every configured search query. Returns raw itemSummary dicts.
+
+    When the eBay seller roster is non-empty, only items from roster sellers
+    are returned (roster-only principle, same as YouTube/Twitch).
+    """
     token = get_app_token()
+    roster = load_ebay_roster()
+    if roster:
+        print(f"ebay: roster-only mode, {len(roster)} approved sellers")
     seen: dict[str, dict] = {}
+    n_skipped = 0
     for query, _sport_hint in SEARCH_QUERIES:
         for item in search_items(query, token):
+            seller = ((item.get("seller") or {}).get("username") or "").lower()
+            if roster and seller not in roster:
+                n_skipped += 1
+                continue
             item_id = item.get("itemId") or item.get("itemWebUrl")
             if item_id and item_id not in seen:
                 seen[item_id] = item
+    if n_skipped:
+        print(f"ebay: skipped {n_skipped} listings from non-roster sellers")
     return list(seen.values())

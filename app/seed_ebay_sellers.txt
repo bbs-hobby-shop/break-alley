@@ -1,0 +1,21 @@
+# Approved eBay sellers for BreakAlley (one username per line).
+# Only listings from these sellers appear on the site.
+# Brian approves every seller; nothing is added without his OK.
+#
+# To add a seller: put their exact eBay username on its own line.
+# Lines starting with # are comments.
+#
+# PROPOSED (from 2026-10-06 audit of first 20 listings — awaiting Brian's approval):
+# playoffpushsc_15
+# michaeljacksonmarket
+# skolnsteelbreaks
+# gamedaylegends
+# tombstonecollectibles
+# chamaxcards
+# 941sportscards
+# 1of1cardshop
+#
+# REJECTED (junk sellers from audit):
+# lemonsoda (tiki glasses), southsideelectric504 (circuit breakers),
+# skn51 (circuit breakers), jross65 (sealed wax sale, not breaks)
+
