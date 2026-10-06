@@ -76,6 +76,15 @@
   .srow button { background: none; border: 0; color: var(--red); cursor: pointer; font-size: .85rem;
     font-family: inherit; }
   .danger p { color: var(--muted); font-size: .88rem; margin: 0 0 1rem; }
+  details.reveal { margin-top: 1rem; }
+  details.reveal > summary { list-style: none; cursor: pointer; display: inline-block;
+    border: 1px solid var(--line); border-radius: 10px; padding: .7rem 1.4rem;
+    font-weight: 800; font-size: .9rem; background: transparent; color: var(--text);
+    font-family: inherit; }
+  details.reveal > summary::-webkit-details-marker { display: none; }
+  details.reveal > summary:hover { border-color: var(--green); }
+  details.reveal[open] > summary { margin-bottom: 1.1rem; }
+  details.reveal.danger > summary { color: #ff8ba0; border-color: rgba(255,59,92,.45); }
 </style>
 </head>
 <body>
@@ -95,37 +104,43 @@
     <h2>Profile</h2>
     <div class="kv"><span class="k">Email</span><span class="v">{{ user.email }}</span></div>
     <div class="kv"><span class="k">Member since</span><span class="v">{{ user.created_at.strftime('%B %d, %Y') if user.created_at else '—' }}</span></div>
-    <form method="post" action="/account/email" style="margin-top:1.1rem">
-      <div class="field">
-        <label for="new_email">Change email</label>
-        <input id="new_email" type="email" name="new_email" required autocomplete="email" placeholder="new@email.com">
-      </div>
-      <div class="field">
-        <label for="email_pw">Current password</label>
-        <input id="email_pw" type="password" name="password" required autocomplete="current-password">
-      </div>
-      <button class="btn ghost" type="submit">Update email</button>
-    </form>
+    <details class="reveal">
+      <summary>Change email</summary>
+      <form method="post" action="/account/email">
+        <div class="field">
+          <label for="new_email">New email</label>
+          <input id="new_email" type="email" name="new_email" required autocomplete="email" placeholder="new@email.com">
+        </div>
+        <div class="field">
+          <label for="email_pw">Current password</label>
+          <input id="email_pw" type="password" name="password" required autocomplete="current-password">
+        </div>
+        <button class="btn ghost" type="submit">Update email</button>
+      </form>
+    </details>
   </div>
 
   <div class="card">
     <h2>Security</h2>
-    <form method="post" action="/account/password">
-      <div class="field">
-        <label for="cur_pw">Current password</label>
-        <input id="cur_pw" type="password" name="current_password" required autocomplete="current-password">
-      </div>
-      <div class="field">
-        <label for="new_pw">New password</label>
-        <input id="new_pw" type="password" name="new_password" required autocomplete="new-password" minlength="8">
-        <div class="hint">At least 8 characters.</div>
-      </div>
-      <div class="field">
-        <label for="conf_pw">Confirm new password</label>
-        <input id="conf_pw" type="password" name="confirm_password" required autocomplete="new-password">
-      </div>
-      <button class="btn ghost" type="submit">Change password</button>
-    </form>
+    <details class="reveal">
+      <summary>Change password</summary>
+      <form method="post" action="/account/password">
+        <div class="field">
+          <label for="cur_pw">Current password</label>
+          <input id="cur_pw" type="password" name="current_password" required autocomplete="current-password">
+        </div>
+        <div class="field">
+          <label for="new_pw">New password</label>
+          <input id="new_pw" type="password" name="new_password" required autocomplete="new-password" minlength="8">
+          <div class="hint">At least 8 characters.</div>
+        </div>
+        <div class="field">
+          <label for="conf_pw">Confirm new password</label>
+          <input id="conf_pw" type="password" name="confirm_password" required autocomplete="new-password">
+        </div>
+        <button class="btn ghost" type="submit">Change password</button>
+      </form>
+    </details>
   </div>
 
   <div class="card">
@@ -183,17 +198,20 @@
   <div class="card danger">
     <h2>Delete account</h2>
     <p>Permanently deletes your account, favorite breakers, and saved searches. This can't be undone.</p>
-    <form method="post" action="/account/delete">
-      <div class="field">
-        <label for="del_pw">Password</label>
-        <input id="del_pw" type="password" name="password" required autocomplete="current-password">
-      </div>
-      <div class="field">
-        <label for="del_conf">Type DELETE to confirm</label>
-        <input id="del_conf" type="text" name="confirm" required autocomplete="off" placeholder="DELETE">
-      </div>
-      <button class="btn danger" type="submit">Delete my account</button>
-    </form>
+    <details class="reveal danger">
+      <summary>Delete my account…</summary>
+      <form method="post" action="/account/delete">
+        <div class="field">
+          <label for="del_pw">Password</label>
+          <input id="del_pw" type="password" name="password" required autocomplete="current-password">
+        </div>
+        <div class="field">
+          <label for="del_conf">Type DELETE to confirm</label>
+          <input id="del_conf" type="text" name="confirm" required autocomplete="off" placeholder="DELETE">
+        </div>
+        <button class="btn danger" type="submit">Delete my account</button>
+      </form>
+    </details>
   </div>
 </main>
 </body>
