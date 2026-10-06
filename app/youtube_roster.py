@@ -80,14 +80,20 @@ KNOWN_COUNTRIES_BY_TITLE = {
 }
 
 
-def _override_country(cid: str, title: str | None) -> str | None:
-    """Curated country for a channel, by ID then title substring."""
+def _override_country(cid: str, *titles: str | None) -> str | None:
+    """Curated country for a channel: by ID, then by title substring.
+
+    Accepts multiple candidate titles (roster title, video-details title)
+    — any match wins. Only confident, evidence-backed entries live in the
+    maps below; everything else stays NULL (= unknown region).
+    """
     if cid in KNOWN_COUNTRIES:
         return KNOWN_COUNTRIES[cid]
-    t = re.sub(r"[^a-z0-9]", "", (title or "").lower())
-    for sub, country in KNOWN_COUNTRIES_BY_TITLE.items():
-        if sub in t:
-            return country
+    for title in titles:
+        t = re.sub(r"[^a-z0-9]", "", (title or "").lower())
+        for sub, country in KNOWN_COUNTRIES_BY_TITLE.items():
+            if sub and sub in t:
+                return country
     return None
 
 
@@ -152,31 +158,6 @@ def fetch_roster_breaks(conn):
             "n_kept": 0, "n_non_break": 0, "n_past": 0, "n_no_date": 0,
         }
 
-    # Backfill home countries for channels still unknown: YouTube's own
-    # snippet.country first (1 unit per 50 channels), then the curated
-    # KNOWN_COUNTRIES overrides for channels that don't set one.
-    country_of = {ch["channel_id"]: ch.get("country") for ch in channels}
-    title_of = {ch["channel_id"]: ch.get("title") for ch in channels}
-    missing = [cid for cid, c in country_of.items() if not c]
-    n_country_calls = 0
-    if missing:
-        n_country_calls = (len(missing) + 49) // 50
-        try:
-            api_map = channel_countries(missing)
-        except Exception as exc:
-            print(f"  roster country lookup failed: {exc}", file=sys.stderr)
-            api_map = {}
-        fresh = {cid: c for cid, c in api_map.items() if c}
-        for cid in missing:
-            if cid not in fresh:
-                override = _override_country(cid, title_of.get(cid))
-                if override:
-                    fresh[cid] = override
-        n_filled = db.set_channel_countries(conn, fresh)
-        country_of.update(fresh)
-        if n_filled:
-            print(f"youtube-roster: backfilled country for {n_filled} channels")
-
     # 1. recent video ids per channel (1 quota unit each), deduped
     video_ids: list[str] = []
     channel_of_video: dict[str, str] = {}
@@ -201,7 +182,41 @@ def fetch_roster_breaks(conn):
     # 2. details in 50-id batches (1 quota unit per batch)
     details = videos_details(video_ids) if video_ids else {}
 
-    # 3. normalize + keep only real, joinable breaks (same filter as search)
+    # 3. home countries for channels still unknown: YouTube's own
+    #    snippet.country first (1 unit per 50 channels), then the curated
+    #    overrides. Titles come from the video details — roster titles are
+    #    NULL for discovered channels, so the roster table alone can't
+    #    drive the title fallback.
+    country_of = {ch["channel_id"]: ch.get("country") for ch in channels}
+    roster_title_of = {ch["channel_id"]: ch.get("title") for ch in channels}
+    detail_title_of: dict[str, str] = {}
+    for vid, det in details.items():
+        snip = (det or {}).get("snippet", {})
+        cid = snip.get("channelId") or channel_of_video.get(vid)
+        if cid and snip.get("channelTitle"):
+            detail_title_of.setdefault(cid, snip["channelTitle"])
+    missing = [cid for cid, c in country_of.items() if not c]
+    n_country_calls = 0
+    if missing:
+        n_country_calls = (len(missing) + 49) // 50
+        try:
+            api_map = channel_countries(missing)
+        except Exception as exc:
+            print(f"  roster country lookup failed: {exc}", file=sys.stderr)
+            api_map = {}
+        fresh = {cid: c for cid, c in api_map.items() if c}
+        for cid in missing:
+            if cid not in fresh:
+                override = _override_country(
+                    cid, roster_title_of.get(cid), detail_title_of.get(cid))
+                if override:
+                    fresh[cid] = override
+        n_filled = db.set_channel_countries(conn, fresh)
+        country_of.update(fresh)
+        if n_filled:
+            print(f"youtube-roster: backfilled country for {n_filled} channels")
+
+    # 4. normalize + keep only real, joinable breaks (same filter as search)
     rows: list[dict] = []
     hit_channels: set[str] = set()
     n_non_break = n_past = n_no_date = 0
