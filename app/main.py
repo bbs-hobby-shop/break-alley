@@ -143,8 +143,7 @@ def admin_debug_region(key: str | None = Query(default=None)):
     if not _admin_key_ok(key):
         return JSONResponse({"error": "forbidden"}, status_code=403)
     from app import db as _db
-    conn = _db.get_conn()
-    try:
+    with _db.get_conn() as conn:
         channels = conn.execute(
             "SELECT channel_id, title, country FROM youtube_channels "
             "WHERE channel_id IN ('UC5rRnVt4XD_BBX3tzUt48Lg',"
@@ -168,8 +167,6 @@ def admin_debug_region(key: str | None = Query(default=None)):
             "breaks_by_country": [dict(r) for r in breaks_by_country],
             "null_country_breaks": [dict(r) for r in null_breaks],
         }
-    finally:
-        conn.close()
 
 
 @app.get("/admin/suggestions", response_class=HTMLResponse)
