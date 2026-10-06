@@ -6,12 +6,20 @@ Routes:
 """
 from pathlib import Path
 
+import contextlib
+import io
+import threading
+import time
+from datetime import datetime, timezone
+from urllib.parse import urlencode
+
 from fastapi import FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import auth, config, db, youtube
+from .ingest import run_ebay, run_twitch, run_youtube, run_youtube_roster
 from .normalizer import date_label, display_title, extract_break_number
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -63,15 +71,19 @@ def search(
             ]
             if user:
                 favorites = db.favorite_breakers(conn, user["id"])
+            updated_ago = _ago(db.last_data_update(conn))
         error = None
     except Exception as exc:  # DB not up / not migrated yet
         results, error = [], f"Database unavailable: {exc}"
+        updated_ago = "—"
     return templates.TemplateResponse(request, "search.html", {
         "results": results, "error": error,
         "q": q or "", "format": format or "",
         "max_price": max_price or "", "source": source or "", "live": live,
         "suggested": suggested or "",
         "user": user, "favorites": favorites,
+        "refresh_running": _public_refresh_running(),
+        "updated_ago": updated_ago,
         "formats": ["pyt", "random", "division", "hit_draft", "personal", "case_break", "group_break"],
     })
 
@@ -214,15 +226,91 @@ def admin_reject(
 
 
 # ---------------------------------------------------------------------------
+# Public data refresh (customer-facing; cheap sources only)
+# ---------------------------------------------------------------------------
+# The full YouTube search (~1,600 quota units) stays on its schedule and the
+# admin button. The public button runs only the cheap sources (roster ~52
+# units, Twitch + eBay ~0), so even aggressive clicking can't burn the quota:
+# a global cooldown makes extra clicks no-ops, and refresh results are
+# shared — one user's refresh updates the data for everyone.
+
+PUBLIC_REFRESH_COOLDOWN_SECS = 300  # 5 min, global across all visitors
+PUBLIC_REFRESH_SOURCES = (
+    ("youtube-roster", run_youtube_roster),
+    ("twitch", run_twitch),
+    ("ebay", run_ebay),
+)
+
+_public_refresh_lock = threading.Lock()
+_public_refresh_state = {"running": False, "started_at": None, "finished_at": None}
+
+
+def _run_public_refresh_job() -> None:
+    try:
+        for name, fn in PUBLIC_REFRESH_SOURCES:
+            try:
+                fn()
+            except Exception as exc:  # one source failing must not kill the rest
+                print(f"public refresh: {name} failed: {exc}")
+    finally:
+        with _public_refresh_lock:
+            _public_refresh_state.update(running=False, finished_at=time.time())
+
+
+def _public_refresh_running() -> bool:
+    with _public_refresh_lock:
+        return bool(_public_refresh_state["running"])
+
+
+def _ago(dt) -> str:
+    if not dt:
+        return "never yet"
+    s = (datetime.now(timezone.utc) - dt).total_seconds()
+    if s < 60:
+        return "just now"
+    if s < 3600:
+        return f"{int(s // 60)} min ago"
+    if s < 86400:
+        return f"{int(s // 3600)} hr ago"
+    return f"{int(s // 86400)}d ago"
+
+
+@app.post("/refresh")
+def public_refresh(
+    q: str = Form(default=""),
+    format: str = Form(default=""),
+    source: str = Form(default=""),
+    max_price: str = Form(default=""),
+    live: str = Form(default=""),
+):
+    # Preserve the visitor's filters across the redirect.
+    params = {}
+    if q:
+        params["q"] = q
+    if format:
+        params["format"] = format
+    if source:
+        params["source"] = source
+    if max_price:
+        params["max_price"] = max_price
+    if live:
+        params["live"] = live
+    dest = "/" + ("?" + urlencode(params) if params else "")
+    with _public_refresh_lock:
+        now = time.time()
+        if _public_refresh_state["running"]:
+            return RedirectResponse(dest, status_code=303)
+        last = _public_refresh_state["started_at"]
+        if last and now - last < PUBLIC_REFRESH_COOLDOWN_SECS:
+            return RedirectResponse(dest, status_code=303)
+        _public_refresh_state.update(running=True, started_at=now, finished_at=None)
+    threading.Thread(target=_run_public_refresh_job, daemon=True).start()
+    return RedirectResponse(dest, status_code=303)
+
+
+# ---------------------------------------------------------------------------
 # Admin data refresh (manual poll trigger; ADMIN_KEY-gated)
 # ---------------------------------------------------------------------------
-
-import contextlib
-import io
-import threading
-import time
-
-from .ingest import run_ebay, run_twitch, run_youtube, run_youtube_roster
 
 REFRESH_COOLDOWN_SECS = 1800  # 30 min between manual refreshes
 REFRESH_SOURCES = (

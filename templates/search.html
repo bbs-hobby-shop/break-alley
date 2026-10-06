@@ -12,6 +12,7 @@
 <meta property="og:image" content="https://breakalley.com/static/logo-full.webp">
 <link rel="icon" type="image/png" href="/static/favicon-64.png">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+{% if refresh_running %}<meta http-equiv="refresh" content="45">{% endif %}
 <style>
   :root {
     --bg: #0a0e1c;
@@ -93,6 +94,12 @@
   .toolbar .live-toggle { display: flex; align-items: center; gap: .4rem; font-size: .9rem; font-weight: 700; color: var(--muted); }
   .toolbar .go { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: .55rem 1.1rem; font-weight: 700; cursor: pointer; }
   .section-label { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px; color: var(--muted); margin: 1.4rem 0 .8rem; text-transform: uppercase; }
+  .refreshbar { display: flex; align-items: center; gap: .8rem; margin: 0 0 .4rem; flex-wrap: wrap; }
+  .refreshbar form { margin: 0; }
+  .refresh-btn { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .45rem 1rem; font-weight: 700; cursor: pointer; font-size: .85rem; }
+  .refresh-btn:hover:not(:disabled) { border-color: var(--green); color: var(--green); }
+  .refresh-btn:disabled { opacity: .65; cursor: wait; }
+  .updated { color: var(--muted); font-size: .82rem; }
   .grid { display: grid; gap: .8rem; }
   .card {
     display: flex; gap: 1rem; align-items: center; text-decoration: none; color: inherit;
@@ -226,6 +233,22 @@
   </form>
 
   <div class="section-label">Breaks</div>
+  <div class="refreshbar">
+    <form method="post" action="/refresh">
+      <input type="hidden" name="q" value="{{ q }}">
+      <input type="hidden" name="format" value="{{ format }}">
+      <input type="hidden" name="source" value="{{ source }}">
+      <input type="hidden" name="max_price" value="{{ max_price }}">
+      {% if live %}<input type="hidden" name="live" value="1">{% endif %}
+      {% if refresh_running %}
+      <button type="submit" class="refresh-btn" disabled>⟳ Refreshing…</button>
+      {% else %}
+      <button type="submit" class="refresh-btn">⟳ Refresh</button>
+      {% endif %}
+    </form>
+    <span class="updated">Updated {{ updated_ago }}</span>
+    {% if refresh_running %}<span class="updated">— checking for new breaks, this page will update automatically…</span>{% endif %}
+  </div>
   <div class="grid">
     {% if results %}
       {% for b in results %}

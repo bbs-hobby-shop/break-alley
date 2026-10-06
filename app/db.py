@@ -290,6 +290,12 @@ def delete_saved_search(conn, user_id: int, search_id: int) -> None:
     )
 
 
+def last_data_update(conn):
+    """Newest fetched_at across breaks — the honest 'data updated X ago'."""
+    row = conn.execute("SELECT MAX(fetched_at) AS t FROM breaks").fetchone()
+    return row["t"] if row and row["t"] else None
+
+
 def user_stats(conn) -> dict:
     """Signup growth snapshot for the admin page."""
     total = conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()["c"]
