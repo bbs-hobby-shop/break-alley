@@ -53,7 +53,8 @@ FORMAT_LABELS = {
 STRONG_BREAK_SIGNALS = [
     r"break\s*#\s*\d+",          # "Break #12"
     r"#\d+\s*(pyt|break)",       # "#12 PYT Break"
-    r"\bslots?\b",               # "slots left", "8 slots"
+    r"\bslots?\b.{0,20}\b(left|available|open|remaining|for sale)\b",
+    # "8 slots left" — narrowed from bare "slots" which caught casino streams
     r"\bspots?\b.{0,20}\b(left|available|open|for sale)\b",
     r"live\s*fills?",            # "live fills"
     r"pick\s*your",              # "pick your team/division"
@@ -91,6 +92,8 @@ NON_BREAK_TITLE_WORDS = [
     r"\bparlay\b",
     r"\bsportsbook\b",
     r"\bodds\b",
+    r"\bspins?\b",
+    r"\bjackpot\b",
     # Giveaways are not buy-in breaks
     r"\bgiveaway\b",
     r"\bfree\b.{0,30}\bbreak\b",
