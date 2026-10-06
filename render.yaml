@@ -1,4 +1,4 @@
-# Break Alley — Render Blueprint.
+# BreakAlley — Render Blueprint.
 # Deploy: push this repo to GitHub, connect it in Render, then
 # "New +" -> "Blueprint" and point it at this file.
 # After deploy, fill in the `sync: false` secret values in the
