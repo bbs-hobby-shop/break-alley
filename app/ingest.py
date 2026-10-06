@@ -303,13 +303,51 @@ def run_release_night() -> int:
     return run_youtube_roster()
 
 
+def run_ebay_video_backfill() -> int:
+    """One-time backfill: extract video info for eBay listings missing it.
+
+    Fetches each eBay listing page and extracts the live video URL,
+    platform, and break time from the description. Run manually via:
+        python -m app.ingest --source ebay-video-backfill
+    """
+    from .ebay_video import extract_for_listing
+    import time
+    with db.get_conn() as conn:
+        rows = conn.execute(
+            "SELECT source_url FROM breaks WHERE source = 'ebay' "
+            "AND video_url IS NULL"
+        ).fetchall()
+    print(f"ebay-video-backfill: {len(rows)} listings need video info")
+    n_ok = 0
+    for i, r in enumerate(rows):
+        url = r["source_url"]
+        try:
+            video = extract_for_listing(url)
+            with db.get_conn() as conn:
+                db.update_video_info(
+                    conn, url, video["video_url"],
+                    video["video_platform"], video["break_time_text"]
+                )
+            if video["video_url"]:
+                n_ok += 1
+                print(f"  [{i+1}/{len(rows)}] OK: {video['video_platform']} - {url[:60]}")
+            else:
+                print(f"  [{i+1}/{len(rows)}] no video found: {url[:60]}")
+        except Exception as e:
+            print(f"  [{i+1}/{len(rows)}] FAILED {url[:60]}: {e}")
+        # Be polite to eBay
+        time.sleep(1)
+    print(f"ebay-video-backfill: done, {n_ok}/{len(rows)} with video info")
+    return 0
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Box break ingestion runner")
     parser.add_argument("--demo", action="store_true",
                         help="insert demo rows instead of calling APIs")
     parser.add_argument("--source",
                         choices=["ebay", "youtube", "youtube-roster",
-                                 "twitch", "twitch-roster", "release-night"],
+                                 "twitch", "twitch-roster", "release-night",
+                                 "ebay-video-backfill"],
                         default="ebay",
                         help="which source to poll (default: ebay)")
     args = parser.parse_args()
@@ -333,6 +371,8 @@ def main() -> int:
         result = run_twitch_roster()
     elif args.source == "release-night":
         result = run_release_night()
+    elif args.source == "ebay-video-backfill":
+        result = run_ebay_video_backfill()
     else:
         result = run_ebay()
     # Purge junk that slipped through (casino, betting, giveaways, etc.)

@@ -87,7 +87,13 @@
       {% if b.breaker %}<div class="stat"><div class="k">Breaker</div><div class="v" style="font-size:1rem">{{ b.breaker }}</div></div>{% endif %}
       {% if b.slots_remaining is not none %}<div class="stat"><div class="k">Slots left</div><div class="v">{{ b.slots_remaining }}</div></div>{% endif %}
       {% if b.date_label %}<div class="stat"><div class="k">Starts</div><div class="v" style="font-size:1rem">{{ b.date_label }}</div></div>{% endif %}
+      {% if b.break_time_text %}<div class="stat"><div class="k">Break time</div><div class="v" style="font-size:1rem">{{ b.break_time_text }}</div></div>{% endif %}
     </div>
+    {% if b.video_url %}
+    <a class="cta" href="{{ b.video_url }}" target="_blank" rel="noopener" style="margin-bottom:.75rem; background:var(--purple)">
+      Watch live on {{ b.video_platform or 'video' }} →
+    </a>
+    {% endif %}
     <a class="cta" href="{{ b.affiliate_url or b.source_url }}" target="_blank" rel="noopener sponsored">
       {% if b.source == 'ebay' %}Grab your slot on eBay →{% else %}Watch on {{ b.source|title }} →{% endif %}
     </a>

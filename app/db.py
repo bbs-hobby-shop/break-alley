@@ -25,12 +25,14 @@ INSERT INTO breaks (
     source, source_url, breaker, product_raw, product_normalized,
     sport, format, price, currency, starts_at, is_live,
     slots_total, slots_remaining, thumbnail_url, title_raw,
-    affiliate_url, expires_at, channel_id, country, group_key
+    affiliate_url, expires_at, channel_id, country, group_key,
+    video_url, video_platform, break_time_text
 ) VALUES (
     %(source)s, %(source_url)s, %(breaker)s, %(product_raw)s, %(product_normalized)s,
     %(sport)s, %(format)s, %(price)s, %(currency)s, %(starts_at)s, %(is_live)s,
     %(slots_total)s, %(slots_remaining)s, %(thumbnail_url)s, %(title_raw)s,
-    %(affiliate_url)s, %(expires_at)s, %(channel_id)s, %(country)s, %(group_key)s
+    %(affiliate_url)s, %(expires_at)s, %(channel_id)s, %(country)s, %(group_key)s,
+    %(video_url)s, %(video_platform)s, %(break_time_text)s
 )
 ON CONFLICT (source, source_url) DO UPDATE SET
     breaker = EXCLUDED.breaker,
@@ -51,7 +53,10 @@ ON CONFLICT (source, source_url) DO UPDATE SET
     expires_at = EXCLUDED.expires_at,
     channel_id = EXCLUDED.channel_id,
     country = COALESCE(EXCLUDED.country, breaks.country),
-    group_key = EXCLUDED.group_key;
+    group_key = EXCLUDED.group_key,
+    video_url = COALESCE(EXCLUDED.video_url, breaks.video_url),
+    video_platform = COALESCE(EXCLUDED.video_platform, breaks.video_platform),
+    break_time_text = COALESCE(EXCLUDED.break_time_text, breaks.break_time_text);
 """
 
 
@@ -66,6 +71,11 @@ def upsert_break(conn, row: dict) -> None:
     # other sources leave it NULL (no grouping).
     row.setdefault("group_key", None)
     row.setdefault("country", None)
+    # video_url/video_platform/break_time_text are set by the eBay video
+    # extractor; other sources leave them NULL.
+    row.setdefault("video_url", None)
+    row.setdefault("video_platform", None)
+    row.setdefault("break_time_text", None)
     # Every kept break lands in a format category: titles with no specific
     # format signal fall into the generic 'box_break' bucket. (The site only
     # lists real box breaks, so this is always honest. looks_like_real_break
@@ -523,6 +533,9 @@ CREATE INDEX IF NOT EXISTS idx_breaks_country ON breaks (country);
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS channel_id TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS group_key TEXT;
 CREATE INDEX IF NOT EXISTS idx_breaks_group_key ON breaks (group_key);
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_url TEXT;
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_platform TEXT;
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS break_time_text TEXT;
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_breaks_channel_id ON breaks (channel_id);
@@ -579,7 +592,7 @@ SEARCH_SQL = """
 SELECT id, source, source_url, breaker, product_raw, product_normalized,
        sport, format, price, currency, starts_at, is_live,
        slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
-       country, group_key
+       country, group_key, video_url, video_platform, break_time_text
 FROM breaks
 WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
        OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
@@ -658,3 +671,24 @@ def purge_junk_breaks(conn) -> int:
         "DELETE FROM breaks WHERE id = ANY(%(ids)s)",
         {"ids": junk_ids},
     ).rowcount
+
+
+def needs_video_info(conn, source_url: str) -> bool:
+    """Check if an eBay listing needs video info extraction (not yet populated)."""
+    row = conn.execute(
+        "SELECT video_url FROM breaks WHERE source_url = %(url)s",
+        {"url": source_url},
+    ).fetchone()
+    # New listing (not in DB) or existing without video_url
+    return row is None or row["video_url"] is None
+
+
+def update_video_info(conn, source_url: str, video_url: str | None,
+                      video_platform: str | None, break_time_text: str | None) -> None:
+    """Update video info for an existing break."""
+    conn.execute(
+        """UPDATE breaks SET video_url = %(vurl)s, video_platform = %(vplat)s,
+           break_time_text = %(btt)s WHERE source_url = %(url)s""",
+        {"vurl": video_url, "vplat": video_platform, "btt": break_time_text,
+         "url": source_url},
+    )

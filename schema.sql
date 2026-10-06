@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS breaks (
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS channel_id TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS country TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS group_key TEXT;
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_url TEXT;        -- link to live video/channel (eBay listings)
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_platform TEXT;  -- YouTube, eBay Live, Facebook, etc.
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS break_time_text TEXT; -- human-readable break time from listing
 
 CREATE INDEX IF NOT EXISTS idx_breaks_group_key ON breaks (group_key);
 
