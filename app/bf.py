@@ -9,7 +9,7 @@ os.environ["no_proxy"] = os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-import psycopg2
+import psycopg
 
 TZ_MAP = {
     "PT": "US/Pacific", "PST": "US/Pacific", "PDT": "US/Pacific",
@@ -44,7 +44,7 @@ def parse_break_time(text):
 
 
 def main():
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn = psycopg.connect(os.environ["DATABASE_URL"])
     cur = conn.cursor()
     cur.execute(
         "SELECT id, break_time_text FROM breaks "
