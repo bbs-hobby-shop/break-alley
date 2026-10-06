@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 from fastapi import FastAPI, Form, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -135,6 +135,41 @@ def suggest_breaker(
 
 def _admin_key_ok(key: str | None) -> bool:
     return bool(config.ADMIN_KEY) and key == config.ADMIN_KEY
+
+
+@app.get("/admin/debug-region")
+def admin_debug_region(key: str | None = Query(default=None)):
+    """Temporary region-tagging diagnostics (ADMIN_KEY-gated)."""
+    if not _admin_key_ok(key):
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    from app import db as _db
+    conn = _db.get_conn()
+    try:
+        channels = conn.execute(
+            "SELECT channel_id, title, country FROM youtube_channels "
+            "WHERE channel_id IN ('UC5rRnVt4XD_BBX3tzUt48Lg',"
+            " 'UCI5LAOCy4SHLoRsNGjxr8Aw','UCf15ztZMysW3n8rXxOqeOXg')"
+        ).fetchall()
+        by_country = conn.execute(
+            "SELECT country, COUNT(*) n FROM youtube_channels "
+            "GROUP BY country ORDER BY n DESC"
+        ).fetchall()
+        breaks_by_country = conn.execute(
+            "SELECT country, COUNT(*) n FROM breaks "
+            "GROUP BY country ORDER BY n DESC"
+        ).fetchall()
+        null_breaks = conn.execute(
+            "SELECT breaker, channel_id, LEFT(title_raw, 60) t FROM breaks "
+            "WHERE country IS NULL AND source='youtube' LIMIT 25"
+        ).fetchall()
+        return {
+            "pinned_channels": [dict(r) for r in channels],
+            "channels_by_country": [dict(r) for r in by_country],
+            "breaks_by_country": [dict(r) for r in breaks_by_country],
+            "null_country_breaks": [dict(r) for r in null_breaks],
+        }
+    finally:
+        conn.close()
 
 
 @app.get("/admin/suggestions", response_class=HTMLResponse)
