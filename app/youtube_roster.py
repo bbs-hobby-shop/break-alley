@@ -67,6 +67,12 @@ KNOWN_COUNTRIES = {
     "UCM1CnVA0viwqwoK3lAJ7clA": "CA",
     # Out Of The Box: Ottawa ON brick & mortar
     "UC3XMSBs56tO133hlF_N8VQQ": "CA",
+    # ByThaCard: Taiwan group-break operation (API country blank; ID-confirmed)
+    "UC5rRnVt4XD_BBX3tzUt48Lg": "TW",
+    # ByThaCard 2: same operation (API reports TW; ID-pinned)
+    "UCI5LAOCy4SHLoRsNGjxr8Aw": "TW",
+    # KwiatuCards: Polish breaker (API reports PL; ID-pinned)
+    "UCf15ztZMysW3n8rXxOqeOXg": "PL",
 }
 
 # Title-substring fallback for discovered channels whose IDs aren't in
