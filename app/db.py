@@ -543,6 +543,7 @@ ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_url TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_platform TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS break_time_text TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_links JSONB;
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_checked_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_breaks_channel_id ON breaks (channel_id);
@@ -681,13 +682,33 @@ def purge_junk_breaks(conn) -> int:
 
 
 def needs_video_info(conn, source_url: str) -> bool:
-    """Check if an eBay listing needs video info extraction (not yet populated)."""
+    """Check if an eBay listing has never had video info extraction attempted.
+
+    Check-once semantics (Brian 2026-10-06): listings whose sellers include no
+    video info would otherwise be re-fetched on EVERY 15-min poller run --
+    hundreds of wasted Browse API getItem calls per run against eBay's
+    ~5k/day application quota, which starves the search calls and fails the
+    run. A listing is checked the first time the poller sees it; listings
+    with no video info are never re-fetched.
+    """
     row = conn.execute(
-        "SELECT video_url FROM breaks WHERE source_url = %(url)s",
+        "SELECT video_checked_at FROM breaks WHERE source_url = %(url)s",
         {"url": source_url},
     ).fetchone()
-    # New listing (not in DB) or existing without video_url
-    return row is None or row["video_url"] is None
+    # New listing (not in DB) or existing never checked
+    return row is None or row["video_checked_at"] is None
+
+
+def mark_video_checked(conn, source_url: str) -> None:
+    """Record that video info extraction was attempted for a listing.
+
+    Called after every extraction attempt (hit or miss) so the listing is
+    never re-fetched. Must run AFTER upsert_break so new listings exist.
+    """
+    conn.execute(
+        "UPDATE breaks SET video_checked_at = NOW() WHERE source_url = %(url)s",
+        {"url": source_url},
+    )
 
 
 def update_video_info(conn, source_url: str, video_url: str | None,

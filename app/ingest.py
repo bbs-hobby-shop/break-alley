@@ -98,16 +98,27 @@ def run_ebay() -> int:
     print(f"fetched {len(items)} raw eBay listings")
     n = 0
     n_video = 0
+    n_err = 0
     with db.get_conn() as conn:
         for item in items:
-            row = normalize_ebay_item(
-                item, affiliate_url=ebay.build_affiliate_url(item.get("itemWebUrl"))
-            )
+            try:
+                row = normalize_ebay_item(
+                    item, affiliate_url=ebay.build_affiliate_url(item.get("itemWebUrl"))
+                )
+            except Exception as e:
+                # One poison listing must not kill the whole 15-min run.
+                n_err += 1
+                print(f"ebay: skipping unparseable listing: {e}")
+                continue
             if not row.get("source_url"):
                 continue
             # Extract video info for new listings before they enter the app
-            # (Brian 2026-10-06: all details must be there before listing goes live)
+            # (Brian 2026-10-06: all details must be there before listing goes live).
+            # Check-once: listings are marked checked after the attempt so
+            # video-less listings are never re-fetched (Browse API quota).
+            checked_video = False
             if db.needs_video_info(conn, row["source_url"]):
+                checked_video = True
                 try:
                     from .ebay_video import extract_for_listing
                     video = extract_for_listing(row["source_url"])
@@ -122,9 +133,21 @@ def run_ebay() -> int:
                         n_video += 1
                 except Exception as e:
                     print(f"video extract failed for {row['source_url']}: {e}")
-            db.upsert_break(conn, row)
+            try:
+                db.upsert_break(conn, row)
+            except Exception as e:
+                n_err += 1
+                print(f"ebay: upsert failed for {row.get('source_url')}: {e}")
+                continue
+            if checked_video:
+                db.mark_video_checked(conn, row["source_url"])
             n += 1
-    print(f"upserted {n} normalized breaks ({n_video} new with video info)")
+    print(f"upserted {n} normalized breaks ({n_video} new with video info)"
+          + (f", {n_err} errors" if n_err else ""))
+    if n == 0 and n_err > 0:
+        # Every listing failed: something systemic is wrong -- mark the run
+        # failed in the Render dashboard instead of exiting 0 on a stale site.
+        return 1
     return 0
 
 
