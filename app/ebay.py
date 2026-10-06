@@ -24,7 +24,7 @@ from . import config
 
 TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
 SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
-OAUTH_SCOPE = "https://api.ebay.com/api/persistence"
+OAUTH_SCOPE = "https://api.ebay.com/oauth/api_scope"
 MARKETPLACE = "EBAY_US"
 
 # (query, sport_hint) pairs polled on each run. Cheap, broad queries first.
