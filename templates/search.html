@@ -94,6 +94,7 @@
   .toolbar .live-toggle { display: flex; align-items: center; gap: .4rem; font-size: .9rem; font-weight: 700; color: var(--muted); }
   .toolbar .go { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: .55rem 1.1rem; font-weight: 700; cursor: pointer; }
   .section-label { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px; color: var(--muted); margin: 1.4rem 0 .8rem; text-transform: uppercase; }
+  .res-count { text-transform: none; letter-spacing: 0; font-weight: 600; }
   .refreshbar { display: flex; align-items: center; gap: .8rem; margin: 0 0 .4rem; flex-wrap: wrap; }
   .refreshbar form { margin: 0; }
   .refresh-btn { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .45rem 1rem; font-weight: 700; cursor: pointer; font-size: .85rem; }
@@ -227,7 +228,7 @@
   {% endif %}
   </div>
 
-  <div class="section-label">Breaks</div>
+  <div class="section-label">Breaks <span class="res-count">{{ results|length }} result{{ 's' if results|length != 1 }} found</span></div>
   <div class="refreshbar">
     <form method="post" action="/refresh">
       <input type="hidden" name="q" value="{{ q }}">
