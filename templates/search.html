@@ -50,7 +50,7 @@
   }
   .logo { font-weight: 900; font-size: 1.35rem; letter-spacing: .5px; display: flex; align-items: center; gap: .6rem; }
   .logo img { width: 40px; height: 40px; border-radius: 10px; }
-  .logo span { color: var(--green); }
+  .logo .wordmark span { color: var(--green); }
   .auth-link { color: var(--muted); font-size: .88rem; font-weight: 700; text-decoration: none; }
   .auth-link:hover { color: var(--text); }
   .auth-link.cta { background: var(--green); color: #04120a; border-radius: 20px; padding: .35rem .9rem; }
@@ -176,7 +176,7 @@
 </head>
 <body>
 <header class="top">
-  <div class="logo"><img src="/static/logo-mark.webp" alt="BreakAlley logo">BREAK<span>ALLEY</span></div>
+  <div class="logo"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></div>
   {% if user %}
     <a class="auth-link" href="/account">My Account</a>
     <form method="post" action="/logout" class="auth-form"><button type="submit">Sign out</button></form>
