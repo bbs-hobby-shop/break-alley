@@ -57,24 +57,10 @@ services:
         sync: false
 
   - type: cron
-    name: break-alley-poll-youtube
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    schedule: "0 */6 * * *"
-    dockerCommand: python -m app.ingest --source youtube
-    # YOUTUBE_API_KEY comes from the break-alley-shared environment group
-    # (dashboard). Do NOT re-add it here as sync:false.
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: break-alley-db
-          property: connectionString
-
-  - type: cron
     name: break-alley-poll-youtube-roster
     runtime: docker
     dockerfilePath: ./Dockerfile
-    schedule: "0 3,9,15,21 * * *"
+    schedule: "0 */3 * * *"
     dockerCommand: python -m app.ingest --source youtube-roster
     # YOUTUBE_API_KEY comes from the break-alley-shared environment group
     # (dashboard). Do NOT re-add it here as sync:false.

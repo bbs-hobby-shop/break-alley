@@ -149,8 +149,8 @@ def run_youtube_roster() -> int:
         return 1
     with db.get_conn() as conn:
         # Backfill the roster from channel_ids already stored on youtube
-        # breaks (idempotent). The search poller's discovery hook keeps it
-        # growing from here.
+        # breaks (idempotent). New channels come from seed_channels.txt
+        # (Brian's approved list) and the suggest-a-breaker flow.
         n_seeded = db.seed_youtube_channels_from_breaks(conn)
         if n_seeded:
             print(f"youtube-roster: seeded {n_seeded} channels from breaks table")
@@ -183,6 +183,17 @@ def run_youtube_roster() -> int:
         n_backfilled = db.backfill_break_countries(conn)
         if n_backfilled:
             print(f"youtube-roster: stamped country on {n_backfilled} older breaks")
+        # Prune stale YouTube breaks (the broad search poller used to wipe the
+        # slice; the roster is now the sole YouTube source, so it prunes here).
+        # Keep live breaks and anything starting in the future; drop the rest.
+        n_pruned = conn.execute(
+            """DELETE FROM breaks
+               WHERE source = 'youtube'
+                 AND NOT COALESCE(is_live, FALSE)
+                 AND (starts_at IS NULL OR starts_at < NOW())"""
+        ).rowcount
+        if n_pruned:
+            print(f"youtube-roster: pruned {n_pruned} stale breaks")
     print(f"youtube-roster: upserted {n} breaks from {len(checked)} channels "
           f"(~{stats['units']} quota units)")
     return 0
