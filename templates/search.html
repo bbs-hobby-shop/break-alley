@@ -87,7 +87,7 @@
     padding: 0 1.8rem; font-size: 1rem; font-weight: 800; color: #04120a; white-space: nowrap;
     background: var(--green); border: 0; border-radius: 12px; cursor: pointer; font-family: inherit;
   }
-  .filtergrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; align-items: center; }
+  .filtergrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .6rem; align-items: center; }
   .filtergrid select, .filtergrid input[type=number] {
     background: var(--card); color: var(--text); border: 1px solid var(--line); width: 100%;
     border-radius: 10px; padding: .55rem .8rem; font-size: .9rem; font-family: inherit;
@@ -208,6 +208,11 @@
         <option value="youtube" {% if source == 'youtube' %}selected{% endif %}>YouTube</option>
         <option value="twitch" {% if source == 'twitch' %}selected{% endif %}>Twitch</option>
       </select>
+      <select name="region" aria-label="Breaker region">
+        <option value="">All regions</option>
+        <option value="us" {% if region == 'us' %}selected{% endif %}>US only</option>
+        <option value="intl" {% if region == 'intl' %}selected{% endif %}>International</option>
+      </select>
       <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
     </div>
   </form>
@@ -218,6 +223,7 @@
     <input type="hidden" name="format" value="{{ format }}">
     <input type="hidden" name="source" value="{{ source }}">
     <input type="hidden" name="max_price" value="{{ max_price }}">
+    <input type="hidden" name="region" value="{{ region }}">
     <button type="submit">⚲ Save</button>
   </form>
   {% endif %}
@@ -232,6 +238,7 @@
       <input type="hidden" name="format" value="{{ format }}">
       <input type="hidden" name="source" value="{{ source }}">
       <input type="hidden" name="max_price" value="{{ max_price }}">
+      <input type="hidden" name="region" value="{{ region }}">
       {% if live %}<input type="hidden" name="live" value="1">{% endif %}
       {% if refresh_running %}
       <button type="submit" class="refresh-btn" disabled>⟳ Refreshing…</button>

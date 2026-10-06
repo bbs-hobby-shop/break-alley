@@ -39,6 +39,7 @@ from . import config, db
 from .normalizer import looks_like_real_break
 from .youtube import (
     _parse_ts,
+    channel_countries,
     estimate_quota_units,
     get_api_key,
     is_upcoming_or_live,
@@ -50,6 +51,22 @@ PLAYLIST_ITEMS_URL = "https://www.googleapis.com/youtube/v3/playlistItems"
 
 MAX_ROSTER_CHANNELS = int(os.environ.get("YOUTUBE_ROSTER_MAX_CHANNELS", "300"))
 VIDEOS_PER_CHANNEL = int(os.environ.get("YOUTUBE_ROSTER_VIDEOS_PER_CHANNEL", "10"))
+
+# Home countries for roster channels that don't set snippet.country on
+# YouTube. Only confident, evidence-backed entries — everything else stays
+# NULL (= unknown region) rather than guessed.
+KNOWN_COUNTRIES = {
+    # Gold Coast Trading Cards: NRL/AFL rugby league niche, .net site
+    "UC9_1XxNlE817786QYm7AbXg": "AU",
+    # Poom Breaks: Taiwan-based (poombreaks.live)
+    "UCGzeXkDhxnYkRM-8rZZvoaQ": "TW",
+    # Maritime Sports Cards: maritimesportscards.com (Canada)
+    "UCsHDlC4em4oZcBl49zlxJwQ": "CA",
+    # CNC Breaks (CloutsnChara): Kitchener ON store
+    "UCM1CnVA0viwqwoK3lAJ7clA": "CA",
+    # Out Of The Box: Ottawa ON brick & mortar
+    "UC3XMSBs56tO133hlF_N8VQQ": "CA",
+}
 
 
 def uploads_playlist_id(channel_id: str) -> str:
@@ -113,6 +130,28 @@ def fetch_roster_breaks(conn):
             "n_kept": 0, "n_non_break": 0, "n_past": 0, "n_no_date": 0,
         }
 
+    # Backfill home countries for channels still unknown: YouTube's own
+    # snippet.country first (1 unit per 50 channels), then the curated
+    # KNOWN_COUNTRIES overrides for channels that don't set one.
+    country_of = {ch["channel_id"]: ch.get("country") for ch in channels}
+    missing = [cid for cid, c in country_of.items() if not c]
+    n_country_calls = 0
+    if missing:
+        n_country_calls = (len(missing) + 49) // 50
+        try:
+            api_map = channel_countries(missing)
+        except Exception as exc:
+            print(f"  roster country lookup failed: {exc}", file=sys.stderr)
+            api_map = {}
+        fresh = {cid: c for cid, c in api_map.items() if c}
+        for cid in missing:
+            if cid not in fresh and cid in KNOWN_COUNTRIES:
+                fresh[cid] = KNOWN_COUNTRIES[cid]
+        n_filled = db.set_channel_countries(conn, fresh)
+        country_of.update(fresh)
+        if n_filled:
+            print(f"youtube-roster: backfilled country for {n_filled} channels")
+
     # 1. recent video ids per channel (1 quota unit each), deduped
     video_ids: list[str] = []
     channel_of_video: dict[str, str] = {}
@@ -148,6 +187,7 @@ def fetch_roster_breaks(conn):
         if not looks_like_real_break(row["title_raw"], row.get("format")):
             n_non_break += 1
         elif is_upcoming_or_live(row):
+            row["country"] = country_of.get(channel_of_video[vid])
             rows.append(row)
             hit_channels.add(channel_of_video[vid])
         elif _parse_ts(row.get("starts_at")) is None:
@@ -155,9 +195,10 @@ def fetch_roster_breaks(conn):
         else:
             n_past += 1
 
-    units = estimate_roster_quota_units(n_playlist_calls, len(video_ids))
+    units = estimate_roster_quota_units(n_playlist_calls, len(video_ids)) + n_country_calls
     print(f"youtube-roster: {n_playlist_calls} playlist + "
-          f"{(len(video_ids) + 49) // 50 if video_ids else 0} detail calls "
+          f"{(len(video_ids) + 49) // 50 if video_ids else 0} detail + "
+          f"{n_country_calls} country calls "
           f"= ~{units} quota units across {len(checked)} channels; "
           f"{len(rows)} upcoming breaks kept, "
           f"{n_non_break} non-break / {n_past} past / {n_no_date} no-date dropped")

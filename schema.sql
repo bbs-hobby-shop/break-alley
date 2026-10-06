@@ -23,11 +23,13 @@ CREATE TABLE IF NOT EXISTS breaks (
     fetched_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at      TIMESTAMPTZ,
     channel_id      TEXT,                       -- YouTube channelId (roster discovery + backfill)
+    country         TEXT,                       -- 2-letter breaker country (US, CA, AU, ...) NULL = unknown
     UNIQUE (source, source_url)
 );
 
 -- Migrate existing databases (fresh DBs already have the column above).
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS channel_id TEXT;
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS country TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_breaks_sport      ON breaks (sport);
 CREATE INDEX IF NOT EXISTS idx_breaks_format     ON breaks (format);
@@ -37,6 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_breaks_source     ON breaks (source);
 CREATE INDEX IF NOT EXISTS idx_breaks_product    ON breaks (product_normalized);
 CREATE INDEX IF NOT EXISTS idx_breaks_title_trgm ON breaks USING gin (title_raw gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_breaks_channel_id ON breaks (channel_id);
+CREATE INDEX IF NOT EXISTS idx_breaks_country ON breaks (country);
 
 -- YouTube channel roster for cheap per-channel monitoring (see
 -- app/youtube_roster.py). Channels land here via the search poller's
@@ -48,11 +51,13 @@ CREATE TABLE IF NOT EXISTS youtube_channels (
     title           TEXT,                        -- channel display name
     source          TEXT NOT NULL DEFAULT 'search'
                     CHECK (source IN ('search', 'manual', 'seed')),
+    country         TEXT,                        -- 2-letter ISO country from snippet.country; NULL = unknown
     added_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_checked_at TIMESTAMPTZ,                 -- last roster poll that covered it
     last_hit_at     TIMESTAMPTZ,                 -- last poll where it produced a kept break
     active          BOOLEAN NOT NULL DEFAULT TRUE
 );
+ALTER TABLE youtube_channels ADD COLUMN IF NOT EXISTS country TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
@@ -115,8 +120,10 @@ CREATE TABLE IF NOT EXISTS saved_searches (
     format     TEXT,
     source     TEXT,
     max_price  NUMERIC,
+    region     TEXT,                        -- 'us' | 'intl' | NULL (= all regions)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE saved_searches ADD COLUMN IF NOT EXISTS region TEXT;
 CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches (user_id);
 
 -- Canonical products + known title aliases for normalization.

@@ -42,7 +42,7 @@ class FakeConn:
 
     def execute(self, sql, params=None):
         self.executes.append((sql, params))
-        if "SELECT channel_id, title FROM youtube_channels" in sql:
+        if "SELECT channel_id, title, country FROM youtube_channels" in sql:
             return FakeResult(rows=self.roster_channels)
         if "FROM breaks" in sql and "INSERT INTO youtube_channels" in sql:
             return FakeResult(rowcount=self.seed_rowcount)
@@ -189,11 +189,13 @@ def test_reuses_existing_filter():
 
 def test_roster_fetch_filters_and_attributes():
     conn = FakeConn(roster_channels=[
-        {"channel_id": CH_A, "title": "Hot Breaks"},
-        {"channel_id": CH_B, "title": "Cold Channel"},
+        {"channel_id": CH_A, "title": "Hot Breaks", "country": None},
+        {"channel_id": CH_B, "title": "Cold Channel", "country": None},
     ])
     with patch([(youtube_roster, "_get", fake_roster_get),
                 (youtube, "_get", fake_youtube_get),
+                (youtube_roster, "channel_countries",
+                 lambda ids: {CH_A: "US"}),
                 (config, "YOUTUBE_API_KEY", "fake-key")]):
         rows, hit_cids, checked, stats = youtube_roster.fetch_roster_breaks(conn)
 
@@ -202,12 +204,51 @@ def test_roster_fetch_filters_and_attributes():
                     "LIVE 5 Box 2024 Mosaic Basketball Mixer Division Break"], kept
     assert hit_cids == [CH_A], hit_cids          # only the hot channel produced
     assert checked == [CH_A, CH_B], checked       # both were actually checked
-    assert stats["units"] == 3, stats            # 2 playlist + 1 detail call
+    assert stats["units"] == 4, stats            # 2 playlist + 1 detail + 1 country call
     assert stats["n_non_break"] == 1, stats       # the vlog
     assert stats["n_past"] == 1, stats            # the 3-day-old break
     # kept rows carry channel_id for the discovery/backfill loop
     assert all(r["channel_id"] == CH_A for r in rows), rows
+    # kept rows carry the backfilled channel country
+    assert all(r["country"] == "US" for r in rows), rows
+    # the country backfill UPDATE ran for the resolved channel
+    country_updates = [p for s, p in conn.executes
+                       if "UPDATE youtube_channels SET country" in s]
+    assert country_updates, "country backfill never ran"
     print("ok test_roster_fetch_filters_and_attributes")
+
+
+def test_roster_country_known_override():
+    # Channels the API leaves blank fall back to KNOWN_COUNTRIES.
+    conn = FakeConn(roster_channels=[
+        {"channel_id": CH_A, "title": "Hot Breaks", "country": None},
+    ])
+    with patch([(youtube_roster, "_get", fake_roster_get),
+                (youtube, "_get", fake_youtube_get),
+                (youtube_roster, "channel_countries", lambda ids: {}),
+                (youtube_roster, "KNOWN_COUNTRIES", {CH_A: "CA"}),
+                (config, "YOUTUBE_API_KEY", "fake-key")]):
+        rows, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
+    assert rows and all(r["country"] == "CA" for r in rows), rows
+    updates = [(s, p) for s, p in conn.executes
+               if "UPDATE youtube_channels SET country" in s]
+    assert any(p[1] == CH_A for _, p in updates), updates
+    print("ok test_roster_country_known_override")
+
+
+def test_region_filter_in_search():
+    # region flows into search_breaks and constrains on country.
+    conn = FakeConn()
+    db.search_breaks(conn, q="prizm", region="us")
+    assert conn.executes, "search never ran"
+    sql, params = conn.executes[-1]
+    assert params["region"] == "us", params
+    assert "country = 'US'" in sql and "'intl'" in sql, sql
+    # NULL region = no constraint
+    conn2 = FakeConn()
+    db.search_breaks(conn2, region=None)
+    assert conn2.executes[-1][1]["region"] is None
+    print("ok test_region_filter_in_search")
 
 
 def test_roster_cap_respected():
@@ -218,7 +259,7 @@ def test_roster_cap_respected():
                 (config, "YOUTUBE_API_KEY", "fake-key")]):
         youtube_roster.fetch_roster_breaks(conn)
     select_params = [p for s, p in conn.executes
-                     if "SELECT channel_id, title FROM youtube_channels" in s]
+                     if "SELECT channel_id, title, country FROM youtube_channels" in s]
     assert select_params, "roster SELECT never ran"
     assert select_params[0][0] == youtube_roster.MAX_ROSTER_CHANNELS == 300, \
         select_params[0]

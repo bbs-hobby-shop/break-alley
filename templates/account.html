@@ -186,7 +186,7 @@
     {% if searches %}
       {% for s in searches %}
       <div class="srow">
-        <a class="run" href="/?q={{ s.q|urlencode if s.q }}&format={{ s.format or '' }}&source={{ s.source or '' }}&max_price={{ s.max_price or '' }}">{{ s.name }}</a>
+        <a class="run" href="/?q={{ s.q|urlencode if s.q }}&format={{ s.format or '' }}&source={{ s.source or '' }}&max_price={{ s.max_price or '' }}&region={{ s.region or '' }}">{{ s.name }}</a>
         <span class="detail">{{ [s.q, s.format, s.source]|select|join(' · ') }}</span>
         <form method="post" action="/searches/{{ s.id }}/delete"><button type="submit">Delete</button></form>
       </div>

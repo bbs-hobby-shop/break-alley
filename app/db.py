@@ -25,12 +25,12 @@ INSERT INTO breaks (
     source, source_url, breaker, product_raw, product_normalized,
     sport, format, price, currency, starts_at, is_live,
     slots_total, slots_remaining, thumbnail_url, title_raw,
-    affiliate_url, expires_at, channel_id
+    affiliate_url, expires_at, channel_id, country
 ) VALUES (
     %(source)s, %(source_url)s, %(breaker)s, %(product_raw)s, %(product_normalized)s,
     %(sport)s, %(format)s, %(price)s, %(currency)s, %(starts_at)s, %(is_live)s,
     %(slots_total)s, %(slots_remaining)s, %(thumbnail_url)s, %(title_raw)s,
-    %(affiliate_url)s, %(expires_at)s, %(channel_id)s
+    %(affiliate_url)s, %(expires_at)s, %(channel_id)s, %(country)s
 )
 ON CONFLICT (source, source_url) DO UPDATE SET
     breaker = EXCLUDED.breaker,
@@ -49,7 +49,8 @@ ON CONFLICT (source, source_url) DO UPDATE SET
     affiliate_url = EXCLUDED.affiliate_url,
     fetched_at = NOW(),
     expires_at = EXCLUDED.expires_at,
-    channel_id = EXCLUDED.channel_id;
+    channel_id = EXCLUDED.channel_id,
+    country = COALESCE(EXCLUDED.country, breaks.country);
 """
 
 
@@ -57,6 +58,9 @@ def upsert_break(conn, row: dict) -> None:
     # channel_id only exists on YouTube rows; default it so eBay/Twitch/demo
     # rows don't KeyError on the named param.
     row.setdefault("channel_id", None)
+    # country is set by the YouTube roster poller (channel's home country);
+    # other sources leave it NULL (= unknown region).
+    row.setdefault("country", None)
     # Every kept break lands in a format category: titles with no specific
     # format signal fall into the generic 'box_break' bucket. (The site only
     # lists real box breaks, so this is always honest. looks_like_real_break
@@ -100,6 +104,48 @@ def mark_channels_checked(conn, channel_ids: list[str]) -> None:
     )
 
 
+def channels_missing_country(conn, channel_ids: list[str]) -> list[str]:
+    """Roster channel ids whose country is still unknown."""
+    if not channel_ids:
+        return []
+    return [r["channel_id"] for r in conn.execute(
+        "SELECT channel_id FROM youtube_channels "
+        "WHERE channel_id = ANY(%s) AND country IS NULL",
+        (channel_ids,),
+    ).fetchall()]
+
+
+def set_channel_countries(conn, mapping: dict[str, str | None]) -> int:
+    """Stamp known 2-letter countries onto roster channels. Returns count."""
+    n = 0
+    for cid, country in mapping.items():
+        if not country:
+            continue
+        conn.execute(
+            "UPDATE youtube_channels SET country = %s "
+            "WHERE channel_id = %s AND country IS NULL",
+            (country.upper(), cid),
+        )
+        n += 1
+    return n
+
+
+def backfill_break_countries(conn) -> int:
+    """Copy channel countries onto breaks rows still missing one.
+
+    Idempotent: only touches breaks with NULL country whose channel now has
+    a known country. Returns the number of rows updated.
+    """
+    res = conn.execute(
+        """UPDATE breaks b SET country = yc.country
+           FROM youtube_channels yc
+           WHERE b.channel_id = yc.channel_id
+             AND b.country IS NULL
+             AND yc.country IS NOT NULL""",
+    )
+    return res.rowcount or 0
+
+
 def get_roster_channels(conn, limit: int) -> list[dict]:
     """Active roster channels for one poll, hottest first.
 
@@ -108,7 +154,7 @@ def get_roster_channels(conn, limit: int) -> list[dict]:
     Among never-hit channels, the least-recently-checked go first.
     """
     return conn.execute(
-        """SELECT channel_id, title FROM youtube_channels
+        """SELECT channel_id, title, country FROM youtube_channels
            WHERE active
            ORDER BY last_hit_at DESC NULLS LAST,
                     last_checked_at ASC NULLS FIRST
@@ -368,20 +414,23 @@ def breaks_for_breakers(conn, breakers: list[str], limit: int = 100) -> list[dic
 
 def save_search(conn, user_id: int, name: str, q: str | None,
                 format: str | None, source: str | None,
-                max_price: float | None) -> int:
+                max_price: float | None, region: str | None = None) -> int:
+    if region not in ("us", "intl"):
+        region = None
     cur = conn.execute(
-        """INSERT INTO saved_searches (user_id, name, q, format, source, max_price)
-           VALUES (%(user_id)s, %(name)s, %(q)s, %(format)s, %(source)s, %(max_price)s)
+        """INSERT INTO saved_searches (user_id, name, q, format, source, max_price, region)
+           VALUES (%(user_id)s, %(name)s, %(q)s, %(format)s, %(source)s, %(max_price)s, %(region)s)
            RETURNING id""",
         {"user_id": user_id, "name": name.strip()[:80], "q": q,
-         "format": format, "source": source, "max_price": max_price},
+         "format": format, "source": source, "max_price": max_price,
+         "region": region},
     )
     return cur.fetchone()["id"]
 
 
 def list_saved_searches(conn, user_id: int) -> list[dict]:
     return [dict(r) for r in conn.execute(
-        """SELECT id, name, q, format, source, max_price, created_at
+        """SELECT id, name, q, format, source, max_price, region, created_at
            FROM saved_searches WHERE user_id = %(user_id)s
            ORDER BY created_at DESC""",
         {"user_id": user_id},
@@ -457,11 +506,15 @@ CREATE TABLE IF NOT EXISTS youtube_channels (
     title           TEXT,
     source          TEXT NOT NULL DEFAULT 'search'
                     CHECK (source IN ('search', 'manual', 'seed')),
+    country         TEXT,
     added_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_checked_at TIMESTAMPTZ,
     last_hit_at     TIMESTAMPTZ,
     active          BOOLEAN NOT NULL DEFAULT TRUE
 );
+ALTER TABLE youtube_channels ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS country TEXT;
+CREATE INDEX IF NOT EXISTS idx_breaks_country ON breaks (country);
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS channel_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
@@ -503,8 +556,10 @@ CREATE TABLE IF NOT EXISTS saved_searches (
     format     TEXT,
     source     TEXT,
     max_price  NUMERIC,
+    region     TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE saved_searches ADD COLUMN IF NOT EXISTS region TEXT;
 CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches (user_id);
 """
 
@@ -516,7 +571,8 @@ def ensure_schema(conn) -> None:
 SEARCH_SQL = """
 SELECT id, source, source_url, breaker, product_raw, product_normalized,
        sport, format, price, currency, starts_at, is_live,
-       slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url
+       slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
+       country
 FROM breaks
 WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
        OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
@@ -525,16 +581,20 @@ WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT
   AND (CAST(%(max_price)s AS NUMERIC) IS NULL OR price IS NULL OR price <= %(max_price)s)
   AND (CAST(%(source)s AS TEXT) IS NULL OR source = %(source)s)
   AND (CAST(%(live_only)s AS BOOLEAN) IS NULL OR is_live = %(live_only)s)
+  AND (CAST(%(region)s AS TEXT) IS NULL
+       OR (CAST(%(region)s AS TEXT) = 'us' AND country = 'US')
+       OR (CAST(%(region)s AS TEXT) = 'intl'
+           AND country IS NOT NULL AND country <> 'US'))
 ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
 LIMIT 200;
 """
 
 
 def search_breaks(conn, q=None, sport=None, format=None, max_price=None,
-                  source=None, live_only=None):
+                  source=None, live_only=None, region=None):
     return conn.execute(SEARCH_SQL, {
         "q": q, "sport": sport, "format": format, "max_price": max_price,
-        "source": source, "live_only": live_only,
+        "source": source, "live_only": live_only, "region": region,
     }).fetchall()
 
 

@@ -180,6 +180,9 @@ def run_youtube_roster() -> int:
         for cid in hit_channel_ids:
             db.upsert_youtube_channel(conn, cid)
         db.mark_channels_checked(conn, checked)
+        n_backfilled = db.backfill_break_countries(conn)
+        if n_backfilled:
+            print(f"youtube-roster: stamped country on {n_backfilled} older breaks")
     print(f"youtube-roster: upserted {n} breaks from {len(checked)} channels "
           f"(~{stats['units']} quota units)")
     return 0

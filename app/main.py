@@ -46,10 +46,12 @@ def search(
     max_price: str | None = Query(default=None),
     source: str | None = Query(default=None),
     live: bool = Query(default=False),
+    region: str | None = Query(default=None),
     suggested: str | None = Query(default=None),
 ):
     format = format or None
     source = source or None
+    region = region if region in ("us", "intl") else None
     # max_price arrives as "" when the query string carries empty params
     # (e.g. after favoriting) — treat blank/invalid as "no cap", never 422.
     try:
@@ -66,7 +68,7 @@ def search(
                 _enrich(dict(r)) for r in db.search_breaks(
                     conn, q=q or None, format=format,
                     max_price=max_price_val, source=source,
-                    live_only=True if live else None,
+                    live_only=True if live else None, region=region,
                 )
             ]
             if user:
@@ -80,6 +82,7 @@ def search(
         "results": results, "error": error,
         "q": q or "", "format": format or "",
         "max_price": max_price or "", "source": source or "", "live": live,
+        "region": region or "",
         "suggested": suggested or "",
         "user": user, "favorites": favorites,
         "refresh_running": _public_refresh_running(),
@@ -646,6 +649,7 @@ def save_search_route(
     format: str = Form(default=""),
     source: str = Form(default=""),
     max_price: str = Form(default=""),
+    region: str = Form(default=""),
 ):
     try:
         user = _require_user(request)
@@ -660,7 +664,8 @@ def save_search_route(
         with db.get_conn() as conn:
             db.save_search(conn, user["id"], name,
                            q.strip() or None, format.strip() or None,
-                           source.strip() or None, mp)
+                           source.strip() or None, mp,
+                           region.strip() or None)
     except Exception:
         pass
     return RedirectResponse("/account", status_code=303)

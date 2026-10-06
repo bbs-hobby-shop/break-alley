@@ -126,6 +126,26 @@ def _get(url: str, params: dict) -> dict:
 _CHANNEL_ID_RE = re.compile(r"^UC[\w-]{20,}$")
 
 
+def channel_countries(channel_ids: list[str]) -> dict[str, str | None]:
+    """Map channel ids to their 2-letter home country (snippet.country).
+
+    Batched 50 ids per channels.list call (1 quota unit each). Channels that
+    never set a country come back as None — genuinely unknown, not US.
+    """
+    out: dict[str, str | None] = {}
+    ids = [c for c in dict.fromkeys(channel_ids) if c]
+    for i in range(0, len(ids), 50):
+        batch = ids[i:i + 50]
+        try:
+            data = _get(CHANNELS_URL, {"part": "snippet", "id": ",".join(batch)})
+        except Exception as exc:
+            print(f"  channel country lookup failed: {exc}", file=sys.stderr)
+            continue
+        for ch in data.get("items", []):
+            out[ch["id"]] = (ch.get("snippet", {}).get("country") or None)
+    return out
+
+
 def resolve_channel(user_input: str) -> tuple[str, str]:
     """Turn a visitor's breaker suggestion into a (channel_id, title).
 
