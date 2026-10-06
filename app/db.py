@@ -57,6 +57,13 @@ def upsert_break(conn, row: dict) -> None:
     # channel_id only exists on YouTube rows; default it so eBay/Twitch/demo
     # rows don't KeyError on the named param.
     row.setdefault("channel_id", None)
+    # Every kept break lands in a format category: titles with no specific
+    # format signal fall into the generic 'box_break' bucket. (The site only
+    # lists real box breaks, so this is always honest. looks_like_real_break
+    # still sees the raw 'unknown' before this mapping — a *detected* format
+    # remains a keep signal there.)
+    if row.get("format") == "unknown":
+        row["format"] = "box_break"
     conn.execute(UPSERT_BREAK_SQL, row)
 
 

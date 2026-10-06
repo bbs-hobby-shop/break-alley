@@ -22,18 +22,30 @@ SPORT_KEYWORDS = {
     "hockey": [r"\bhockey\b", r"\bnhl\b"],
 }
 
+# Five buyer-facing categories. Specific formats are checked first; anything
+# else a real break is still a box break, so the generic bucket catches it.
 FORMAT_PATTERNS = [
-    ("pyt", [r"\bpyt\b", r"pick your team"]),
-    ("random", [r"\brandom\b", r"\brandom team\b"]),
-    ("division", [r"\bdivision\b"]),
-    ("hit_draft", [r"hit\s*draft"]),
+    ("pyt", [r"\bpyt\b", r"pick your team", r"\bteam break\b", r"\bplayer break\b"]),
+    ("random", [r"\brandom\b", r"\brandom team\b", r"\bdivision\b"]),
     ("personal", [r"\bpersonals?\b"]),
     ("case_break", [r"\bcase break\b", r"\bcase\b.*\bbreak\b"]),
-    ("group_break", [r"\bgroup\s*breaks?\b", r"#groupbreaks?\b"]),
-    ("team_break", [r"\bteam break\b"]),
-    ("player_break", [r"\bplayer break\b"]),
-    ("box_break", [r"\bbox break\b"]),
+    ("box_break", [r"\bbox break\b", r"\bgroup\s*breaks?\b", r"#groupbreaks?\b"]),
 ]
+
+# Display names for the filter dropdown and card tags, including legacy
+# values that may still sit in older rows until pollers re-ingest them.
+FORMAT_LABELS = {
+    "pyt": "Pick Your Team",
+    "random": "Random",
+    "personal": "Personal",
+    "case_break": "Case Break",
+    "box_break": "Box Break",
+    "division": "Division",
+    "hit_draft": "Hit Draft",
+    "group_break": "Group Break",
+    "team_break": "Team Break",
+    "player_break": "Player Break",
+}
 
 # Strong title signals of a REAL buy-in break (not a recap, vlog, or casual
 # opening). A stream/video is kept when a break format was detected above
@@ -127,7 +139,18 @@ def detect_sport(title: str) -> str:
 
 
 def detect_format(title: str) -> str:
+    """Specific format detected in the title, or 'unknown'.
+
+    'unknown' is also the keep/drop signal in looks_like_real_break: a
+    *detected* format means a real break. At write time db.upsert_break
+    maps 'unknown' -> 'box_break' so every kept break lands in a category.
+    """
     return _first_match(title, FORMAT_PATTERNS) or "unknown"
+
+
+def format_label(fmt: str | None) -> str:
+    """Buyer-facing label for a stored format value."""
+    return FORMAT_LABELS.get(fmt or "", fmt or "")
 
 
 def normalize_product(title: str) -> str | None:

@@ -20,7 +20,7 @@ from fastapi.templating import Jinja2Templates
 
 from . import auth, config, db, youtube
 from .ingest import run_ebay, run_twitch, run_youtube, run_youtube_roster
-from .normalizer import date_label, display_title, extract_break_number
+from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -84,7 +84,8 @@ def search(
         "user": user, "favorites": favorites,
         "refresh_running": _public_refresh_running(),
         "updated_ago": updated_ago,
-        "formats": ["pyt", "random", "division", "hit_draft", "personal", "case_break", "group_break", "team_break", "player_break", "box_break"],
+        "formats": ["pyt", "random", "personal", "case_break", "box_break"],
+        "format_labels": FORMAT_LABELS,
     })
 
 
@@ -100,6 +101,7 @@ def detail(request: Request, break_id: int):
         row, error = None, f"Database unavailable: {exc}"
     return templates.TemplateResponse(request, "detail.html", {
         "b": row, "error": error,
+        "format_labels": FORMAT_LABELS,
     })
 
 

@@ -77,7 +77,7 @@
       {% if b.date_label and not b.is_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
       {% if b.break_no %}<span class="tag">{{ b.break_no }}</span>{% endif %}
       <span class="tag">{{ b.source|title }}</span>
-      {% if b.format and b.format != 'unknown' %}<span class="tag">{{ b.format.replace('_',' ')|title }}</span>{% endif %}
+      {% if b.format and b.format != 'unknown' %}<span class="tag">{{ format_labels.get(b.format, b.format) }}</span>{% endif %}
     </div>
     <div class="stats">
       {% if b.price %}<div class="stat"><div class="k">Per slot</div><div class="v green">${{ b.price }}</div></div>{% endif %}
