@@ -49,9 +49,10 @@ STRONG_BREAK_SIGNALS = [
 ]
 
 
-# Title words that mark a video as NOT a sports-card buy-in break even when it
-# is a scheduled stream: recaps/vlogs/etc, and non-sports card games (Pokemon,
-# Yu-Gi-Oh, Magic, Lorcana...). Brian wants sports card box breaks only.
+# Title words that mark a video as NOT a buy-in break even when it
+# is a scheduled stream: recaps/vlogs/etc. TCG and non-sports breaks
+# (Pokemon, Yu-Gi-Oh, Magic, Lorcana...) are welcome as long as they are
+# real box breaks.
 NON_BREAK_TITLE_WORDS = [
     r"\brecap\b",
     r"\bhighlights?\b",
@@ -59,22 +60,10 @@ NON_BREAK_TITLE_WORDS = [
     r"\bcollection\b",
     r"\bmail\s*days?\b",
     r"\bunboxing\b",
-    # trading card games that are not sports cards
-    r"\bpokemon\b",
-    r"\byu[\s-]?gi[\s-]?oh\b",
-    r"\byugioh\b",
-    r"\bmagic\b.{0,15}\bgathering\b",
-    r"\bmtg\b",
-    r"\blorcana\b",
-    r"\bone\s*piece\b",
-    r"\bdigimon\b",
-    r"\bdragon\s*ball\b",
-    r"\bflesh\s+and\s+blood\b",
-    r"\betb\b",  # Elite Trainer Box = Pokemon
 ]
 
 
-# Words that put "break" in a sports-card context. A title containing the
+# Words that put "break" in a card-break context. A title containing the
 # standalone word "break(s)" is only kept when one of these is also present —
 # this kills programming tutorials ("break & continue"), sermons
 # ("break every bondage"), and fantasy shows ("break down").
@@ -89,12 +78,13 @@ BREAK_CONTEXT_WORDS = [
 
 
 def looks_like_real_break(title: str, fmt: str | None) -> bool:
-    """True for titles that read like actual sports-card buy-in break listings.
+    """True for titles that read like actual buy-in break listings.
 
     Candidates are already live/upcoming streams matching break queries, so
     the bar is: a detected break format, a strong break signal, or the
-    standalone word "break(s)" alongside sports-card context words —
-    minus explicit non-break content (recaps, vlogs, TCGs).
+    standalone word "break(s)" alongside card-context words —
+    minus explicit non-break content (recaps, vlogs, mail days). TCG and
+    non-sports breaks count as long as they are real buy-in breaks.
     """
     if any(re.search(p, title, re.IGNORECASE) for p in NON_BREAK_TITLE_WORDS):
         return False
