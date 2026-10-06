@@ -78,13 +78,18 @@ def extract_for_listing(item_url: str) -> dict:
     if not match:
         return {"video_url": None, "video_platform": None, "break_time_text": None}
 
+    numeric_id = match.group(1)
+    # eBay Browse API expects itemId in format v1|{numeric_id}|0, not just the
+    # numeric ID from the URL. (Brian 2026-10-06: getItem 404s with numeric ID)
+    api_item_id = f"v1|{numeric_id}|0"
+
     try:
         token = get_app_token()
     except Exception as e:
         print(f"eBay token failed: {e}")
         return {"video_url": None, "video_platform": None, "break_time_text": None}
 
-    item = get_item(match.group(1), token)
+    item = get_item(api_item_id, token)
     if not item:
         return {"video_url": None, "video_platform": None, "break_time_text": None}
 
