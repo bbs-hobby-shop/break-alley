@@ -191,15 +191,44 @@ def parse_price(value) -> Decimal | None:
         return None
 
 
+def extract_break_group_key(title: str, breaker: str | None) -> str | None:
+    """Group key for eBay listings that are team-by-team slices of one break.
+
+    Professional breakers list each team separately ("Break #2428 - Arizona
+    Cardinals", "Break #2428 - Atlanta Falcons", ...). The group key collapses
+    these to one break: breaker + break number when present, else breaker +
+    normalized title prefix (team suffix stripped).
+
+    Returns None when no groupable pattern is found (single listing).
+    """
+    if not title or not breaker:
+        return None
+    t = title.strip()
+    # Break number: "#2428", "Break #2428", "Break#2428"
+    m = re.search(r"#\s*(\d{2,6})\b", t)
+    if m:
+        return f"ebay|{breaker.lower()}|break#{m.group(1)}"
+    # Fallback: strip a trailing " - {team}" suffix and normalize.
+    # Heuristic: if the title ends with " - X" where X is short (likely a team
+    # name), use the prefix as the group key.
+    m2 = re.match(r"^(.*?)\s+[-–|]\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})$", t)
+    if m2:
+        prefix = re.sub(r"[^a-z0-9]+", " ", m2.group(1).lower()).strip()
+        if len(prefix) > 10:  # avoid over-grouping tiny titles
+            return f"ebay|{breaker.lower()}|{prefix}"
+    return None
+
+
 def normalize_ebay_item(item: dict, affiliate_url: str | None = None) -> dict:
     """Turn one eBay Browse API itemSummary into a normalized break row."""
     title = item.get("title", "") or ""
     price_info = item.get("price", {}) or {}
     avail = (item.get("estimatedAvailabilities") or [{}])[0]
+    breaker = (item.get("seller") or {}).get("username")
     return {
         "source": "ebay",
         "source_url": item.get("itemWebUrl"),
-        "breaker": (item.get("seller") or {}).get("username"),
+        "breaker": breaker,
         "product_raw": title,
         "product_normalized": normalize_product(title),
         "sport": detect_sport(title),
@@ -214,6 +243,7 @@ def normalize_ebay_item(item: dict, affiliate_url: str | None = None) -> dict:
         "title_raw": title,
         "affiliate_url": affiliate_url,
         "expires_at": None,
+        "group_key": extract_break_group_key(title, breaker),
     }
 
 

@@ -24,12 +24,17 @@ CREATE TABLE IF NOT EXISTS breaks (
     expires_at      TIMESTAMPTZ,
     channel_id      TEXT,                       -- YouTube channelId (roster discovery + backfill)
     country         TEXT,                       -- 2-letter breaker country (US, CA, AU, ...) NULL = unknown
+    group_key       TEXT,                       -- eBay: groups team-by-team listings of one break
+    country         TEXT,                       -- 2-letter breaker country (US, CA, AU, ...) NULL = unknown
     UNIQUE (source, source_url)
 );
 
 -- Migrate existing databases (fresh DBs already have the column above).
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS channel_id TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS group_key TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_breaks_group_key ON breaks (group_key);
 
 CREATE INDEX IF NOT EXISTS idx_breaks_sport      ON breaks (sport);
 CREATE INDEX IF NOT EXISTS idx_breaks_format     ON breaks (format);

@@ -264,6 +264,9 @@
             <span class="tag">{{ b.source|title }}</span>
             {% if b.format and b.format != 'unknown' %}<span class="tag">{{ format_labels.get(b.format, b.format) }}</span>{% endif %}
             {% if b.breaker %}<span class="tag">{{ b.breaker }}</span>{% endif %}
+            {% if b.group_count and b.group_count > 1 %}
+              <span class="tag">{{ b.group_count }} teams</span>
+            {% endif %}
             {% if b.slots_remaining is not none %}
               <span class="tag {% if b.slots_remaining <= 5 %}slots-low{% endif %}">{{ b.slots_remaining }} slots left</span>
             {% endif %}

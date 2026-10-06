@@ -25,12 +25,12 @@ INSERT INTO breaks (
     source, source_url, breaker, product_raw, product_normalized,
     sport, format, price, currency, starts_at, is_live,
     slots_total, slots_remaining, thumbnail_url, title_raw,
-    affiliate_url, expires_at, channel_id, country
+    affiliate_url, expires_at, channel_id, country, group_key
 ) VALUES (
     %(source)s, %(source_url)s, %(breaker)s, %(product_raw)s, %(product_normalized)s,
     %(sport)s, %(format)s, %(price)s, %(currency)s, %(starts_at)s, %(is_live)s,
     %(slots_total)s, %(slots_remaining)s, %(thumbnail_url)s, %(title_raw)s,
-    %(affiliate_url)s, %(expires_at)s, %(channel_id)s, %(country)s
+    %(affiliate_url)s, %(expires_at)s, %(channel_id)s, %(country)s, %(group_key)s
 )
 ON CONFLICT (source, source_url) DO UPDATE SET
     breaker = EXCLUDED.breaker,
@@ -50,7 +50,8 @@ ON CONFLICT (source, source_url) DO UPDATE SET
     fetched_at = NOW(),
     expires_at = EXCLUDED.expires_at,
     channel_id = EXCLUDED.channel_id,
-    country = COALESCE(EXCLUDED.country, breaks.country);
+    country = COALESCE(EXCLUDED.country, breaks.country),
+    group_key = EXCLUDED.group_key;
 """
 
 
@@ -60,6 +61,10 @@ def upsert_break(conn, row: dict) -> None:
     row.setdefault("channel_id", None)
     # country is set by the YouTube roster poller (channel's home country);
     # other sources leave it NULL (= unknown region).
+    row.setdefault("country", None)
+    # group_key is set by the eBay normalizer for team-by-team listings;
+    # other sources leave it NULL (no grouping).
+    row.setdefault("group_key", None)
     row.setdefault("country", None)
     # Every kept break lands in a format category: titles with no specific
     # format signal fall into the generic 'box_break' bucket. (The site only
@@ -516,6 +521,8 @@ ALTER TABLE youtube_channels ADD COLUMN IF NOT EXISTS country TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS country TEXT;
 CREATE INDEX IF NOT EXISTS idx_breaks_country ON breaks (country);
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS channel_id TEXT;
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS group_key TEXT;
+CREATE INDEX IF NOT EXISTS idx_breaks_group_key ON breaks (group_key);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_breaks_channel_id ON breaks (channel_id);
@@ -569,23 +576,38 @@ def ensure_schema(conn) -> None:
 
 
 SEARCH_SQL = """
+WITH ranked AS (
+    SELECT id, source, source_url, breaker, product_raw, product_normalized,
+           sport, format, price, currency, starts_at, is_live,
+           slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
+           country, group_key,
+           ROW_NUMBER() OVER (
+               PARTITION BY COALESCE(group_key, 'solo:' || id::TEXT)
+               ORDER BY price ASC NULLS LAST, fetched_at DESC
+           ) AS rn,
+           COUNT(*) OVER (
+               PARTITION BY COALESCE(group_key, 'solo:' || id::TEXT)
+           ) AS group_count
+    FROM breaks
+    WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
+           OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
+      AND (CAST(%(sport)s AS TEXT) IS NULL OR sport = %(sport)s)
+      AND (CAST(%(format)s AS TEXT) IS NULL OR format = %(format)s)
+      AND (CAST(%(max_price)s AS NUMERIC) IS NULL OR price IS NULL OR price <= %(max_price)s)
+      AND (CAST(%(source)s AS TEXT) IS NULL OR source = %(source)s)
+      AND (CAST(%(live_only)s AS BOOLEAN) IS NULL OR is_live = %(live_only)s)
+      AND (CAST(%(region)s AS TEXT) IS NULL
+           OR (CAST(%(region)s AS TEXT) = 'us'
+               AND (country IS NULL OR country = 'US'))
+           OR (CAST(%(region)s AS TEXT) = 'intl'
+               AND country IS NOT NULL AND country <> 'US'))
+)
 SELECT id, source, source_url, breaker, product_raw, product_normalized,
        sport, format, price, currency, starts_at, is_live,
        slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
-       country
-FROM breaks
-WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
-       OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
-  AND (CAST(%(sport)s AS TEXT) IS NULL OR sport = %(sport)s)
-  AND (CAST(%(format)s AS TEXT) IS NULL OR format = %(format)s)
-  AND (CAST(%(max_price)s AS NUMERIC) IS NULL OR price IS NULL OR price <= %(max_price)s)
-  AND (CAST(%(source)s AS TEXT) IS NULL OR source = %(source)s)
-  AND (CAST(%(live_only)s AS BOOLEAN) IS NULL OR is_live = %(live_only)s)
-  AND (CAST(%(region)s AS TEXT) IS NULL
-       OR (CAST(%(region)s AS TEXT) = 'us'
-           AND (country IS NULL OR country = 'US'))
-       OR (CAST(%(region)s AS TEXT) = 'intl'
-           AND country IS NOT NULL AND country <> 'US'))
+       country, group_key, group_count
+FROM ranked
+WHERE rn = 1
 ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
 LIMIT 1000;
 """
