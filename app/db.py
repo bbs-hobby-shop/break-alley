@@ -147,6 +147,46 @@ def seed_manual_channels(conn, channel_ids: list[str]) -> int:
     return n
 
 
+def add_breaker_suggestion(conn, input_text: str, note: str | None = None) -> int:
+    """Queue a community breaker suggestion for review. Returns the new id."""
+    cur = conn.execute(
+        """INSERT INTO breaker_suggestions (input_text, note)
+           VALUES (%(input_text)s, %(note)s) RETURNING id""",
+        {"input_text": input_text.strip()[:200], "note": (note or "").strip()[:500] or None},
+    )
+    return cur.fetchone()["id"]
+
+
+def list_breaker_suggestions(conn, status: str | None = None) -> list[dict]:
+    """Newest-first suggestions, optionally filtered by status."""
+    if status:
+        rows = conn.execute(
+            """SELECT * FROM breaker_suggestions WHERE status = %(status)s
+               ORDER BY created_at DESC""",
+            {"status": status},
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM breaker_suggestions ORDER BY created_at DESC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def review_breaker_suggestion(conn, suggestion_id: int, approved: bool,
+                              channel_id: str | None = None,
+                              reviewer_note: str | None = None) -> None:
+    """Approve (with resolved UC channel_id) or reject a suggestion."""
+    conn.execute(
+        """UPDATE breaker_suggestions
+           SET status = %(status)s, channel_id = %(channel_id)s,
+               reviewer_note = %(reviewer_note)s, reviewed_at = NOW()
+           WHERE id = %(sid)s""",
+        {"status": "approved" if approved else "rejected",
+         "channel_id": channel_id, "reviewer_note": reviewer_note,
+         "sid": suggestion_id},
+    )
+
+
 # Self-healing schema migration for the cron pollers (they don't run
 # schema.sql — only the web service does on deploy). Idempotent: safe to
 # run at the start of every ingest run.
@@ -183,6 +223,20 @@ ALTER TABLE breaks ADD COLUMN IF NOT EXISTS channel_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_breaks_channel_id ON breaks (channel_id);
+
+-- Community breaker suggestions (public form -> review queue -> roster).
+CREATE TABLE IF NOT EXISTS breaker_suggestions (
+    id            SERIAL PRIMARY KEY,
+    input_text    TEXT NOT NULL,
+    note          TEXT,
+    status        TEXT NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending', 'approved', 'rejected')),
+    channel_id    TEXT,
+    reviewer_note TEXT,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reviewed_at   TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_breaker_suggestions_status ON breaker_suggestions (status);
 """
 
 

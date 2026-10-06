@@ -32,6 +32,7 @@ Pipeline per run:
      normalizer.normalize_ebay_item)
 """
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -47,6 +48,7 @@ from .normalizer import (
 
 SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
+CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
 
 EVENT_TYPES = ["live", "upcoming"]
 
@@ -119,6 +121,46 @@ def _get(url: str, params: dict) -> dict:
     resp = httpx.get(url, params=params, timeout=30)
     resp.raise_for_status()
     return resp.json()
+
+
+_CHANNEL_ID_RE = re.compile(r"^UC[\w-]{20,}$")
+
+
+def resolve_channel(user_input: str) -> tuple[str, str]:
+    """Turn a visitor's breaker suggestion into a (channel_id, title).
+
+    Accepts a UC channel id, an @handle, a youtube.com/@handle or
+    /channel/UC... URL, or a bare handle-ish name. Costs 1 quota unit.
+    Raises ValueError with a human-readable message when unresolvable.
+    """
+    text = (user_input or "").strip()
+    if not text:
+        raise ValueError("Enter a YouTube channel name, @handle, or link.")
+
+    # Direct channel id (also from /channel/UC... URLs)
+    m = re.search(r"UC[\w-]{22}", text)
+    if m and _CHANNEL_ID_RE.match(m.group(0)):
+        return _channel_title(m.group(0))
+
+    # @handle from input or URL
+    m = re.search(r"@([\w.-]{3,30})", text)
+    handle = m.group(1) if m else re.sub(r"\s+", "", text)
+    if not handle:
+        raise ValueError("Couldn't make sense of that — try a @handle or channel link.")
+    data = _get(CHANNELS_URL, {"part": "id,snippet", "forHandle": handle})
+    items = data.get("items", [])
+    if not items:
+        raise ValueError(f'No YouTube channel found for "@{handle}". Check the spelling.')
+    ch = items[0]
+    return ch["id"], ch["snippet"]["title"]
+
+
+def _channel_title(channel_id: str) -> tuple[str, str]:
+    data = _get(CHANNELS_URL, {"part": "id,snippet", "id": channel_id})
+    items = data.get("items", [])
+    if not items:
+        raise ValueError("That channel id doesn't exist on YouTube.")
+    return items[0]["id"], items[0]["snippet"]["title"]
 
 
 def search_streams(query: str, event_type: str, max_results: int = 50) -> list[dict]:

@@ -15,6 +15,9 @@ DATABASE_URL: str = os.environ.get(
 YOUTUBE_API_KEY: str = os.environ.get("YOUTUBE_API_KEY", "")  # Phase 2
 TWITCH_CLIENT_ID: str = os.environ.get("TWITCH_CLIENT_ID", "")
 TWITCH_CLIENT_SECRET: str = os.environ.get("TWITCH_CLIENT_SECRET", "")
+# Shared secret gating /admin/suggestions (breaker review queue).
+# Set a long random value in Render env vars; Brian bookmarks the URL with ?key=...
+ADMIN_KEY: str = os.environ.get("ADMIN_KEY", "")
 
 
 def ebay_configured() -> bool:

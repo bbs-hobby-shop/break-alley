@@ -102,6 +102,19 @@
   .per { font-size: .72rem; color: var(--muted); }
   .empty, .error { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 2.5rem; text-align: center; color: var(--muted); }
   .error { border-color: var(--red); color: #ff8ba0; }
+  .suggest { max-width: 1080px; margin: 2.5rem auto 0; padding: 0 1.5rem; }
+  .suggest h3 { margin: 0 0 .3rem; font-size: 1.15rem; font-weight: 900; }
+  .suggest p { color: var(--muted); font-size: .9rem; margin: 0 0 .9rem; }
+  .suggest .thanks { color: var(--green); font-weight: 700; }
+  .suggest form { display: flex; gap: .6rem; flex-wrap: wrap; }
+  .suggest input[type=text] { background: var(--card); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: .7rem 1rem; font-size: .95rem; }
+  .suggest input[name=channel] { flex: 2; min-width: 220px; }
+  .suggest input[name=note] { flex: 3; min-width: 220px; }
+  .suggest input:focus { border-color: var(--green); outline: none; }
+  .suggest .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .suggest button { padding: 0 1.6rem; font-size: .95rem; font-weight: 800; color: #04120a;
+    background: var(--green); border: 0; border-radius: 10px; cursor: pointer; min-height: 48px; }
   footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2.5rem 0; }
   footer b { color: var(--text); }
   @media (max-width: 640px) {
@@ -204,6 +217,20 @@
     {% endif %}
   </div>
 </main>
+<section class="suggest">
+  <h3>Know a breaker we're missing?</h3>
+  {% if suggested == '1' %}
+    <p class="thanks">Thanks — we'll check them out and add them if they're legit.</p>
+  {% else %}
+  <p>Drop their YouTube channel name, @handle, or link. Every suggestion gets reviewed before it goes on the roster.</p>
+  <form method="post" action="/suggest-breaker">
+    <input type="text" name="channel" maxlength="200" placeholder="@somebreaker or youtube.com/@somebreaker" required>
+    <input type="text" name="note" maxlength="500" placeholder="Why them? (optional)">
+    <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button type="submit">Suggest breaker</button>
+  </form>
+  {% endif %}
+</section>
 <footer><b>Break Alley</b> · the aggregator — breaks happen on the source platforms. eBay listings land once our API access is approved.</footer>
 </body>
 </html>

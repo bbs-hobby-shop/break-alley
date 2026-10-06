@@ -33,6 +33,8 @@ services:
         sync: false
       - key: TWITCH_CLIENT_SECRET
         sync: false
+      - key: ADMIN_KEY
+        sync: false
 
   # ---- Pollers (cron jobs, $1/mo each) ----
   - type: cron

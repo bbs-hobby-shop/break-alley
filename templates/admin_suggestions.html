@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breaker suggestions — Break Alley admin</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root {
+    --bg: #0a0e1c; --card: #151c38; --card2: #1a2242; --line: #26305c;
+    --text: #f2f4ff; --muted: #8b93b8; --green: #00e676; --red: #ff3b5c;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
+         color: var(--text); background: var(--bg); min-height: 100vh; }
+  main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { font-size: 1.5rem; font-weight: 900; margin: 0 0 .3rem; }
+  h1 span { color: var(--green); }
+  p.sub { color: var(--muted); margin: 0 0 1.6rem; }
+  h2 { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+       color: var(--muted); margin: 2rem 0 .8rem; }
+  .row { background: linear-gradient(180deg, var(--card2), var(--card));
+         border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.2rem;
+         margin-bottom: .7rem; }
+  .row .input { font-weight: 800; font-size: 1.05rem; word-break: break-word; }
+  .row .meta { color: var(--muted); font-size: .82rem; margin-top: .3rem; }
+  .row .note { color: var(--muted); font-size: .9rem; margin-top: .4rem; font-style: italic; }
+  .row form { display: flex; gap: .5rem; margin-top: .8rem; flex-wrap: wrap; }
+  .row input[type=text] { flex: 1; min-width: 200px; background: var(--bg); color: var(--text);
+         border: 1px solid var(--line); border-radius: 8px; padding: .5rem .8rem; font-size: .88rem; }
+  .btn { border: 0; border-radius: 8px; padding: .55rem 1.2rem; font-weight: 800; cursor: pointer; font-size: .88rem; }
+  .btn.ok { background: var(--green); color: #04120a; }
+  .btn.no { background: transparent; color: var(--red); border: 1px solid var(--red); }
+  .err { background: rgba(255,59,92,.12); border: 1px solid var(--red); border-radius: 10px;
+         padding: .8rem 1rem; margin-bottom: 1rem; font-size: .9rem; }
+  .empty { color: var(--muted); padding: 1rem 0; }
+  .pill { display: inline-block; font-size: .72rem; font-weight: 800; border-radius: 20px;
+          padding: .15rem .6rem; margin-left: .5rem; vertical-align: middle; }
+  .pill.approved { background: rgba(0,230,118,.15); color: var(--green); }
+  .pill.rejected { background: rgba(255,59,92,.15); color: var(--red); }
+  .denied { text-align: center; padding: 4rem 1rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+{% if denied %}
+  <div class="denied">
+    <h1>Break <span>Alley</span> admin</h1>
+    <p>This page needs the admin key. If you're Brian, open your bookmarked link with <code>?key=...</code>.</p>
+  </div>
+{% else %}
+  <h1>Breaker <span>suggestions</span></h1>
+  <p class="sub">Approve adds the channel to the YouTube roster (checked every 6 hours). Nothing goes live until you approve it here.</p>
+
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+
+  <h2>Pending ({{ pending|length }})</h2>
+  {% if pending %}
+    {% for s in pending %}
+    <div class="row">
+      <div class="input">{{ s.input_text }}</div>
+      {% if s.note %}<div class="note">“{{ s.note }}”</div>{% endif %}
+      <div class="meta">Suggested {{ s.created_at.strftime('%b %d, %Y %I:%M %p') if s.created_at else '' }}</div>
+      {% if resolve_error and failed_id == s.id %}<div class="err" style="margin-top:.7rem">{{ resolve_error }}</div>{% endif %}
+      <form method="post" action="/admin/suggestions/{{ s.id }}/approve">
+        <input type="hidden" name="key" value="{{ key }}">
+        <input type="text" name="reviewer_note" placeholder="Reviewer note (optional)">
+        <button class="btn ok" type="submit">Approve → add to roster</button>
+      </form>
+      <form method="post" action="/admin/suggestions/{{ s.id }}/reject">
+        <input type="hidden" name="key" value="{{ key }}">
+        <button class="btn no" type="submit">Reject</button>
+      </form>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty">Nothing waiting. Nice.</div>
+  {% endif %}
+
+  <h2>Reviewed</h2>
+  {% if reviewed %}
+    {% for s in reviewed %}
+    <div class="row">
+      <div class="input">{{ s.input_text }}<span class="pill {{ s.status }}">{{ s.status }}</span></div>
+      {% if s.channel_id %}<div class="meta">Channel: {{ s.channel_id }}</div>{% endif %}
+      {% if s.reviewer_note %}<div class="note">{{ s.reviewer_note }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty">Nothing reviewed yet.</div>
+  {% endif %}
+{% endif %}
+</main>
+</body>
+</html>

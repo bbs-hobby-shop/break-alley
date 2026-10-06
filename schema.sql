@@ -57,6 +57,23 @@ CREATE TABLE IF NOT EXISTS youtube_channels (
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
 
+-- Community-suggested breakers. Suggestions land here as 'pending'; a
+-- reviewer (Brian) approves them into youtube_channels as source='manual'
+-- via the admin page, or rejects them. Nothing here touches the roster
+-- until approved.
+CREATE TABLE IF NOT EXISTS breaker_suggestions (
+    id            SERIAL PRIMARY KEY,
+    input_text    TEXT NOT NULL,                     -- what the visitor typed: handle, URL, or name
+    note          TEXT,                              -- optional visitor note
+    status        TEXT NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending', 'approved', 'rejected')),
+    channel_id    TEXT,                              -- UC id, filled on approval
+    reviewer_note TEXT,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reviewed_at   TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_breaker_suggestions_status ON breaker_suggestions (status);
+
 -- Canonical products + known title aliases for normalization.
 CREATE TABLE IF NOT EXISTS products (
     id             SERIAL PRIMARY KEY,
