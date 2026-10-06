@@ -114,7 +114,8 @@ def run_ebay() -> int:
                     row["video_url"] = video["video_url"]
                     row["video_platform"] = video["video_platform"]
                     row["break_time_text"] = video["break_time_text"]
-                    if video["video_url"]:
+                    row["video_links"] = video["video_links"]
+                    if video["video_links"]:
                         n_video += 1
                 except Exception as e:
                     print(f"video extract failed for {row['source_url']}: {e}")

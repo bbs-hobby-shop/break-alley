@@ -26,13 +26,13 @@ INSERT INTO breaks (
     sport, format, price, currency, starts_at, is_live,
     slots_total, slots_remaining, thumbnail_url, title_raw,
     affiliate_url, expires_at, channel_id, country, group_key,
-    video_url, video_platform, break_time_text
+    video_url, video_platform, break_time_text, video_links
 ) VALUES (
     %(source)s, %(source_url)s, %(breaker)s, %(product_raw)s, %(product_normalized)s,
     %(sport)s, %(format)s, %(price)s, %(currency)s, %(starts_at)s, %(is_live)s,
     %(slots_total)s, %(slots_remaining)s, %(thumbnail_url)s, %(title_raw)s,
     %(affiliate_url)s, %(expires_at)s, %(channel_id)s, %(country)s, %(group_key)s,
-    %(video_url)s, %(video_platform)s, %(break_time_text)s
+    %(video_url)s, %(video_platform)s, %(break_time_text)s, %(video_links)s
 )
 ON CONFLICT (source, source_url) DO UPDATE SET
     breaker = EXCLUDED.breaker,
@@ -56,7 +56,8 @@ ON CONFLICT (source, source_url) DO UPDATE SET
     group_key = EXCLUDED.group_key,
     video_url = COALESCE(EXCLUDED.video_url, breaks.video_url),
     video_platform = COALESCE(EXCLUDED.video_platform, breaks.video_platform),
-    break_time_text = COALESCE(EXCLUDED.break_time_text, breaks.break_time_text);
+    break_time_text = COALESCE(EXCLUDED.break_time_text, breaks.break_time_text),
+    video_links = COALESCE(EXCLUDED.video_links, breaks.video_links);
 """
 
 
@@ -76,6 +77,11 @@ def upsert_break(conn, row: dict) -> None:
     row.setdefault("video_url", None)
     row.setdefault("video_platform", None)
     row.setdefault("break_time_text", None)
+    row.setdefault("video_links", None)
+    # video_links is a list of dicts; psycopg2 needs it as JSON string
+    if row["video_links"] is not None and not isinstance(row["video_links"], str):
+        import json as _json
+        row["video_links"] = _json.dumps(row["video_links"])
     # Every kept break lands in a format category: titles with no specific
     # format signal fall into the generic 'box_break' bucket. (The site only
     # lists real box breaks, so this is always honest. looks_like_real_break
@@ -536,6 +542,7 @@ CREATE INDEX IF NOT EXISTS idx_breaks_group_key ON breaks (group_key);
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_url TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_platform TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS break_time_text TEXT;
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_links JSONB;
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_breaks_channel_id ON breaks (channel_id);
@@ -592,7 +599,7 @@ SEARCH_SQL = """
 SELECT id, source, source_url, breaker, product_raw, product_normalized,
        sport, format, price, currency, starts_at, is_live,
        slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
-       country, group_key, video_url, video_platform, break_time_text
+       country, group_key, video_url, video_platform, break_time_text, video_links
 FROM breaks
 WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
        OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')

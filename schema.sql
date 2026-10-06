@@ -36,6 +36,7 @@ ALTER TABLE breaks ADD COLUMN IF NOT EXISTS group_key TEXT;
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_url TEXT;        -- link to live video/channel (eBay listings)
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_platform TEXT;  -- YouTube, eBay Live, Facebook, etc.
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS break_time_text TEXT; -- human-readable break time from listing
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_links JSONB;    -- array of {url, platform} for multi-platform
 
 CREATE INDEX IF NOT EXISTS idx_breaks_group_key ON breaks (group_key);
 

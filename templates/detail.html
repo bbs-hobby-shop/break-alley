@@ -89,7 +89,17 @@
       {% if b.date_label %}<div class="stat"><div class="k">Starts</div><div class="v" style="font-size:1rem">{{ b.date_label }}</div></div>{% endif %}
       {% if b.break_time_text %}<div class="stat"><div class="k">Break time</div><div class="v" style="font-size:1rem">{{ b.break_time_text }}</div></div>{% endif %}
     </div>
-    {% if b.video_url %}
+    {% if b.video_links %}
+      {% for vl in b.video_links %}
+        {% if vl.url %}
+    <a class="cta" href="{{ vl.url }}" target="_blank" rel="noopener" style="margin-bottom:.5rem; background:var(--purple)">
+      Watch live on {{ vl.platform or 'video' }} →
+    </a>
+        {% elif vl.platform %}
+    <div class="stat" style="margin-bottom:.5rem"><div class="k">Also live on</div><div class="v" style="font-size:1rem">{{ vl.platform }}</div></div>
+        {% endif %}
+      {% endfor %}
+    {% elif b.video_url %}
     <a class="cta" href="{{ b.video_url }}" target="_blank" rel="noopener" style="margin-bottom:.75rem; background:var(--purple)">
       Watch live on {{ b.video_platform or 'video' }} →
     </a>
