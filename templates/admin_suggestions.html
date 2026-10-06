@@ -54,6 +54,33 @@
 
   {% if error %}<div class="err">{{ error }}</div>{% endif %}
 
+  <h2>Data refresh</h2>
+  <div class="row">
+    {% if refresh_msg == "started" %}
+    <div class="input" style="color:var(--green)">Refresh started — fresh breaks land in ~2–3 min.</div>
+    {% elif refresh_msg == "running" %}
+    <div class="input" style="color:var(--green)">A refresh is already running.</div>
+    {% elif refresh_msg == "cooldown" %}
+    <div class="input">On cooldown — try again in {{ refresh_wait }}s.</div>
+    {% endif %}
+    {% if refresh_state %}
+      {% if refresh_state.running %}
+      <div class="meta">Status: running…</div>
+      {% elif refresh_state.summary %}
+      <div class="meta">Last refresh finished:</div>
+      <div class="meta" style="white-space:pre-wrap">{{ refresh_state.summary }}</div>
+      {% if refresh_state.cooldown_remaining %}
+      <div class="meta">Next refresh available in {{ refresh_state.cooldown_remaining }}s.</div>
+      {% endif %}
+      {% endif %}
+    {% endif %}
+    <form method="post" action="/admin/refresh">
+      <input type="hidden" name="key" value="{{ key }}">
+      <button type="submit" class="btn ok">Refresh now</button>
+    </form>
+    <div class="meta">Runs all four pollers (YouTube search, roster, Twitch, eBay). ~1,700 YouTube quota units per refresh · max once per 30 min.</div>
+  </div>
+
   {% if stats %}
   <h2>Signups</h2>
   <div class="row">

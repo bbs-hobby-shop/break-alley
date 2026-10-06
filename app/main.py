@@ -121,7 +121,12 @@ def _admin_key_ok(key: str | None) -> bool:
 
 
 @app.get("/admin/suggestions", response_class=HTMLResponse)
-def admin_suggestions(request: Request, key: str | None = Query(default=None)):
+def admin_suggestions(
+    request: Request,
+    key: str | None = Query(default=None),
+    refresh: str | None = Query(default=None),
+    wait: int | None = Query(default=None),
+):
     if not _admin_key_ok(key):
         return templates.TemplateResponse(request, "admin_suggestions.html", {
             "denied": True, "pending": [], "reviewed": [], "key": key or "",
@@ -140,6 +145,8 @@ def admin_suggestions(request: Request, key: str | None = Query(default=None)):
     return templates.TemplateResponse(request, "admin_suggestions.html", {
         "denied": False, "pending": pending, "reviewed": reviewed,
         "stats": stats, "key": key or "",
+        "refresh_msg": refresh, "refresh_wait": wait or 0,
+        "refresh_state": _refresh_status(),
     })
 
 
@@ -207,8 +214,85 @@ def admin_reject(
 
 
 # ---------------------------------------------------------------------------
-# User accounts (optional perks; browsing stays free)
+# Admin data refresh (manual poll trigger; ADMIN_KEY-gated)
 # ---------------------------------------------------------------------------
+
+import contextlib
+import io
+import threading
+import time
+
+from .ingest import run_ebay, run_twitch, run_youtube, run_youtube_roster
+
+REFRESH_COOLDOWN_SECS = 1800  # 30 min between manual refreshes
+REFRESH_SOURCES = (
+    ("youtube-roster", run_youtube_roster),
+    ("twitch", run_twitch),
+    ("youtube", run_youtube),
+    ("ebay", run_ebay),
+)
+
+_refresh_lock = threading.Lock()
+_refresh_state = {
+    "running": False,
+    "started_at": None,    # epoch seconds
+    "finished_at": None,   # epoch seconds
+    "summary": None,       # last few log lines of the finished run
+    "error": None,
+}
+
+
+def _run_refresh_job() -> None:
+    """Run all pollers sequentially in a background thread; never raises."""
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            for name, fn in REFRESH_SOURCES:
+                print(f"--- refresh: {name} ---")
+                try:
+                    fn()
+                except Exception as exc:  # one source failing must not kill the rest
+                    print(f"refresh: {name} failed: {exc}")
+    finally:
+        lines = [ln for ln in buf.getvalue().splitlines() if ln.strip()]
+        with _refresh_lock:
+            _refresh_state.update(
+                running=False, finished_at=time.time(),
+                summary="\n".join(lines[-12:]) or "(no output)",
+                error=None,
+            )
+
+
+def _refresh_status() -> dict:
+    with _refresh_lock:
+        st = dict(_refresh_state)
+    now = time.time()
+    st["cooldown_remaining"] = 0
+    if st["started_at"] and now - st["started_at"] < REFRESH_COOLDOWN_SECS:
+        st["cooldown_remaining"] = int(REFRESH_COOLDOWN_SECS - (now - st["started_at"]))
+    return st
+
+
+@app.post("/admin/refresh")
+def admin_refresh(key: str = Form(default="")):
+    if not _admin_key_ok(key):
+        return RedirectResponse("/admin/suggestions", status_code=303)
+    with _refresh_lock:
+        if _refresh_state["running"]:
+            return RedirectResponse(
+                f"/admin/suggestions?key={key}&refresh=running", status_code=303)
+        now = time.time()
+        last = _refresh_state["started_at"]
+        if last and now - last < REFRESH_COOLDOWN_SECS:
+            wait = int(REFRESH_COOLDOWN_SECS - (now - last))
+            return RedirectResponse(
+                f"/admin/suggestions?key={key}&refresh=cooldown&wait={wait}",
+                status_code=303)
+        _refresh_state.update(running=True, started_at=now,
+                              finished_at=None, summary=None, error=None)
+    threading.Thread(target=_run_refresh_job, daemon=True).start()
+    return RedirectResponse(
+        f"/admin/suggestions?key={key}&refresh=started", status_code=303)
 
 def _set_session_cookie(response: RedirectResponse, request: Request, user_id: int) -> None:
     response.set_cookie(
