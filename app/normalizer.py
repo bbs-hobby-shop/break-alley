@@ -107,6 +107,24 @@ NON_BREAK_TITLE_WORDS = [
     # Giveaways are not buy-in breaks
     r"\bgiveaway\b",
     r"\bfree\b.{0,30}\bbreak\b",
+    # "Set Break" = selling singles from a set, NOT a box break (Brian 2026-10-06)
+    r"\bset\s+break\b",
+    # Card product names containing "break" — not box breaks
+    r"\bfast\s+break\b",  # Panini Fast Break set
+    r"\bbreak\s+out\b",  # Break Out subset
+    r"\blimit\s+break\b",  # MTG card name
+    # Single-card sales patterns
+    r"\bpick\s+a\s+card\b",
+    r"\bcomplete\s+your\s+set\b",
+    r"\brookie\s+card\s+#\d+",  # "Rookie Card #384" = single
+    # Test listings
+    r"\btest\.live\.us-seller\b",
+    # Non-card "breaks" (geodes, etc.)
+    r"\bgeode",
+    r"\bcrack\s+open\b",
+    # Card lots/repacks — not box breaks
+    r"\b\d+\s+card\s+lot\b",
+    r"\bguaranteed\b.{0,20}\b(holo|rare|vmax|vstar)\b",
 ]
 
 
