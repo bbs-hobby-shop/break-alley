@@ -633,6 +633,7 @@ WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT
   AND (CAST(%(max_price)s AS NUMERIC) IS NULL OR price IS NULL OR price <= %(max_price)s)
   AND (CAST(%(source)s AS TEXT) IS NULL OR source = %(source)s)
   AND (CAST(%(live_only)s AS BOOLEAN) IS NULL OR is_live = %(live_only)s)
+  AND (CAST(%(auction_only)s AS BOOLEAN) IS NULL OR is_auction = %(auction_only)s)
   AND (CAST(%(region)s AS TEXT) IS NULL
        OR (CAST(%(region)s AS TEXT) = 'us'
            AND (country IS NULL OR country = 'US'))
@@ -644,10 +645,12 @@ LIMIT 1000;
 
 
 def search_breaks(conn, q=None, sport=None, format=None, max_price=None,
-                  source=None, live_only=None, region=None, sort=None):
+                  source=None, live_only=None, region=None, sort=None,
+                  auction_only=None):
     rows = conn.execute(SEARCH_SQL, {
         "q": q, "sport": sport, "format": format, "max_price": max_price,
         "source": source, "live_only": live_only, "region": region,
+        "auction_only": auction_only,
     }).fetchall()
     # Deduplicate eBay team-by-team listings: one card per break group.
     # Keep the cheapest listing per group (buyer-friendly); attach the count.
@@ -685,6 +688,9 @@ def search_breaks(conn, q=None, sport=None, format=None, max_price=None,
         out.sort(key=lambda r: r.get("id", 0), reverse=True)
     elif sort == "live":
         out.sort(key=lambda r: (not r.get("is_live"), r.get("starts_at") is None, r.get("starts_at")))
+    elif sort == "ending":
+        # Auctions ending soonest first; non-auctions keep their relative order after.
+        out.sort(key=lambda r: (r.get("auction_ends_at") is None, r.get("auction_ends_at")))
     # Default ("recommended"): keep SQL order (live first, soonest, newest)
     return out
 

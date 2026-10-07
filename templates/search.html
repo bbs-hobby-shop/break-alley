@@ -222,6 +222,7 @@
       </select>
     </div>
     <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
+    <label class="live-toggle"><input type="checkbox" name="auctions" value="1" {% if auctions %}checked{% endif %}> 🔨 Auctions only</label>
     <button type="submit" class="find-btn">Find breaks</button>
   </form>
 </div>
@@ -237,10 +238,12 @@
       <input type="hidden" name="source" value="{{ source }}">
       <input type="hidden" name="region" value="{{ region }}">
       {% if live %}<input type="hidden" name="live" value="1">{% endif %}
+      {% if auctions %}<input type="hidden" name="auctions" value="1">{% endif %}
       <label for="sort">Sort by</label>
       <select name="sort" id="sort" class="sort-select" onchange="this.form.submit()">
         <option value="" {% if not sort %}selected{% endif %}>Recommended</option>
         <option value="soonest" {% if sort == 'soonest' %}selected{% endif %}>Starting soonest</option>
+        <option value="ending" {% if sort == 'ending' %}selected{% endif %}>Auction: ending soonest</option>
         <option value="live" {% if sort == 'live' %}selected{% endif %}>Live first</option>
         <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>Price: low to high</option>
         <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>Price: high to low</option>
@@ -256,6 +259,7 @@
       <input type="hidden" name="max_price" value="{{ max_price }}">
       <input type="hidden" name="region" value="{{ region }}">
       {% if live %}<input type="hidden" name="live" value="1">{% endif %}
+      {% if auctions %}<input type="hidden" name="auctions" value="1">{% endif %}
       {% if refresh_running %}
       <button type="submit" class="refresh-btn" disabled>⟳ Refreshing…</button>
       {% else %}
