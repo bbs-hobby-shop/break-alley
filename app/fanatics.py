@@ -44,7 +44,7 @@ def fetch_live_streams(first: int = 30, after: str | None = None) -> dict:
     after_arg = f', after: "{after}"' if after else ""
     q = (
         "{liveStreams(first:" + str(min(first, 30)) + after_arg + ")"
-        "{edges{node{id name description status shop{id name}} cursor} "
+        "{edges{node{id name description status viewers startsAt shop{id name}} cursor} "
         "pageInfo{hasNextPage endCursor}}}"
     )
     d = _gql(q)
