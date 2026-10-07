@@ -41,6 +41,8 @@
   .tag { background: rgba(255,255,255,.07); border-radius: 20px; padding: .25rem .75rem; color: var(--muted); font-weight: 600; }
   .tag.live { background: var(--red); color: #fff; font-weight: 800; }
   .tag.date { background: rgba(0,230,118,.14); color: var(--green); font-weight: 800; }
+  .tag.auction { background: rgba(156,39,176,.18); color: #ce93d8; font-weight: 800; }
+  .auction-timer { font-variant-numeric: tabular-nums; }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .7rem; margin-bottom: 1.8rem; }
   .stat { background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 12px; padding: .8rem 1rem; }
   .stat .k { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
@@ -88,13 +90,16 @@
     <h1>{{ b.display_title }}</h1>
     <div class="tags">
       {% if b.is_live %}<span class="tag live">● LIVE NOW</span>{% endif %}
+      {% if b.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
       {% if b.date_label and not b.is_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
       {% if b.break_no %}<span class="tag">{{ b.break_no }}</span>{% endif %}
       <span class="tag">{{ b.source|title }}</span>
       {% if b.format and b.format != 'unknown' %}<span class="tag">{{ format_labels.get(b.format, b.format) }}</span>{% endif %}
     </div>
     <div class="stats">
-      {% if b.price %}<div class="stat"><div class="k">Per slot</div><div class="v green">${{ b.price }}</div></div>{% endif %}
+      {% if b.is_auction and b.current_bid %}<div class="stat"><div class="k">Current bid</div><div class="v green">${{ b.current_bid }}</div></div>{% endif %}
+      {% if b.is_auction and b.auction_ends_at %}<div class="stat"><div class="k">Ends in</div><div class="v auction-timer" data-ends="{{ b.auction_ends_at }}" style="font-size:1.1rem">⏳ --</div></div>{% endif %}
+      {% if b.price and not b.is_auction %}<div class="stat"><div class="k">Per slot</div><div class="v green">${{ b.price }}</div></div>{% endif %}
       {% if b.breaker %}<div class="stat"><div class="k">Breaker</div><div class="v" style="font-size:1rem">{{ b.breaker }}</div></div>{% endif %}
       {% if b.slots_remaining is not none %}<div class="stat"><div class="k">Slots left</div><div class="v">{{ b.slots_remaining }}</div></div>{% endif %}
       {% if b.date_label %}<div class="stat"><div class="k">Starts</div><div class="v" style="font-size:1rem">{{ b.date_label }}</div></div>{% endif %}
@@ -126,5 +131,29 @@
   </div>
   {% endif %}
 </main>
+<script>
+// Auction countdown timer (Brian 2026-10-07).
+(function() {
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function tick() {
+    var now = Date.now();
+    document.querySelectorAll('.auction-timer[data-ends]').forEach(function(el) {
+      var ends = new Date(el.getAttribute('data-ends')).getTime();
+      if (isNaN(ends)) { el.textContent = '⏳ --'; return; }
+      var diff = ends - now;
+      if (diff <= 0) { el.textContent = '⏳ Ended'; return; }
+      var d = Math.floor(diff / 86400000),
+          h = Math.floor(diff % 86400000 / 3600000),
+          m = Math.floor(diff % 3600000 / 60000),
+          s = Math.floor(diff % 60000 / 1000);
+      el.textContent = d > 0
+        ? '⏳ ' + d + 'd ' + pad(h) + 'h ' + pad(m) + 'm'
+        : '⏳ ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
 </body>
 </html>

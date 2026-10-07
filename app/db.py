@@ -26,13 +26,15 @@ INSERT INTO breaks (
     sport, format, price, currency, starts_at, is_live,
     slots_total, slots_remaining, thumbnail_url, title_raw,
     affiliate_url, expires_at, channel_id, country, group_key,
-    video_url, video_platform, break_time_text, video_links
+    video_url, video_platform, break_time_text, video_links,
+    is_auction, auction_ends_at, current_bid
 ) VALUES (
     %(source)s, %(source_url)s, %(breaker)s, %(product_raw)s, %(product_normalized)s,
     %(sport)s, %(format)s, %(price)s, %(currency)s, %(starts_at)s, %(is_live)s,
     %(slots_total)s, %(slots_remaining)s, %(thumbnail_url)s, %(title_raw)s,
     %(affiliate_url)s, %(expires_at)s, %(channel_id)s, %(country)s, %(group_key)s,
-    %(video_url)s, %(video_platform)s, %(break_time_text)s, %(video_links)s
+    %(video_url)s, %(video_platform)s, %(break_time_text)s, %(video_links)s,
+    %(is_auction)s, %(auction_ends_at)s, %(current_bid)s
 )
 ON CONFLICT (source, source_url) DO UPDATE SET
     breaker = EXCLUDED.breaker,
@@ -57,7 +59,10 @@ ON CONFLICT (source, source_url) DO UPDATE SET
     video_url = COALESCE(EXCLUDED.video_url, breaks.video_url),
     video_platform = COALESCE(EXCLUDED.video_platform, breaks.video_platform),
     break_time_text = COALESCE(EXCLUDED.break_time_text, breaks.break_time_text),
-    video_links = COALESCE(EXCLUDED.video_links, breaks.video_links);
+    video_links = COALESCE(EXCLUDED.video_links, breaks.video_links),
+    is_auction = EXCLUDED.is_auction,
+    auction_ends_at = EXCLUDED.auction_ends_at,
+    current_bid = EXCLUDED.current_bid;
 """
 
 
@@ -78,6 +83,11 @@ def upsert_break(conn, row: dict) -> None:
     row.setdefault("video_platform", None)
     row.setdefault("break_time_text", None)
     row.setdefault("video_links", None)
+    # is_auction/auction_ends_at/current_bid are set by the eBay normalizer;
+    # other sources leave them at their defaults (not an auction).
+    row.setdefault("is_auction", False)
+    row.setdefault("auction_ends_at", None)
+    row.setdefault("current_bid", None)
     # video_links is a list of dicts; psycopg2 needs it as JSON string
     if row["video_links"] is not None and not isinstance(row["video_links"], str):
         import json as _json
@@ -504,6 +514,18 @@ BEGIN
         ALTER TABLE breaks ADD CONSTRAINT breaks_format_check
             CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown'));
     END IF;
+    -- eBay auction support (Brian 2026-10-07): auction listings with countdown
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'breaks') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='breaks' AND column_name='is_auction') THEN
+            ALTER TABLE breaks ADD COLUMN is_auction BOOLEAN NOT NULL DEFAULT FALSE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='breaks' AND column_name='auction_ends_at') THEN
+            ALTER TABLE breaks ADD COLUMN auction_ends_at TIMESTAMPTZ;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='breaks' AND column_name='current_bid') THEN
+            ALTER TABLE breaks ADD COLUMN current_bid NUMERIC(10,2);
+        END IF;
+    END IF;
 END $$;
 
 -- Roster table for cheap per-channel Twitch live monitoring (schema.sql is
@@ -600,7 +622,8 @@ SEARCH_SQL = """
 SELECT id, source, source_url, breaker, product_raw, product_normalized,
        sport, format, price, currency, starts_at, is_live,
        slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
-       country, group_key, video_url, video_platform, break_time_text, video_links
+       country, group_key, video_url, video_platform, break_time_text, video_links,
+       is_auction, auction_ends_at, current_bid
 FROM breaks
 WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
        OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'

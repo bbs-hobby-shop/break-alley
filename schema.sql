@@ -37,6 +37,9 @@ ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_url TEXT;        -- link to li
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_platform TEXT;  -- YouTube, eBay Live, Facebook, etc.
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS break_time_text TEXT; -- human-readable break time from listing
 ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_links JSONB;    -- array of {url, platform} for multi-platform
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS is_auction BOOLEAN NOT NULL DEFAULT FALSE;  -- eBay auction (vs Buy It Now)
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS auction_ends_at TIMESTAMPTZ;  -- eBay auction end time (for countdown)
+ALTER TABLE breaks ADD COLUMN IF NOT EXISTS current_bid NUMERIC(10,2);    -- eBay auction current bid price
 
 CREATE INDEX IF NOT EXISTS idx_breaks_group_key ON breaks (group_key);
 

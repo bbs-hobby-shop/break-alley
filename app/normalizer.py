@@ -250,6 +250,15 @@ def normalize_ebay_item(item: dict, affiliate_url: str | None = None) -> dict:
     price_info = item.get("price", {}) or {}
     avail = (item.get("estimatedAvailabilities") or [{}])[0]
     breaker = (item.get("seller") or {}).get("username")
+    # Auction detection (Brian 2026-10-07): eBay auctions get a countdown timer.
+    # buyingOptions is e.g. ["AUCTION"], ["FIXED_PRICE"], or ["AUCTION", "FIXED_PRICE"].
+    buying_options = [str(o).upper() for o in (item.get("buyingOptions") or [])]
+    is_auction = "AUCTION" in buying_options
+    auction_ends_at = item.get("itemEndDate")  # ISO 8601; TIMESTAMPTZ accepts it
+    current_bid = None
+    if is_auction:
+        bid_info = item.get("currentBidPrice") or {}
+        current_bid = parse_price(bid_info.get("value"))
     return {
         "source": "ebay",
         "source_url": item.get("itemWebUrl"),
@@ -269,6 +278,9 @@ def normalize_ebay_item(item: dict, affiliate_url: str | None = None) -> dict:
         "affiliate_url": affiliate_url,
         "expires_at": None,
         "group_key": extract_break_group_key(title, breaker),
+        "is_auction": is_auction,
+        "auction_ends_at": auction_ends_at,
+        "current_bid": current_bid,
     }
 
 

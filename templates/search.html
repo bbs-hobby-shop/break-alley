@@ -131,6 +131,8 @@
   .tag.live { background: var(--red); color: #fff; font-weight: 800; }
   .tag.date { background: rgba(0,230,118,.14); color: var(--green); font-weight: 800; }
   .tag.slots-low { background: rgba(255,159,28,.15); color: var(--orange); font-weight: 800; }
+  .tag.auction { background: rgba(156,39,176,.18); color: #ce93d8; font-weight: 800; }
+  .tag.auction-timer { background: rgba(255,159,28,.15); color: var(--orange); font-weight: 800; font-variant-numeric: tabular-nums; }
   .right { text-align: right; flex-shrink: 0; }
   .price { font-size: 1.45rem; font-weight: 900; color: var(--green); }
   .per { font-size: .72rem; color: var(--muted); }
@@ -278,6 +280,8 @@
           <p class="title">{{ b.display_title }}</p>
           <div class="tags">
             {% if b.is_live %}<span class="tag live">● LIVE</span>{% endif %}
+            {% if b.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
+            {% if b.is_auction and b.auction_ends_at %}<span class="tag auction-timer" data-ends="{{ b.auction_ends_at }}">⏳ --</span>{% endif %}
             {% if b.date_label and not b.is_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
             {% if not b.date_label and b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
             {% if b.break_no %}<span class="tag">{{ b.break_no }}</span>{% endif %}
@@ -293,7 +297,8 @@
           </div>
         </div>
         <div class="right">
-          {% if b.price %}<div class="price">${{ b.price }}</div><div class="per">per slot</div>{% endif %}
+          {% if b.is_auction and b.current_bid %}<div class="price">${{ b.current_bid }}</div><div class="per">current bid</div>
+          {% elif b.price %}<div class="price">${{ b.price }}</div><div class="per">per slot</div>{% endif %}
         </div>
       </a>
       {% if b.breaker %}
@@ -328,5 +333,29 @@
   </form>
   {% endif %}
 </section>
+<script>
+// Auction countdown timers (Brian 2026-10-07): live ticking countdown on eBay auction cards.
+(function() {
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function tick() {
+    var now = Date.now();
+    document.querySelectorAll('.auction-timer[data-ends]').forEach(function(el) {
+      var ends = new Date(el.getAttribute('data-ends')).getTime();
+      if (isNaN(ends)) { el.textContent = '⏳ --'; return; }
+      var diff = ends - now;
+      if (diff <= 0) { el.textContent = '⏳ Ended'; return; }
+      var d = Math.floor(diff / 86400000),
+          h = Math.floor(diff % 86400000 / 3600000),
+          m = Math.floor(diff % 3600000 / 60000),
+          s = Math.floor(diff % 60000 / 1000);
+      el.textContent = d > 0
+        ? '⏳ ' + d + 'd ' + pad(h) + 'h ' + pad(m) + 'm'
+        : '⏳ ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
 </body>
 </html>
