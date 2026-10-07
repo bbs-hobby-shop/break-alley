@@ -351,17 +351,17 @@ def admin_maintenance(
                 )
             results.append("removed 2 dormant YT + 1 banned Twitch")
             # 6. Prune stale listings (Brian 2026-10-06)
-            # YouTube: live streams older than 24h are over; upcoming breaks in the past are done
+            # YouTube: live streams older than 6h are over; upcoming breaks 2h past start are stale
             n_yt = conn.execute(
                 """DELETE FROM breaks WHERE source='youtube' AND (
-                    (COALESCE(is_live, FALSE) AND starts_at < NOW() - INTERVAL '24 hours')
-                    OR (NOT COALESCE(is_live, FALSE) AND starts_at IS NOT NULL AND starts_at < NOW() - INTERVAL '6 hours')
+                    (COALESCE(is_live, FALSE) AND starts_at < NOW() - INTERVAL '6 hours')
+                    OR (NOT COALESCE(is_live, FALSE) AND starts_at IS NOT NULL AND starts_at < NOW() - INTERVAL '2 hours')
                 )"""
             ).rowcount
-            # eBay: breaks that started >6h ago are over
+            # eBay: breaks that started >4h ago are over (matches live window)
             n_ebay = conn.execute(
                 """DELETE FROM breaks WHERE source='ebay'
-                   AND starts_at IS NOT NULL AND starts_at < NOW() - INTERVAL '6 hours'"""
+                   AND starts_at IS NOT NULL AND starts_at < NOW() - INTERVAL '4 hours'"""
             ).rowcount
             results.append(f"pruned {n_yt} stale YouTube + {n_ebay} stale eBay")
     except Exception as e:
