@@ -639,6 +639,13 @@ WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT
            AND (country IS NULL OR country = 'US'))
        OR (CAST(%(region)s AS TEXT) = 'intl'
            AND country IS NOT NULL AND country <> 'US'))
+  -- Hide ended auctions and sold-out BIN immediately (Brian 2026-10-07):
+  -- they disappear from the site the instant they end/sell, before the
+  -- background prune deletes the rows.
+  AND NOT (COALESCE(is_auction, FALSE) AND auction_ends_at IS NOT NULL
+           AND auction_ends_at <= NOW())
+  AND NOT (COALESCE(is_auction, FALSE) = FALSE
+           AND COALESCE(slots_remaining, -1) = 0)
 ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
 LIMIT 1000;
 """
@@ -738,7 +745,8 @@ def purge_junk_breaks(conn) -> int:
 def prune_ended_ebay(conn) -> dict:
     """Remove ended/sold eBay listings (Brian 2026-10-07). Three rules:
 
-    1. ended_auctions: auction end time passed (15-min grace for clock skew).
+    1. ended_auctions: auction end time passed (no grace — Brian 2026-10-07
+       wants them gone immediately; the search query also hides them live).
     2. sold_out: Buy It Now listings whose quantity hit 0.
     3. vanished: not seen in the feed for 24h (96 missed 15-min poller runs)
        — safety net for anything that disappeared from eBay's search.
@@ -750,7 +758,7 @@ def prune_ended_ebay(conn) -> dict:
         """DELETE FROM breaks WHERE source='ebay'
            AND COALESCE(is_auction, FALSE)
            AND auction_ends_at IS NOT NULL
-           AND auction_ends_at < NOW() - INTERVAL '15 minutes'"""
+           AND auction_ends_at <= NOW()"""
     ).rowcount
     counts["sold_out"] = conn.execute(
         """DELETE FROM breaks WHERE source='ebay'
