@@ -681,13 +681,19 @@ def purge_junk_breaks(conn) -> int:
     """
     import re
     from .normalizer import NON_BREAK_TITLE_WORDS
+    from .ebay import load_ebay_roster
     pattern = "|".join(f"(?:{p})" for p in NON_BREAK_TITLE_WORDS)
-    rows = conn.execute("SELECT id, title_raw, breaker FROM breaks").fetchall()
+    roster = load_ebay_roster()
+    rows = conn.execute("SELECT id, title_raw, breaker, source FROM breaks").fetchall()
     junk_ids = []
     for r in rows:
         title = r["title_raw"] or ""
         breaker = r["breaker"] or ""
-        if title and re.search(pattern, title, re.IGNORECASE):
+        source = r["source"] or ""
+        # eBay: only roster sellers allowed (Brian 2026-10-06)
+        if source == "ebay" and roster and breaker.lower() not in roster:
+            junk_ids.append(r["id"])
+        elif title and re.search(pattern, title, re.IGNORECASE):
             junk_ids.append(r["id"])
         elif breaker and "test.live.us-seller" in breaker.lower():
             junk_ids.append(r["id"])
