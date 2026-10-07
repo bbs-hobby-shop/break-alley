@@ -15,7 +15,6 @@
 # site/socials; likely = tracker/name match, see twitch-accounts.md).
 
 laytonsportscards  # Layton Sports Cards — confirmed, 18k followers, active
-backyardbreaks  # Backyard Breaks — confirmed, 91k followers, very active
 da_thelivelounge  # Dave and Adam's Live Lounge — confirmed, active
 steelcitybreakroom  # Steel City Collectibles Break Room — confirmed
 cardboardhobby  # CardBoardHobby — confirmed, affiliate, active

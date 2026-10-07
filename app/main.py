@@ -323,7 +323,13 @@ def admin_maintenance(
                     "DELETE FROM youtube_channels WHERE channel_id=%s",
                     (dead_cid,),
                 )
-            results.append("removed 2 dormant channels")
+            # Remove banned breakers from Twitch (Brian 2026-10-06)
+            for dead_login in ["backyardbreaks"]:
+                conn.execute(
+                    "DELETE FROM twitch_channels WHERE login=%s",
+                    (dead_login,),
+                )
+            results.append("removed 2 dormant YT + 1 banned Twitch")
     except Exception as e:
         results.append(f"error: {e}")
     # Return as plain text for easy checking
