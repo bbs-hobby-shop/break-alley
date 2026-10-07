@@ -69,6 +69,8 @@ STRONG_BREAK_SIGNALS = [
     r"\bclaim\b.{0,25}\b(spots?|slots?|teams?|packs?)\b",  # "claim your spot"
     r"\b(spots?|slots?|teams?)\b.{0,20}\bclaim\b",          # "spots open for claim"
     r"\bserial\b.{0,20}\bbreak\b",    # "serial # break", "serial number break"
+    r"\$1\s*(auctions?|starts?)\b",  # "$1 auctions", "$1 starts" (Fanatics format, Brian 2026-10-07)
+    r"\bauctions?\b.{0,25}\ball\s*day\b",  # "auctions all day"
 ]
 
 
@@ -150,11 +152,15 @@ def looks_like_real_break(title: str, fmt: str | None) -> bool:
     standalone word "break(s)" alongside card-context words —
     minus explicit non-break content (recaps, vlogs, mail days). TCG and
     non-sports breaks count as long as they are real buy-in breaks.
+
+    A detected break format wins over non-break words: product names like
+    "Topps Museum Collection" contain the blocklisted word "collection"
+    (Brian 2026-10-07 — was dropping 155 real Fanatics breaks).
     """
-    if any(re.search(p, title, re.IGNORECASE) for p in NON_BREAK_TITLE_WORDS):
-        return False
     if fmt and fmt != "unknown":
         return True
+    if any(re.search(p, title, re.IGNORECASE) for p in NON_BREAK_TITLE_WORDS):
+        return False
     if any(re.search(p, title, re.IGNORECASE) for p in STRONG_BREAK_SIGNALS):
         return True
     return bool(
