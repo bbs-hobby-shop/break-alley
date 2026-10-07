@@ -51,8 +51,13 @@ def fetch_live_streams(first: int = 30, after: str | None = None) -> dict:
     return (d.get("data") or {}).get("liveStreams") or {}
 
 
-def fetch_all_streams(max_pages: int = 10) -> list[dict]:
-    """Paginate through liveStreams. Returns flat list of stream nodes."""
+def fetch_all_streams(max_pages: int = 30) -> list[dict]:
+    """Paginate through liveStreams. Returns flat list of stream nodes.
+    
+    The API holds ~900 streams (30 pages × 30); we fetch them all so
+    upcoming shows across the full schedule window aren't missed
+    (Brian 2026-10-07 — was only fetching 300/900, missing Thu-Sat shows).
+    """
     out = []
     cursor = None
     for _ in range(max_pages):
