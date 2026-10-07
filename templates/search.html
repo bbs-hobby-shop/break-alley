@@ -93,8 +93,11 @@
   }
   .find-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,230,118,.35); }
   .find-btn:active { transform: translateY(0); }
-  .section-label { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px; color: var(--muted); margin: 1.4rem 0 .8rem; text-transform: uppercase; }
+  .section-label { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px; color: var(--muted); margin: 1.4rem 0 .8rem; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
   .res-count { text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .sort-wrap { display: flex; align-items: center; gap: .5rem; text-transform: none; letter-spacing: 0; }
+  .sort-wrap label { font-size: .75rem; font-weight: 700; color: var(--muted); }
+  .sort-select { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .45rem .7rem; font-size: .85rem; font-weight: 600; font-family: inherit; cursor: pointer; }
   .refreshbar { display: flex; align-items: center; gap: .8rem; margin: 0 0 .4rem; flex-wrap: wrap; }
   .refreshbar form { margin: 0; }
   .refresh-btn { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .45rem 1rem; font-weight: 700; cursor: pointer; font-size: .85rem; }
@@ -190,6 +193,7 @@
   <h2>Every break. Every platform. <em>One place.</em></h2>
   <p>Live and upcoming box breaks from across the hobby — search, filter, jump in.</p>
   <form class="filters" method="get" action="/">
+    <input type="hidden" name="sort" value="{{ sort }}">
     <div class="searchrow">
       <input type="text" name="q" value="{{ q }}" placeholder="Try &quot;Prizm&quot; or &quot;Bowman chrome&quot;…">
     </div>
@@ -218,7 +222,26 @@
 
 <main>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
-  <div class="section-label">Breaks <span class="res-count">{{ results|length }} result{{ 's' if results|length != 1 }} found</span></div>
+  <div class="section-label">
+    <span>Breaks <span class="res-count">{{ results|length }} result{{ 's' if results|length != 1 }} found</span></span>
+    <form method="get" action="/" class="sort-wrap">
+      <input type="hidden" name="q" value="{{ q }}">
+      <input type="hidden" name="format" value="{{ format }}">
+      <input type="hidden" name="max_price" value="{{ max_price }}">
+      <input type="hidden" name="source" value="{{ source }}">
+      <input type="hidden" name="region" value="{{ region }}">
+      {% if live %}<input type="hidden" name="live" value="1">{% endif %}
+      <label for="sort">Sort by</label>
+      <select name="sort" id="sort" class="sort-select" onchange="this.form.submit()">
+        <option value="" {% if not sort %}selected{% endif %}>Recommended</option>
+        <option value="soonest" {% if sort == 'soonest' %}selected{% endif %}>Starting soonest</option>
+        <option value="live" {% if sort == 'live' %}selected{% endif %}>Live first</option>
+        <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>Price: low to high</option>
+        <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>Price: high to low</option>
+        <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest listed</option>
+      </select>
+    </form>
+  </div>
   <div class="refreshbar">
     <form method="post" action="/refresh">
       <input type="hidden" name="q" value="{{ q }}">

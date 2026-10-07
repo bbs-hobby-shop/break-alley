@@ -620,7 +620,7 @@ LIMIT 1000;
 
 
 def search_breaks(conn, q=None, sport=None, format=None, max_price=None,
-                  source=None, live_only=None, region=None):
+                  source=None, live_only=None, region=None, sort=None):
     rows = conn.execute(SEARCH_SQL, {
         "q": q, "sport": sport, "format": format, "max_price": max_price,
         "source": source, "live_only": live_only, "region": region,
@@ -650,6 +650,18 @@ def search_breaks(conn, q=None, sport=None, format=None, max_price=None,
                 r["group_count"] = existing["group_count"]
                 out[idx] = r
                 seen[gk] = r
+    # Sort (Brian 2026-10-06)
+    if sort == "soonest":
+        out.sort(key=lambda r: (r.get("starts_at") is None, r.get("starts_at")))
+    elif sort == "price_low":
+        out.sort(key=lambda r: (r.get("price") is None, r.get("price")))
+    elif sort == "price_high":
+        out.sort(key=lambda r: (r.get("price") is None, -(r.get("price") or 0)))
+    elif sort == "newest":
+        out.sort(key=lambda r: r.get("id", 0), reverse=True)
+    elif sort == "live":
+        out.sort(key=lambda r: (not r.get("is_live"), r.get("starts_at") is None, r.get("starts_at")))
+    # Default ("recommended"): keep SQL order (live first, soonest, newest)
     return out
 
 

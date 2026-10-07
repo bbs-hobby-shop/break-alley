@@ -48,10 +48,12 @@ def search(
     live: bool = Query(default=False),
     region: str | None = Query(default=None),
     suggested: str | None = Query(default=None),
+    sort: str | None = Query(default=None),
 ):
     format = format or None
     source = source or None
     region = region if region in ("us", "intl") else None
+    sort = sort if sort in ("soonest", "price_low", "price_high", "newest", "live") else None
     # max_price arrives as "" when the query string carries empty params
     # (e.g. after favoriting) — treat blank/invalid as "no cap", never 422.
     try:
@@ -69,6 +71,7 @@ def search(
                     conn, q=q or None, format=format,
                     max_price=max_price_val, source=source,
                     live_only=True if live else None, region=region,
+                    sort=sort,
                 )
             ]
             if user:
@@ -82,7 +85,7 @@ def search(
         "results": results, "error": error,
         "q": q or "", "format": format or "",
         "max_price": max_price or "", "source": source or "", "live": live,
-        "region": region or "",
+        "region": region or "", "sort": sort or "",
         "suggested": suggested or "",
         "user": user, "favorites": favorites,
         "refresh_running": _public_refresh_running(),
