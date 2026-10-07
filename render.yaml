@@ -69,6 +69,10 @@ services:
         fromDatabase:
           name: break-alley-db
           property: connectionString
+      # Widen upload window 10->25 (Brian 2026-10-07 audit): scheduled breaks
+      # were falling out of the 10-video window on high-volume channels.
+      - key: YOUTUBE_ROSTER_VIDEOS_PER_CHANNEL
+        value: "25"
 
   - type: cron
     name: break-alley-poll-twitch

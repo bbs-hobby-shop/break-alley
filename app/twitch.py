@@ -46,6 +46,8 @@ from .normalizer import (
 TOKEN_URL = "https://id.twitch.tv/oauth2/token"
 SEARCH_URL = "https://api.twitch.tv/helix/search/channels"
 STREAMS_URL = "https://api.twitch.tv/helix/streams"
+USERS_URL = "https://api.twitch.tv/helix/users"
+SCHEDULE_URL = "https://api.twitch.tv/helix/schedule"
 
 # Broad queries on purpose: search matches against channel name/title.
 # The enrichment + break-signal filter keep only actual break content.
