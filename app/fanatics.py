@@ -69,10 +69,21 @@ def fetch_all_streams(max_pages: int = 10) -> list[dict]:
 
 
 def is_live_status(status: str | None) -> bool:
-    """True if the stream status means currently live (not done/preparing)."""
+    """True if the stream status means currently live (not done/preparing).
+
+    Note: PREPARING streams with a real startsAt are 'upcoming' — handled
+    separately by is_upcoming_status()."""
     if not status:
         return False
     return status.upper() not in _DONE_STATUSES and status.upper() != "PREPARING"
+
+
+def is_upcoming_status(status: str | None) -> bool:
+    """True if the stream is scheduled for the future (PREPARING with a
+    real start time). These show as upcoming breaks, like YouTube upcoming
+    streams. Brian 2026-10-07: 'Why isn't our app showing their lives or
+    upcoming shows?'"""
+    return (status or "").upper() == "PREPARING"
 
 
 def load_fanatics_roster() -> dict[str, str]:
