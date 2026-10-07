@@ -32,3 +32,9 @@ Swish Breaks
 Tombstone Rips
 VIPRIPS
 WeTheHobby
+
+# Fuzzy matches approved by Brian 2026-10-07
+Dave & Adam's
+Dave & Adams UK
+Jaspy's
+thepullpen
