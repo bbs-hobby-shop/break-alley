@@ -365,6 +365,9 @@ def admin_maintenance(
                    AND starts_at IS NOT NULL AND starts_at < NOW() - INTERVAL '4 hours'"""
             ).rowcount
             results.append(f"pruned {n_yt} stale YouTube + {n_ebay} stale eBay")
+            # 7. Remove ended auctions, sold-out BIN, vanished listings (Brian 2026-10-07)
+            ended = db.prune_ended_ebay(conn)
+            results.append(f"pruned ended/sold eBay {ended}")
     except Exception as e:
         results.append(f"error: {e}")
     # Return as plain text for easy checking

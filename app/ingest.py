@@ -221,6 +221,14 @@ def run_ebay() -> int:
             n += 1
     print(f"upserted {n} normalized breaks ({n_video} new with video info)"
           + (f", {n_err} errors" if n_err else ""))
+    # Remove ended auctions, sold-out BIN, and vanished listings (Brian 2026-10-07)
+    try:
+        pruned = db.prune_ended_ebay(conn)
+        total = sum(pruned.values())
+        if total:
+            print(f"ebay: pruned ended/sold listings {pruned}")
+    except Exception as e:
+        print(f"ebay prune failed (continuing): {e}")
     if n == 0 and n_err > 0:
         # Every listing failed: something systemic is wrong -- mark the run
         # failed in the Render dashboard instead of exiting 0 on a stale site.
