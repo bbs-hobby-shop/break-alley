@@ -75,3 +75,5 @@ bombersportscards
 rj_duke_sports
 225breakers
 breaksntakes
+bestcardbreaks
+uk_blue_eyes_tcg
