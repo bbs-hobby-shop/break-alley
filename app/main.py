@@ -250,6 +250,68 @@ def admin_delete_break(
     return RedirectResponse(f"/admin/suggestions?key={key}", status_code=303)
 
 
+@app.post("/admin/maintenance")
+def admin_maintenance(
+    request: Request,
+    key: str = Form(default=""),
+):
+    """DB-only maintenance: parse break times, mark live, purge junk.
+    No eBay API calls — uses only our database (Brian 2026-10-06)."""
+    if not _admin_key_ok(key):
+        return RedirectResponse("/admin/suggestions", status_code=303)
+    from datetime import datetime, timezone, timedelta
+    from .ebay_video import parse_break_time
+    results = []
+    try:
+        with db.get_conn() as conn:
+            # 1. Parse break_time_text → starts_at
+            rows = conn.execute(
+                "SELECT id, break_time_text FROM breaks WHERE source='ebay' "
+                "AND break_time_text IS NOT NULL AND starts_at IS NULL"
+            ).fetchall()
+            n_parsed = 0
+            for r in rows:
+                parsed = parse_break_time(r["break_time_text"])
+                if parsed:
+                    conn.execute(
+                        "UPDATE breaks SET starts_at=%s WHERE id=%s",
+                        (parsed, r["id"]),
+                    )
+                    n_parsed += 1
+            results.append(f"parsed {n_parsed} break times")
+            # 2. Mark as live if started within 4h
+            rows2 = conn.execute(
+                "SELECT id, starts_at FROM breaks WHERE source='ebay' "
+                "AND starts_at IS NOT NULL AND NOT COALESCE(is_live, FALSE)"
+            ).fetchall()
+            n_live = 0
+            for r in rows2:
+                try:
+                    dt = r["starts_at"]
+                    if isinstance(dt, str):
+                        dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    now = datetime.now(timezone.utc)
+                    if timedelta(hours=-4) < (dt - now) < timedelta(minutes=15):
+                        conn.execute(
+                            "UPDATE breaks SET is_live=TRUE WHERE id=%s",
+                            (r["id"],),
+                        )
+                        n_live += 1
+                except Exception:
+                    pass
+            results.append(f"marked {n_live} as live")
+            # 3. Purge junk
+            n_purged = db.purge_junk_breaks(conn)
+            results.append(f"purged {n_purged} junk")
+    except Exception as e:
+        results.append(f"error: {e}")
+    # Return as plain text for easy checking
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse("\n".join(results))
+
+
 # ---------------------------------------------------------------------------
 # Public data refresh (customer-facing; cheap sources only)
 # ---------------------------------------------------------------------------
