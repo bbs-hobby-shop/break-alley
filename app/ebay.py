@@ -27,16 +27,8 @@ SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 OAUTH_SCOPE = "https://api.ebay.com/oauth/api_scope"
 MARKETPLACE = "EBAY_US"
 
-# (query, sport_hint) pairs polled on each run. Cheap, broad queries first.
-SEARCH_QUERIES = [
-    ("box break", None),
-    ("card break", None),
-    ("football box break PYT", "football"),
-    ("basketball box break PYT", "basketball"),
-    ("baseball box break PYT", "baseball"),
-    ("soccer box break PYT", "soccer"),
-    ("hockey box break PYT", "hockey"),
-]
+# Brian 2026-10-07: ROSTER-ONLY — keyword searches removed entirely.
+# We search each approved seller directly via filter=sellers:{...}.
 
 _token_cache: dict = {}
 
@@ -155,96 +147,56 @@ def load_ebay_roster() -> set[str]:
 
 
 def fetch_all_break_listings() -> list[dict]:
-    """Run every configured search query. Returns raw itemSummary dicts.
+    """Search rostered sellers directly. Returns raw itemSummary dicts.
 
-    When the eBay seller roster is non-empty, only items from roster sellers
-    are returned (roster-only principle, same as YouTube/Twitch).
-
-    Each query also runs once with filter=buyingOptions:{AUCTION} (Brian
-    2026-10-07: auction box breaks were invisible because buyingOptions is
-    not reliably present in search responses). Items from the auction pass
-    are tagged _known_auction=True so the ingester can mark them even when
-    the field is missing.
+    Brian 2026-10-07: ROSTER-ONLY — no keyword searches outside the approved
+    roster, on any platform. We search each approved seller directly via
+    filter=sellers:{...} with a broad 'break' query (regular + auction
+    variants). Nothing from outside the roster is ever queried.
     """
     token = get_app_token()
     roster = load_ebay_roster()
-    if roster:
-        print(f"ebay: roster-only mode, {len(roster)} approved sellers")
-    seen: dict[str, dict] = {}
-    n_skipped = 0
-    n_auction_pass = 0
-    # Diagnostic: what buyingOptions values does the API actually return?
-    from collections import Counter
-    bo_dist: Counter = Counter()
-    for query, _sport_hint in SEARCH_QUERIES:
-        for item in search_items(query, token):
-            for o in (item.get("buyingOptions") or ["(missing)"]):
-                bo_dist[str(o).upper()] += 1
-            seller = ((item.get("seller") or {}).get("username") or "").lower()
-            if roster and seller not in roster:
-                n_skipped += 1
-                continue
-            item_id = item.get("itemId") or item.get("itemWebUrl")
-            if item_id and item_id not in seen:
-                seen[item_id] = item
-        # Auction pass: same query, auction-only filter.
-        for item in search_items(query, token, auction_only=True):
-            seller = ((item.get("seller") or {}).get("username") or "").lower()
-            if roster and seller not in roster:
-                n_skipped += 1
-                continue
-            item_id = item.get("itemId") or item.get("itemWebUrl")
-            if not item_id:
-                continue
-            if item_id in seen:
-                # Already have it from the regular pass: just mark it.
-                seen[item_id]["_known_auction"] = True
-            else:
-                item["_known_auction"] = True
-                seen[item_id] = item
-            n_auction_pass += 1
-    if n_skipped:
-        print(f"ebay: skipped {n_skipped} listings from non-roster sellers")
-    print(f"ebay: buyingOptions distribution in search responses: {dict(bo_dist)}")
-    print(f"ebay: {n_auction_pass} roster listings from auction-filtered search")
+    if not roster:
+        print("ebay: roster is empty — add sellers to app/seed_ebay_sellers.txt.")
+        return []
+    print(f"ebay: roster-only mode, {len(roster)} approved sellers")
 
-    # Seller-direct pass (Brian 2026-10-07 audit): keyword searches miss
-    # rostered sellers' listings that don't use the exact keywords
-    # (e.g. "2026 Panini Prizm Random Team Break" has no "box break").
-    # Search each rostered seller directly with a broad "break" query.
-    n_seller_pass = 0
-    if roster:
-        sellers = sorted(roster)
-        # eBay allows multiple sellers per filter; batch to stay under URL limits
-        for i in range(0, len(sellers), 10):
-            batch = sellers[i:i + 10]
-            try:
-                for item in search_items("break", token, sellers=batch):
-                    seller = ((item.get("seller") or {}).get("username") or "").lower()
-                    if seller not in roster:
-                        continue
-                    item_id = item.get("itemId") or item.get("itemWebUrl")
-                    if item_id and item_id not in seen:
-                        seen[item_id] = item
-                        n_seller_pass += 1
-                # Auction variant per seller batch
-                for item in search_items("break", token, auction_only=True, sellers=batch):
-                    seller = ((item.get("seller") or {}).get("username") or "").lower()
-                    if seller not in roster:
-                        continue
-                    item_id = item.get("itemId") or item.get("itemWebUrl")
-                    if not item_id:
-                        continue
-                    if item_id in seen:
-                        seen[item_id]["_known_auction"] = True
-                    else:
-                        item["_known_auction"] = True
-                        seen[item_id] = item
-                    n_seller_pass += 1
-            except Exception as exc:
-                print(f"ebay: seller-direct batch failed ({exc}) — continuing",
-                      file=sys.stderr)
-                continue
-    if n_seller_pass:
-        print(f"ebay: {n_seller_pass} additional listings from seller-direct search")
+    seen: dict[str, dict] = {}
+    n_found = 0
+    sellers = sorted(roster)
+    # eBay allows multiple sellers per filter; batch to stay under URL limits
+    for i in range(0, len(sellers), 10):
+        batch = sellers[i:i + 10]
+        try:
+            # Regular listings from these sellers
+            for item in search_items("break", token, sellers=batch):
+                seller = ((item.get("seller") or {}).get("username") or "").lower()
+                if seller not in roster:
+                    continue  # safety: never trust the filter alone
+                item_id = item.get("itemId") or item.get("itemWebUrl")
+                if item_id and item_id not in seen:
+                    seen[item_id] = item
+                    n_found += 1
+            # Auction listings from these sellers (Brian 2026-10-07: auction
+            # box breaks were invisible because buyingOptions is not reliably
+            # present in search responses)
+            for item in search_items("break", token, auction_only=True, sellers=batch):
+                seller = ((item.get("seller") or {}).get("username") or "").lower()
+                if seller not in roster:
+                    continue
+                item_id = item.get("itemId") or item.get("itemWebUrl")
+                if not item_id:
+                    continue
+                if item_id in seen:
+                    seen[item_id]["_known_auction"] = True
+                else:
+                    item["_known_auction"] = True
+                    seen[item_id] = item
+                n_found += 1
+        except Exception as exc:
+            print(f"ebay: seller batch failed ({exc}) — continuing",
+                  file=sys.stderr)
+            continue
+    print(f"ebay: {n_found} listings from {len(sellers)} rostered sellers "
+          f"(roster-only, no keyword search)")
     return list(seen.values())

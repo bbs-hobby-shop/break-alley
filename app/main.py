@@ -464,11 +464,11 @@ def public_refresh(
 # ---------------------------------------------------------------------------
 
 REFRESH_COOLDOWN_SECS = 1800  # 30 min between manual refreshes
+# Brian 2026-10-07: ROSTER-ONLY — no keyword searches outside approved rosters.
 REFRESH_SOURCES = (
     ("youtube-roster", run_youtube_roster),
     ("twitch-roster", run_twitch_roster),
     ("fanatics", run_fanatics),
-    ("youtube", run_youtube),
     ("ebay", run_ebay),
 )
 

@@ -219,6 +219,9 @@ def check_audit_patterns():
     2. Paginate fully (no silent truncation)
     3. Search roster-direct, not keyword-only
     4. Filter without over-blocking legit titles
+    5. ROSTER-ONLY: never query outside approved rosters. Growth comes from
+       adding breakers to the roster, not from loose searches that pull in
+       random listings misinterpreted as box breaks.
     """
     try:
         with get_db() as conn:
