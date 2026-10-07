@@ -27,10 +27,10 @@ TIME_PATTERNS = [
 
 # Timezone abbreviations to IANA names for break time parsing
 TZ_MAP = {
-    "PT": "US/Pacific", "PST": "US/Pacific", "PDT": "US/Pacific",
-    "MT": "US/Mountain", "MST": "US/Mountain", "MDT": "US/Mountain",
-    "CT": "US/Central", "CST": "US/Central", "CDT": "US/Central",
-    "ET": "US/Eastern", "EST": "US/Eastern", "EDT": "US/Eastern",
+    "PT": "America/Los_Angeles", "PST": "America/Los_Angeles", "PDT": "America/Los_Angeles",
+    "MT": "America/Denver", "MST": "America/Denver", "MDT": "America/Denver",
+    "CT": "America/Chicago", "CST": "America/Chicago", "CDT": "America/Chicago",
+    "ET": "America/New_York", "EST": "America/New_York", "EDT": "America/New_York",
 }
 
 
@@ -56,7 +56,7 @@ def parse_break_time(text: str) -> str | None:
     if ampm.lower() == "am" and hour == 12:
         hour = 0
 
-    tz_name = TZ_MAP.get((tz_abbr or "CT").upper(), "US/Central")
+    tz_name = TZ_MAP.get((tz_abbr or "CT").upper(), "America/Chicago")
     tz = ZoneInfo(tz_name)
     now = datetime.now(tz)
     dt = now.replace(hour=hour, minute=minute, second=0, microsecond=0)

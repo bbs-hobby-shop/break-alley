@@ -437,8 +437,13 @@ def main() -> int:
     elif args.source == "ebay-video-backfill":
         result = run_ebay_video_backfill()
     else:
-        result = run_ebay()
+        try:
+            result = run_ebay()
+        except Exception as exc:
+            print(f"ebay poller failed (continuing to purge): {exc}", file=sys.stderr)
+            result = 1
     # Purge junk that slipped through (casino, betting, giveaways, etc.)
+    # Runs even if the eBay API is rate-limited — purge only needs the DB
     try:
         with db.get_conn() as conn:
             n_purged = db.purge_junk_breaks(conn)
