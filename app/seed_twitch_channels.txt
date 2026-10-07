@@ -26,3 +26,8 @@ strykerbreaks  # Stryker Breaks — likely (in own YT descriptions; page unverif
 jaspysbreaks  # Jaspy's Case Breaks — likely (1k followers; dormant since Jun 2025)
 da_2bros1break  # Dave and Adam's sister channel — Chase/personals breaks
 da_nerdout  # Dave and Adam's sister channel — TCG/entertainment
+tffbreaks  # TFF Breaks (UK) — approved 2026-10-06 (roster expansion)
+soccerbreakersfc  # Soccer Breakers FC — approved 2026-10-06 (roster expansion)
+kjs_live_hub  # KJ's Live Hub — approved 2026-10-06 (roster expansion)
+dollysbreaks  # Dolly's Breaks (Canada) — approved 2026-10-06 (roster expansion)
+topshelfbreaks  # Top Shelf Breaks — approved 2026-10-06 (roster expansion)

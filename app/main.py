@@ -305,6 +305,18 @@ def admin_maintenance(
             # 3. Purge junk
             n_purged = db.purge_junk_breaks(conn)
             results.append(f"purged {n_purged} junk")
+            # 4. Seed new roster channels from seed files
+            from pathlib import Path
+            seed_path = Path(__file__).with_name("seed_channels.txt")
+            if seed_path.exists():
+                lines = seed_path.read_text().splitlines()
+                n_yt = db.seed_manual_channels(conn, lines)
+                results.append(f"seeded {n_yt} YouTube channels")
+            twitch_seed_path = Path(__file__).with_name("seed_twitch_channels.txt")
+            if twitch_seed_path.exists():
+                lines = twitch_seed_path.read_text().splitlines()
+                n_tw = db.seed_manual_twitch_channels(conn, lines)
+                results.append(f"seeded {n_tw} Twitch channels")
     except Exception as e:
         results.append(f"error: {e}")
     # Return as plain text for easy checking
