@@ -211,12 +211,65 @@ def check_security():
     check("security: https enforced", SITE_URL.startswith("https://"))
 
 
+def check_audit_patterns():
+    """Brian 2026-10-07: audit lessons applied to all platforms, forever.
+
+    Every platform poller must:
+    1. Capture BOTH live and upcoming/scheduled (not live-only)
+    2. Paginate fully (no silent truncation)
+    3. Search roster-direct, not keyword-only
+    4. Filter without over-blocking legit titles
+    """
+    try:
+        with get_db() as conn:
+            # 1. Each platform should have BOTH live and upcoming breaks
+            # (catches live-only regressions like the Twitch schedule gap)
+            for source in ["youtube", "twitch", "fanatics", "ebay"]:
+                live = conn.execute(
+                    "SELECT COUNT(*) FROM breaks WHERE source = %s AND is_live",
+                    (source,)).fetchone()[0]
+                upcoming = conn.execute(
+                    "SELECT COUNT(*) FROM breaks WHERE source = %s AND NOT is_live",
+                    (source,)).fetchone()[0]
+                # eBay listings are rarely "live" in the stream sense; skip the ratio check there
+                if source == "ebay":
+                    check(f"audit:{source} has listings", live + upcoming > 0,
+                          f"{live + upcoming} total")
+                else:
+                    has_both = live > 0 and upcoming > 0
+                    check(f"audit:{source} live+upcoming coverage", has_both,
+                          f"{live} live, {upcoming} upcoming")
+
+            # 2. No platform should be empty while its roster is populated
+            # (catches silent truncation / total poller failure)
+            for table, source, label in [
+                ("youtube_channels", "youtube", "YouTube"),
+                ("twitch_channels", "twitch", "Twitch"),
+                ("fanatics_shops", "fanatics", "Fanatics"),
+            ]:
+                try:
+                    roster_n = conn.execute(
+                        f"SELECT COUNT(*) FROM {table} WHERE active").fetchone()[0]
+                    breaks_n = conn.execute(
+                        "SELECT COUNT(*) FROM breaks WHERE source = %s",
+                        (source,)).fetchone()[0]
+                    # Roster populated but zero breaks = poller silently failing
+                    ok = roster_n == 0 or breaks_n > 0
+                    check(f"audit:{label} roster->breaks flowing", ok,
+                          f"{roster_n} rostered, {breaks_n} breaks")
+                except Exception:
+                    pass  # table check already covered in check_roster_tables
+    except Exception as e:
+        check("audit: database reachable", False, str(e)[:100])
+
+
 def main():
     print(f"BreakAlley daily health check — {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}")
     print("=" * 60)
 
     check_pollers()
     check_roster_tables()
+    check_audit_patterns()
     check_data_quality()
     check_times()
     check_site()
