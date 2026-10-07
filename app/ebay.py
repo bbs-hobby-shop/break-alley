@@ -72,16 +72,27 @@ def get_app_token() -> str:
 
 
 def search_items(query: str, token: str, limit: int = 200,
-                 auction_only: bool = False) -> list[dict]:
+                 auction_only: bool = False,
+                 sellers: list[str] | None = None) -> list[dict]:
     """Run one Browse API item_summary search. Returns raw itemSummary dicts.
 
     auction_only=True adds filter=buyingOptions:{AUCTION} so the returned
     items are auctions by construction (robust even if buyingOptions is
     absent from the response payload).
+
+    sellers=[...] adds filter=sellers:{a|b|c} for roster-direct searching
+    (Brian 2026-10-07 audit: keyword-only search missed rostered sellers'
+    listings that didn't use the exact keywords).
     """
     params = {"q": query, "limit": min(limit, 200)}
+    filters = []
     if auction_only:
-        params["filter"] = "buyingOptions:{AUCTION}"
+        filters.append("buyingOptions:{AUCTION}")
+    if sellers:
+        sellers_str = "|".join(sellers)
+        filters.append(f"sellers:{{{sellers_str}}}")
+    if filters:
+        params["filter"] = ",".join(filters)
     resp = httpx.get(
         SEARCH_URL,
         params=params,
@@ -196,4 +207,44 @@ def fetch_all_break_listings() -> list[dict]:
         print(f"ebay: skipped {n_skipped} listings from non-roster sellers")
     print(f"ebay: buyingOptions distribution in search responses: {dict(bo_dist)}")
     print(f"ebay: {n_auction_pass} roster listings from auction-filtered search")
+
+    # Seller-direct pass (Brian 2026-10-07 audit): keyword searches miss
+    # rostered sellers' listings that don't use the exact keywords
+    # (e.g. "2026 Panini Prizm Random Team Break" has no "box break").
+    # Search each rostered seller directly with a broad "break" query.
+    n_seller_pass = 0
+    if roster:
+        sellers = sorted(roster)
+        # eBay allows multiple sellers per filter; batch to stay under URL limits
+        for i in range(0, len(sellers), 10):
+            batch = sellers[i:i + 10]
+            try:
+                for item in search_items("break", token, sellers=batch):
+                    seller = ((item.get("seller") or {}).get("username") or "").lower()
+                    if seller not in roster:
+                        continue
+                    item_id = item.get("itemId") or item.get("itemWebUrl")
+                    if item_id and item_id not in seen:
+                        seen[item_id] = item
+                        n_seller_pass += 1
+                # Auction variant per seller batch
+                for item in search_items("break", token, auction_only=True, sellers=batch):
+                    seller = ((item.get("seller") or {}).get("username") or "").lower()
+                    if seller not in roster:
+                        continue
+                    item_id = item.get("itemId") or item.get("itemWebUrl")
+                    if not item_id:
+                        continue
+                    if item_id in seen:
+                        seen[item_id]["_known_auction"] = True
+                    else:
+                        item["_known_auction"] = True
+                        seen[item_id] = item
+                    n_seller_pass += 1
+            except Exception as exc:
+                print(f"ebay: seller-direct batch failed ({exc}) — continuing",
+                      file=sys.stderr)
+                continue
+    if n_seller_pass:
+        print(f"ebay: {n_seller_pass} additional listings from seller-direct search")
     return list(seen.values())
