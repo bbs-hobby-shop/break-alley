@@ -98,6 +98,7 @@ def run_ebay() -> int:
     # (Brian 2026-10-06: eBay times must match other platforms)
     try:
         from .ebay_video import parse_break_time
+        from datetime import datetime, timezone, timedelta
         with db.get_conn() as conn:
             rows = conn.execute(
                 "SELECT id, break_time_text FROM breaks WHERE source='ebay' "
@@ -107,13 +108,48 @@ def run_ebay() -> int:
             for r in rows:
                 parsed = parse_break_time(r["break_time_text"])
                 if parsed:
+                    # Mark as live if started within last 4h (Brian 2026-10-06)
+                    is_live = False
+                    try:
+                        dt = datetime.fromisoformat(parsed.replace("Z", "+00:00"))
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=timezone.utc)
+                        now = datetime.now(timezone.utc)
+                        if timedelta(hours=-4) < (dt - now) < timedelta(minutes=15):
+                            is_live = True
+                    except Exception:
+                        pass
                     conn.execute(
-                        "UPDATE breaks SET starts_at=%s WHERE id=%s",
-                        (parsed, r["id"]),
+                        "UPDATE breaks SET starts_at=%s, is_live=%s WHERE id=%s",
+                        (parsed, is_live, r["id"]),
                     )
                     n_parsed += 1
             if n_parsed:
                 print(f"ebay: parsed {n_parsed} break times into starts_at")
+            # Update is_live for existing listings with starts_at (Brian 2026-10-06)
+            rows2 = conn.execute(
+                "SELECT id, starts_at FROM breaks WHERE source='ebay' "
+                "AND starts_at IS NOT NULL AND NOT COALESCE(is_live, FALSE)"
+            ).fetchall()
+            n_live = 0
+            for r in rows2:
+                try:
+                    dt = r["starts_at"]
+                    if isinstance(dt, str):
+                        dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    now = datetime.now(timezone.utc)
+                    if timedelta(hours=-4) < (dt - now) < timedelta(minutes=15):
+                        conn.execute(
+                            "UPDATE breaks SET is_live=TRUE WHERE id=%s",
+                            (r["id"],),
+                        )
+                        n_live += 1
+                except Exception:
+                    pass
+            if n_live:
+                print(f"ebay: marked {n_live} breaks as live")
     except Exception as e:
         print(f"ebay time backfill failed: {e}", file=sys.stderr)
     items = ebay.fetch_all_break_listings()
@@ -151,6 +187,21 @@ def run_ebay() -> int:
                     # Standardize eBay break times to match other platforms (Brian 2026-10-06)
                     if video.get("break_starts_at") and not row.get("starts_at"):
                         row["starts_at"] = video["break_starts_at"]
+                    # If break started recently (within 4h), mark as live (Brian 2026-10-06)
+                    if row.get("starts_at"):
+                        try:
+                            from datetime import datetime, timezone, timedelta
+                            starts_at = row["starts_at"]
+                            if isinstance(starts_at, str):
+                                starts_at = datetime.fromisoformat(starts_at.replace("Z", "+00:00"))
+                            if starts_at.tzinfo is None:
+                                starts_at = starts_at.replace(tzinfo=timezone.utc)
+                            now = datetime.now(timezone.utc)
+                            # Started within last 4 hours and not more than 15 min in future
+                            if timedelta(hours=-4) < (starts_at - now) < timedelta(minutes=15):
+                                row["is_live"] = True
+                        except Exception:
+                            pass
                     if video["video_links"]:
                         n_video += 1
                 except Exception as e:
