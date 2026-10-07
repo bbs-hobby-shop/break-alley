@@ -164,6 +164,16 @@ def check_site():
             # Results count present
             check("site: results render",
                   "results found" in html.lower() or "result" in html.lower())
+    except urllib.error.HTTPError as e:
+        # Brian 2026-10-07: distinguish deploy-502s (transient, from a push)
+        # from real outages. A 502 lasting >2 min likely means a stuck deploy
+        # blocking the queue — check the Render deploys page, don't push again.
+        if e.code == 502:
+            detail = ("HTTP 502 — possible stuck Render deploy; check deploys "
+                      "page for a blocked deploy before pushing again")
+        else:
+            detail = f"HTTP {e.code}"
+        check("site: homepage loads", False, detail)
     except Exception as e:
         check("site: homepage loads", False, str(e)[:100])
 
