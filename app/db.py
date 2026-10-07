@@ -744,7 +744,10 @@ WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT
   AND NOT (COALESCE(is_auction, FALSE) = FALSE
            AND COALESCE(slots_remaining, -1) = 0)
 ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
-LIMIT 1000;
+-- Brian 2026-10-07: LIMIT must be high enough that no platform gets crowded
+-- out before Python grouping. eBay alone has 4k+ rows; a 1000-row cap meant
+-- the "All platforms" view only showed eBay results.
+LIMIT 20000;
 """
 
 
