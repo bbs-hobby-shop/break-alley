@@ -447,8 +447,7 @@ def main() -> int:
     try:
         with db.get_conn() as conn:
             n_purged = db.purge_junk_breaks(conn)
-            if n_purged:
-                print(f"purged {n_purged} junk breaks")
+            print(f"purged {n_purged} junk breaks")
     except Exception as exc:
         print(f"junk purge failed (continuing): {exc}", file=sys.stderr)
     return result

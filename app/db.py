@@ -682,9 +682,15 @@ def purge_junk_breaks(conn) -> int:
     import re
     from .normalizer import NON_BREAK_TITLE_WORDS
     pattern = "|".join(f"(?:{p})" for p in NON_BREAK_TITLE_WORDS)
-    rows = conn.execute("SELECT id, title_raw FROM breaks").fetchall()
-    junk_ids = [r["id"] for r in rows
-                if r["title_raw"] and re.search(pattern, r["title_raw"], re.IGNORECASE)]
+    rows = conn.execute("SELECT id, title_raw, breaker FROM breaks").fetchall()
+    junk_ids = []
+    for r in rows:
+        title = r["title_raw"] or ""
+        breaker = r["breaker"] or ""
+        if title and re.search(pattern, title, re.IGNORECASE):
+            junk_ids.append(r["id"])
+        elif breaker and "test.live.us-seller" in breaker.lower():
+            junk_ids.append(r["id"])
     if not junk_ids:
         return 0
     return conn.execute(
