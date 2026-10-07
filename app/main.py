@@ -35,6 +35,26 @@ def _enrich(row: dict) -> dict:
     row["display_title"] = display_title(title)
     row["break_no"] = extract_break_number(title)
     row["date_label"] = date_label(row.get("starts_at"))
+    # Thumbnail: real image where available, format icon fallback (Brian 2026-10-06)
+    thumb = row.get("thumbnail_url")
+    if not thumb and row.get("source") == "youtube":
+        # YouTube video thumbnails via video ID in source_url
+        import re
+        url = row.get("source_url") or ""
+        m = re.search(r"(?:v=|youtu\.be/|/live/|/shorts/)([A-Za-z0-9_-]{11})", url)
+        if m:
+            thumb = f"https://i.ytimg.com/vi/{m.group(1)}/hqdefault.jpg"
+    row["thumb_url"] = thumb
+    # Format icon: instant visual format recognition
+    fmt = (row.get("format") or "").lower()
+    icons = {
+        "pyt": "🎯", "pick_your_team": "🎯",
+        "random": "🎲",
+        "personal": "👤",
+        "case_break": "📦", "case": "📦",
+        "box_break": "🃏",
+    }
+    row["format_icon"] = icons.get(fmt, "🃏")
     return row
 
 

@@ -119,6 +119,10 @@
     display: flex; align-items: center; justify-content: center;
     font-weight: 900; font-size: 1.3rem; color: #fff;
   }
+  .thumb-img {
+    object-fit: cover; padding: 0;
+    background: var(--card2);
+  }
   .card.is-live .thumb { background: linear-gradient(135deg, var(--red), #8f1d33); }
   .meta { flex: 1; min-width: 0; }
   .title { font-weight: 700; margin: 0 0 .35rem; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -264,7 +268,12 @@
       {% for b in results %}
       <div class="card-wrap">
       <a class="card {% if b.is_live %}is-live{% endif %}" href="/break/{{ b.id }}">
-        <div class="thumb">📦</div>
+        {% if b.thumb_url %}
+        <img class="thumb thumb-img" src="{{ b.thumb_url }}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div class="thumb" style="display:none">{{ b.format_icon }}</div>
+        {% else %}
+        <div class="thumb">{{ b.format_icon }}</div>
+        {% endif %}
         <div class="meta">
           <p class="title">{{ b.display_title }}</p>
           <div class="tags">
