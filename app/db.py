@@ -603,7 +603,8 @@ SELECT id, source, source_url, breaker, product_raw, product_normalized,
        country, group_key, video_url, video_platform, break_time_text, video_links
 FROM breaks
 WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
-       OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
+       OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
+       OR COALESCE(breaker, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
   AND (CAST(%(sport)s AS TEXT) IS NULL OR sport = %(sport)s)
   AND (CAST(%(format)s AS TEXT) IS NULL OR format = %(format)s)
   AND (CAST(%(max_price)s AS NUMERIC) IS NULL OR price IS NULL OR price <= %(max_price)s)
