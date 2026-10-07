@@ -132,6 +132,7 @@ def run_ebay() -> int:
                 "AND starts_at IS NOT NULL AND NOT COALESCE(is_live, FALSE)"
             ).fetchall()
             n_live = 0
+            n_checked = len(rows2)
             for r in rows2:
                 try:
                     dt = r["starts_at"]
@@ -148,8 +149,7 @@ def run_ebay() -> int:
                         n_live += 1
                 except Exception:
                     pass
-            if n_live:
-                print(f"ebay: marked {n_live} breaks as live")
+            print(f"ebay: checked {n_checked} breaks with start times, marked {n_live} as live")
     except Exception as e:
         print(f"ebay time backfill failed: {e}", file=sys.stderr)
     items = ebay.fetch_all_break_listings()
