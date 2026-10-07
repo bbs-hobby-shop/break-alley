@@ -339,6 +339,8 @@
 </section>
 <script>
 // Auction countdown timers (Brian 2026-10-07): live ticking countdown on eBay auction cards.
+// When a countdown expires, the card is removed from the page immediately
+// (Brian 2026-10-07: ended listings must disappear ASAP, not linger as "Ended").
 (function() {
   function pad(n) { return String(n).padStart(2, '0'); }
   function tick() {
@@ -347,7 +349,11 @@
       var ends = new Date(el.getAttribute('data-ends')).getTime();
       if (isNaN(ends)) { el.textContent = '⏳ --'; return; }
       var diff = ends - now;
-      if (diff <= 0) { el.textContent = '⏳ Ended'; return; }
+      if (diff <= 0) {
+        var card = el.closest('.card-wrap');
+        if (card) { card.style.display = 'none'; }
+        return;
+      }
       var d = Math.floor(diff / 86400000),
           h = Math.floor(diff % 86400000 / 3600000),
           m = Math.floor(diff % 3600000 / 60000),
