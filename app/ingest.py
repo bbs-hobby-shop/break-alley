@@ -18,7 +18,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import config, db, ebay, twitch, twitch_roster, youtube, youtube_roster
+from . import config, db, ebay, fanatics_roster, twitch, twitch_roster, youtube, youtube_roster
 from .normalizer import normalize_ebay_item
 
 DEMO_ROWS = [
@@ -394,6 +394,31 @@ def run_twitch_roster() -> int:
     return 0
 
 
+def run_fanatics() -> int:
+    """One Fanatics Live roster poll run (Brian 2026-10-07)."""
+    with db.get_conn() as conn:
+        rows, hit_shop_ids, checked, stats = fanatics_roster.fetch_roster_breaks(conn)
+        if stats["n_shops"] > 0 and stats["n_api_ok"] == 0:
+            # Total API failure: nothing was checked, so keep the existing
+            # slice instead of blanking the live site.
+            print("fanatics-roster: streams API failed — keeping existing slice",
+                  file=sys.stderr)
+            return 1
+        n = 0
+        # Fanatics data is transient (currently-live streams), so each run
+        # wipes and rewrites the fanatics slice in ONE transaction: ended
+        # streams vanish instead of lingering as stale "live" rows.
+        conn.execute("DELETE FROM breaks WHERE source = 'fanatics'")
+        for row in rows:
+            if not row.get("source_url"):
+                continue
+            db.upsert_break(conn, row)
+            n += 1
+        db.mark_fanatics_checked(conn, checked)
+    print(f"fanatics-roster: upserted {n} breaks from {len(checked)} shops")
+    return 0
+
+
 # Card release evenings with extra fetch passes (Idea 2026-10-06).
 # (month, day) in America/Chicago -> products releasing.
 RELEASE_NIGHTS = {
@@ -472,7 +497,8 @@ def main() -> int:
                         help="insert demo rows instead of calling APIs")
     parser.add_argument("--source",
                         choices=["ebay", "youtube", "youtube-roster",
-                                 "twitch", "twitch-roster", "release-night",
+                                 "twitch", "twitch-roster", "fanatics",
+                                 "release-night",
                                  "ebay-video-backfill"],
                         default="ebay",
                         help="which source to poll (default: ebay)")
@@ -495,6 +521,8 @@ def main() -> int:
         result = run_twitch()
     elif args.source == "twitch-roster":
         result = run_twitch_roster()
+    elif args.source == "fanatics":
+        result = run_fanatics()
     elif args.source == "release-night":
         result = run_release_night()
     elif args.source == "ebay-video-backfill":

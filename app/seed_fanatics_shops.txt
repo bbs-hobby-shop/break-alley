@@ -1,0 +1,34 @@
+# Manual Fanatics Live roster seeds — one shop name per line (case-insensitive).
+#
+# Why a roster: the Fanatics GraphQL API returns ALL platform streams; the
+# roster limits ingestion to approved breakers (same policy as YouTube /
+# Twitch / eBay rosters). Names are resolved to shop IDs via the live
+# shops directory at poll time.
+#
+# How to add a breaker:
+#   1. Verify the shop name matches their Fanatics Live shop exactly.
+#   2. Append the shop name below (comments with # are ignored).
+#   3. Commit + push. The next roster poll seeds it as source='manual'.
+#
+# Initial roster (Brian 2026-10-07): 19 exact name matches to breakers
+# already approved on the YouTube / Twitch / eBay rosters.
+
+1of1 Cardshop
+225 Breakers
+Black Gold Sports Cards
+Blez Sports Cards
+Breaks N Takes
+Filthbomb Breaks
+Firehand Cards
+Game Day Legends
+Layton Sports Cards
+LilPullman
+Mojobreak
+Paradise Card Breaks
+PullWax
+SkolnSteel Breaks
+State Line Breaks
+Swish Breaks
+Tombstone Rips
+VIPRIPS
+WeTheHobby

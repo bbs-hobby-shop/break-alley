@@ -86,6 +86,20 @@ services:
       - key: TWITCH_CLIENT_SECRET
         sync: false
 
+  # ---- Fanatics Live roster poller (Brian 2026-10-07) ----
+  # Public GraphQL API, no auth needed. Every 20 min like Twitch.
+  - type: cron
+    name: break-alley-poll-fanatics
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    schedule: "*/20 * * * *"
+    dockerCommand: python -m app.ingest --source fanatics
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: break-alley-db
+          property: connectionString
+
   # ---- Release-night extra passes (Idea 2026-10-06) ----
   # Runs daily at 01:00 UTC (8 PM CDT); the code no-ops except on the five
   # October card release evenings (Oct 7, 21, 22, 28, 30), when it runs an

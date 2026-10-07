@@ -309,6 +309,87 @@ def seed_manual_twitch_channels(conn, lines: list[str]) -> int:
     return n
 
 
+UPSERT_FANATICS_SHOP_SQL = """
+INSERT INTO fanatics_shops (shop_id, name, slug, source)
+VALUES (%(shop_id)s, %(name)s, %(slug)s, %(source)s)
+ON CONFLICT (shop_id) DO UPDATE SET
+    name = COALESCE(EXCLUDED.name, fanatics_shops.name),
+    slug = COALESCE(EXCLUDED.slug, fanatics_shops.slug),
+    last_hit_at = NOW();
+"""
+
+
+def upsert_fanatics_shop(conn, shop_id: str, name: str | None = None,
+                         slug: str | None = None,
+                         source: str = "manual") -> None:
+    """Add a Fanatics shop to the roster (or refresh it) and stamp last_hit_at
+    — the shop just produced a kept break."""
+    shop_id = (shop_id or "").strip()
+    if not shop_id:
+        return
+    conn.execute(UPSERT_FANATICS_SHOP_SQL, {
+        "shop_id": shop_id, "name": name, "slug": slug, "source": source,
+    })
+
+
+def mark_fanatics_checked(conn, shop_ids: list[str]) -> None:
+    """Stamp last_checked_at for shops a roster poll actually covered."""
+    shop_ids = [(s or "").strip() for s in shop_ids or []]
+    shop_ids = [s for s in shop_ids if s]
+    if not shop_ids:
+        return
+    conn.execute(
+        "UPDATE fanatics_shops SET last_checked_at = NOW() "
+        "WHERE shop_id = ANY(%s)",
+        (shop_ids,),
+    )
+
+
+def get_fanatics_roster(conn, limit: int) -> list[dict]:
+    """Active roster shops for one poll, hottest first.
+
+    Ordering puts shops that recently produced kept breaks first, so when
+    the roster is capped the most productive shops are the ones checked.
+    Among never-hit shops, the least-recently-checked go first.
+    """
+    return conn.execute(
+        """SELECT shop_id, name FROM fanatics_shops
+           WHERE active
+           ORDER BY last_hit_at DESC NULLS LAST,
+                    last_checked_at ASC NULLS FIRST
+           LIMIT %s""",
+        (limit,),
+    ).fetchall()
+
+
+def seed_manual_fanatics_shops(conn, lines: list[str],
+                               id_by_name: dict[str, str]) -> int:
+    """Upsert hand-picked Fanatics shops (from app/seed_fanatics_shops.txt) as
+    source='manual'. Names are resolved to shop IDs via the live shops
+    directory (id_by_name: lowercased name -> shop_id). Idempotent: safe to
+    run at the start of every roster poll. Returns the number added."""
+    n = 0
+    for line in lines:
+        name = (line or "").strip()
+        if not name or name.startswith("#"):
+            continue
+        # allow trailing "  # comment" on the line
+        name = name.split("#", 1)[0].strip()
+        if not name:
+            continue
+        shop_id = id_by_name.get(name.lower())
+        if not shop_id:
+            continue
+        cur = conn.execute(
+            """INSERT INTO fanatics_shops (shop_id, name, source)
+               VALUES (%(shop_id)s, %(name)s, 'manual')
+               ON CONFLICT (shop_id) DO NOTHING""",
+            {"shop_id": shop_id, "name": name},
+        )
+        n += cur.rowcount
+    return n
+
+
 def add_breaker_suggestion(conn, input_text: str, note: str | None = None) -> int:
     """Queue a community breaker suggestion for review. Returns the new id."""
     cur = conn.execute(
@@ -507,7 +588,7 @@ BEGIN
             ALTER TABLE breaks DROP CONSTRAINT breaks_source_check;
         END IF;
         ALTER TABLE breaks ADD CONSTRAINT breaks_source_check
-            CHECK (source IN ('ebay', 'youtube', 'twitch'));
+            CHECK (source IN ('ebay', 'youtube', 'twitch', 'fanatics'));
         IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'breaks_format_check') THEN
             ALTER TABLE breaks DROP CONSTRAINT breaks_format_check;
         END IF;
@@ -541,6 +622,22 @@ CREATE TABLE IF NOT EXISTS twitch_channels (
     active          BOOLEAN NOT NULL DEFAULT TRUE
 );
 CREATE INDEX IF NOT EXISTS idx_twitch_channels_active ON twitch_channels (active);
+
+-- Roster table for Fanatics Live shops (schema.sql is the canonical
+-- definition; this keeps cron pollers working on older DBs). Polled via
+-- the public GraphQL API at fanatics.live/graphql (Brian 2026-10-07).
+CREATE TABLE IF NOT EXISTS fanatics_shops (
+    shop_id         TEXT PRIMARY KEY,            -- Fanatics shop UUID
+    name            TEXT,                        -- shop display name
+    slug            TEXT,                        -- URL slug for fanatics.live/shops/<slug>
+    source          TEXT NOT NULL DEFAULT 'manual'
+                    CHECK (source IN ('search', 'manual', 'seed')),
+    added_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_checked_at TIMESTAMPTZ,                 -- last roster poll that covered it
+    last_hit_at     TIMESTAMPTZ,                 -- last poll where it produced a kept break
+    active          BOOLEAN NOT NULL DEFAULT TRUE
+);
+CREATE INDEX IF NOT EXISTS idx_fanatics_shops_active ON fanatics_shops (active);
 
 -- Roster table for cheap per-channel YouTube monitoring (schema.sql is the
 -- canonical definition; this keeps cron pollers working on older DBs).

@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TABLE IF NOT EXISTS breaks (
     id              SERIAL PRIMARY KEY,
-    source          TEXT NOT NULL CHECK (source IN ('ebay', 'youtube', 'twitch')),
+    source          TEXT NOT NULL CHECK (source IN ('ebay', 'youtube', 'twitch', 'fanatics')),
     source_url      TEXT NOT NULL,
     breaker         TEXT,                       -- eBay seller ID / YouTube channel name
     product_raw     TEXT,                       -- product text as seen in the wild
@@ -91,6 +91,24 @@ CREATE TABLE IF NOT EXISTS twitch_channels (
 
 CREATE INDEX IF NOT EXISTS idx_twitch_channels_active   ON twitch_channels (active);
 CREATE INDEX IF NOT EXISTS idx_twitch_channels_last_hit ON twitch_channels (last_hit_at DESC NULLS LAST);
+
+-- Fanatics Live shop roster: approved breaker shops polled via the public
+-- GraphQL API (liveStreams). Mirrors the Twitch roster approach — only
+-- rostered shops' streams are ingested.
+CREATE TABLE IF NOT EXISTS fanatics_shops (
+    shop_id         TEXT PRIMARY KEY,            -- Fanatics shop UUID
+    name            TEXT,                        -- shop display name
+    slug            TEXT,                        -- URL slug for fanatics.live/shops/<slug>
+    source          TEXT NOT NULL DEFAULT 'manual'
+                    CHECK (source IN ('search', 'manual', 'seed')),
+    added_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_checked_at TIMESTAMPTZ,                 -- last roster poll that covered it
+    last_hit_at     TIMESTAMPTZ,                 -- last poll where it produced a kept break
+    active          BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE INDEX IF NOT EXISTS idx_fanatics_shops_active   ON fanatics_shops (active);
+CREATE INDEX IF NOT EXISTS idx_fanatics_shops_last_hit ON fanatics_shops (last_hit_at DESC NULLS LAST);
 
 -- Community-suggested breakers. Suggestions land here as 'pending'; a
 -- reviewer (Brian) approves them into youtube_channels as source='manual'
