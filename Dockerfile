@@ -18,6 +18,9 @@ COPY schema.sql .
 # Render provides $PORT; default for local runs
 ENV PORT=8000
 
-# On boot: ensure schema exists, then serve.
+# On boot: ensure schema exists (with timeout, non-fatal), then serve.
 # (schema.sql is idempotent — safe to run on every deploy.)
-CMD sh -c 'psql "$DATABASE_URL" -f schema.sql >/dev/null 2>&1; exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT"'
+# Brian 2026-10-07: psql must never block uvicorn startup. If the DB is
+# unreachable, log it and start anyway — a 502 from no port is worse than
+# a 500 from no DB.
+CMD sh -c 'timeout 15 psql "$DATABASE_URL" -f schema.sql 2>&1 | head -20; exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT"'
