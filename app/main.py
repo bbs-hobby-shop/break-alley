@@ -317,6 +317,13 @@ def admin_maintenance(
                 lines = twitch_seed_path.read_text().splitlines()
                 n_tw = db.seed_manual_twitch_channels(conn, lines)
                 results.append(f"seeded {n_tw} Twitch channels")
+            # 5. Remove deactivated channels (Brian 2026-10-06)
+            for dead_cid in ["UCRhDZLZKF8oDfGBtQkxBoNA", "UCDcQAgUJ687of2SOfOhrExw"]:
+                conn.execute(
+                    "DELETE FROM youtube_channels WHERE channel_id=%s",
+                    (dead_cid,),
+                )
+            results.append("removed 2 dormant channels")
     except Exception as e:
         results.append(f"error: {e}")
     # Return as plain text for easy checking
