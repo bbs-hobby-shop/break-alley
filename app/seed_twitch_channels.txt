@@ -36,3 +36,8 @@ thecardconomist  # TheCardconomist — approved 2026-10-06 (cross-platform audit
 cardsmiths  # Cardsmiths Breaks — approved 2026-10-06 (cross-platform audit)
 joshodeezy  # joshodeezy — approved 2026-10-06 (cross-platform audit)
 thecoffeebreakers  # thecoffeebreakers — approved 2026-10-06 (cross-platform audit)
+
+# Discovery 2026-10-07 (Brian approved):
+rappcollect
+pokemonbaribari
+tcgpeppi
