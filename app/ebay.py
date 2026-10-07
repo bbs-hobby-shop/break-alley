@@ -71,9 +71,17 @@ def get_app_token() -> str:
     return _token_cache["token"]
 
 
-def search_items(query: str, token: str, limit: int = 200) -> list[dict]:
-    """Run one Browse API item_summary search. Returns raw itemSummary dicts."""
+def search_items(query: str, token: str, limit: int = 200,
+                 auction_only: bool = False) -> list[dict]:
+    """Run one Browse API item_summary search. Returns raw itemSummary dicts.
+
+    auction_only=True adds filter=buyingOptions:{AUCTION} so the returned
+    items are auctions by construction (robust even if buyingOptions is
+    absent from the response payload).
+    """
     params = {"q": query, "limit": min(limit, 200)}
+    if auction_only:
+        params["filter"] = "buyingOptions:{AUCTION}"
     resp = httpx.get(
         SEARCH_URL,
         params=params,
@@ -140,6 +148,12 @@ def fetch_all_break_listings() -> list[dict]:
 
     When the eBay seller roster is non-empty, only items from roster sellers
     are returned (roster-only principle, same as YouTube/Twitch).
+
+    Each query also runs once with filter=buyingOptions:{AUCTION} (Brian
+    2026-10-07: auction box breaks were invisible because buyingOptions is
+    not reliably present in search responses). Items from the auction pass
+    are tagged _known_auction=True so the ingester can mark them even when
+    the field is missing.
     """
     token = get_app_token()
     roster = load_ebay_roster()
@@ -147,8 +161,14 @@ def fetch_all_break_listings() -> list[dict]:
         print(f"ebay: roster-only mode, {len(roster)} approved sellers")
     seen: dict[str, dict] = {}
     n_skipped = 0
+    n_auction_pass = 0
+    # Diagnostic: what buyingOptions values does the API actually return?
+    from collections import Counter
+    bo_dist: Counter = Counter()
     for query, _sport_hint in SEARCH_QUERIES:
         for item in search_items(query, token):
+            for o in (item.get("buyingOptions") or ["(missing)"]):
+                bo_dist[str(o).upper()] += 1
             seller = ((item.get("seller") or {}).get("username") or "").lower()
             if roster and seller not in roster:
                 n_skipped += 1
@@ -156,6 +176,24 @@ def fetch_all_break_listings() -> list[dict]:
             item_id = item.get("itemId") or item.get("itemWebUrl")
             if item_id and item_id not in seen:
                 seen[item_id] = item
+        # Auction pass: same query, auction-only filter.
+        for item in search_items(query, token, auction_only=True):
+            seller = ((item.get("seller") or {}).get("username") or "").lower()
+            if roster and seller not in roster:
+                n_skipped += 1
+                continue
+            item_id = item.get("itemId") or item.get("itemWebUrl")
+            if not item_id:
+                continue
+            if item_id in seen:
+                # Already have it from the regular pass: just mark it.
+                seen[item_id]["_known_auction"] = True
+            else:
+                item["_known_auction"] = True
+                seen[item_id] = item
+            n_auction_pass += 1
     if n_skipped:
         print(f"ebay: skipped {n_skipped} listings from non-roster sellers")
+    print(f"ebay: buyingOptions distribution in search responses: {dict(bo_dist)}")
+    print(f"ebay: {n_auction_pass} roster listings from auction-filtered search")
     return list(seen.values())

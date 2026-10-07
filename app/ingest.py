@@ -168,6 +168,10 @@ def run_ebay() -> int:
                 n_err += 1
                 print(f"ebay: skipping unparseable listing: {e}")
                 continue
+            # Auction-filtered search pass tags items _known_auction: mark them
+            # even when buyingOptions is absent from the API response.
+            if item.get("_known_auction"):
+                row["is_auction"] = True
             if not row.get("source_url"):
                 continue
             # Extract video info for new listings before they enter the app
