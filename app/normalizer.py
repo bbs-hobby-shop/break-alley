@@ -83,6 +83,8 @@ NON_BREAK_TITLE_WORDS = [
     r"\bcollection\b",
     r"\bmail\s*days?\b",
     r"\bunboxing\b",
+    # "At the Break" — single-card seller name, not a box break (Brian 2026-10-06)
+    r"\bat\s+the\s+break\b",
     # Casino / gambling — "slots" here means slot machines, not break slots
     r"\bcasino\b",
     r"\bslot\s*machines?\b",

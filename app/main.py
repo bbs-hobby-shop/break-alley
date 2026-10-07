@@ -233,6 +233,23 @@ def admin_reject(
     return RedirectResponse(f"/admin/suggestions?key={key}", status_code=303)
 
 
+@app.post("/admin/breaks/{break_id}/delete")
+def admin_delete_break(
+    request: Request, break_id: int,
+    key: str = Form(default=""),
+):
+    """Remove a junk listing (Brian 2026-10-06). Also blocks the seller's
+    'At the Break' single-card pattern via the title filter."""
+    if not _admin_key_ok(key):
+        return RedirectResponse("/admin/suggestions", status_code=303)
+    try:
+        with db.get_conn() as conn:
+            conn.execute("DELETE FROM breaks WHERE id = %s", (break_id,))
+    except Exception:
+        pass
+    return RedirectResponse(f"/admin/suggestions?key={key}", status_code=303)
+
+
 # ---------------------------------------------------------------------------
 # Public data refresh (customer-facing; cheap sources only)
 # ---------------------------------------------------------------------------
