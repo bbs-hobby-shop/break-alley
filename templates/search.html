@@ -80,6 +80,8 @@
     justify-content: center; line-height: 1.2; }
   a.tag.breaker-tag { text-decoration: none; cursor: pointer; }
   a.tag.breaker-tag:hover { background: rgba(255,255,255,.14); }
+  .breaker-link { cursor: pointer; }
+  .breaker-link:hover { background: rgba(255,255,255,.14); }
   /* Breaker name + follow button stay glued as one unit (Brian 2026-10-07):
      the group never splits across lines, items are vertically centered. */
   .breaker-group { display: inline-flex; align-items: center; gap: .35rem;
@@ -348,7 +350,7 @@
             {% if not b.date_label and b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
             {# Brian 2026-10-07: break number, platform, and format tags removed — #}
             {# only LIVE / AUCTION / countdown / start-time tags show on cards. #}
-            {% if b.breaker %}<span class="breaker-group"><a class="tag breaker-tag breaker-link" href="/breaker/{{ b.breaker|urlencode }}">{{ b.breaker }}</a>{% if user %}<form class="follow-form" method="post" action="/favorites/toggle" style="display:inline-flex">
+            {% if b.breaker %}<span class="breaker-group"><span class="tag breaker-tag breaker-link" data-breaker="{{ b.breaker }}" role="link" tabindex="0" title="See all {{ b.breaker }} breaks">{{ b.breaker }}</span>{% if user %}<form class="follow-form" method="post" action="/favorites/toggle" style="display:inline-flex">
               <input type="hidden" name="breaker" value="{{ b.breaker }}">
               <input type="hidden" name="next" value="/?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
               <button class="follow-btn {% if b.breaker in favorites %}following{% endif %}" type="submit" title="{% if b.breaker in favorites %}Unfollow {{ b.breaker }}{% else %}Follow {{ b.breaker }}{% endif %}">{% if b.breaker in favorites %}✓{% else %}+{% endif %}</button>
@@ -445,6 +447,19 @@
         btn.classList.toggle('faved', !wasSaved);
       },
       function() { btn.classList.toggle('faved', wasSaved); });
+  });
+  // Breaker name taps -> breaker page (Brian 2026-10-07). Uses a span with a
+  // click handler (not a nested <a>) because the card itself is a link.
+  document.querySelectorAll('.breaker-link[data-breaker]').forEach(function(el) {
+    function go(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.location.href = '/breaker/' + encodeURIComponent(el.getAttribute('data-breaker'));
+    }
+    el.addEventListener('click', go);
+    el.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { go(e); }
+    });
   });
 })();
 </script>
