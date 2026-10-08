@@ -64,7 +64,11 @@
     color: var(--muted); padding: .2rem; }
   .fav-btn.faved { color: var(--orange); }
   .fav-form { display: inline; }
-  .card-wrap { position: relative; min-width: 0; }
+  .card-wrap { position: relative; min-width: 0;
+    /* Perf (Brian 2026-10-07): skip rendering off-screen cards. With 1,500+
+       results, a full-page reflow (e.g. iOS keyboard opening on input focus)
+       was taking seconds. The browser now only lays out visible cards. */
+    content-visibility: auto; contain-intrinsic-size: auto 380px; }
   .card-wrap .fav-form { position: absolute; right: .9rem; bottom: .65rem; margin: 0; }
   .card-wrap .fav-login { position: absolute; right: .9rem; bottom: .65rem; text-decoration: none; }
   /* Breaker follow button (Brian 2026-10-07): separate from the listing star */
@@ -154,19 +158,21 @@
   .cselect-chev { color: var(--muted); font-size: 1.1rem; line-height: 1; }
   .cselect.has-value .cselect-value { color: var(--green); font-weight: 700; }
   .cfield { position: relative; }
-  .cfield-dollar { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%);
+  .cfield-dollar { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%);
     color: var(--muted); font-size: .9rem; pointer-events: none; }
   .cfield input { width: 100%; min-height: 48px; background: var(--card); color: var(--text);
-    border: 1px solid var(--line); border-radius: 10px; padding: .55rem .8rem .55rem 1.9rem;
+    border: 1px solid var(--line); border-radius: 10px; padding: .55rem .8rem .55rem 2.1rem;
     font-size: .9rem; font-family: inherit; box-sizing: border-box; }
   .cfield input::placeholder { color: var(--muted); }
   .cfield input:focus { outline: none; border-color: var(--green); }
-  .searchrow { display: flex; gap: .5rem; align-items: stretch; margin-bottom: .6rem; }
+  .searchrow { display: flex; gap: .5rem; align-items: stretch; margin-bottom: .6rem; position: relative; }
   .searchrow input { flex: 1; min-width: 0; background: var(--card); color: var(--text);
-    border: 1px solid var(--line); border-radius: 10px; padding: .8rem 1rem;
+    border: 1px solid var(--line); border-radius: 10px; padding: .8rem 2.8rem .8rem 1rem;
     font-size: 1rem; font-family: inherit; box-sizing: border-box; min-height: 48px; }
   .searchrow input::placeholder { color: var(--muted); }
   .searchrow input:focus { outline: none; border-color: var(--green); }
+  .search-icon { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+    font-size: 1.2rem; pointer-events: none; opacity: .6; }
   /* Bottom sheet */
   .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50;
     opacity: 0; pointer-events: none; transition: opacity .18s ease; }
@@ -301,8 +307,8 @@
   <form class="filters" method="get" action="/">
     <input type="hidden" name="sort" value="{{ sort }}">
     <div class="searchrow">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search breaks, products, or breakers…" autocomplete="off" enterkeyhint="search">
       <span class="search-icon">🔍</span>
-      <input type="text" name="q" value="{{ q }}" placeholder="Search breaks, products, or breakers…" autocomplete="off">
     </div>
     <div class="filtergrid">
       <div class="cselect" data-name="format" data-label="Any format">
