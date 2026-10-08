@@ -699,7 +699,8 @@ def breaks_for_breakers(conn, breakers: list[str], limit: int = 100) -> list[dic
     return [dict(r) for r in conn.execute(
         """SELECT id, source, source_url, breaker, product_raw, product_normalized,
                   sport, format, price, currency, starts_at, is_live,
-                  slots_total, slots_remaining, thumbnail_url, title_raw
+                  slots_total, slots_remaining, thumbnail_url, title_raw,
+                  is_auction, auction_ends_at, current_bid, break_time_text
            FROM breaks
            WHERE breaker = ANY(%(breakers)s)
            ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
