@@ -47,12 +47,24 @@
   header.top {
     position: sticky; top: 0; z-index: 10;
     background: #0a0e1c; border-bottom: 1px solid var(--line);
-    padding: .9rem 1.5rem; display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.5rem .85rem;
   }
-  .logo { font-weight: 900; font-size: 1.35rem; letter-spacing: .5px; display: flex; align-items: center; gap: .6rem;
+  .brandrow { position: relative; display: flex; justify-content: center; align-items: center;
+    margin-bottom: .75rem; }
+  .logo { font-weight: 900; font-size: 1.9rem; letter-spacing: .5px; display: flex; align-items: center; gap: .7rem;
     color: var(--text); text-decoration: none; }
-  .logo img { width: 40px; height: 40px; border-radius: 10px; }
+  .logo img { width: 52px; height: 52px; border-radius: 12px; }
   .logo .wordmark span { color: var(--green); }
+  .signout { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; }
+  .signout button { background: none; border: 0; color: var(--muted); font-size: .8rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; padding: .3rem 0; }
+  .signout button:hover { color: var(--text); }
+  nav.tabs { display: flex; justify-content: center; gap: .5rem; }
+  nav.tabs a { flex: 1; max-width: 220px; text-align: center; padding: .65rem .5rem; border-radius: 10px;
+    color: var(--muted); font-size: .95rem; font-weight: 800; text-decoration: none; white-space: nowrap;
+    background: var(--card); border: 1px solid var(--line); }
+  nav.tabs a:hover { color: var(--text); border-color: var(--green); }
+  nav.tabs a.active { color: var(--green); border-color: var(--green); background: rgba(0,230,118,.07); }
   .auth-link { color: var(--muted); font-size: .88rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
   .auth-link:hover { color: var(--text); }
   .auth-link.cta { background: var(--green); color: #04120a; border-radius: 20px; padding: .35rem .9rem; }
@@ -263,9 +275,10 @@
   .suggest button { padding: 0 1.6rem; font-size: .95rem; font-weight: 800; color: #04120a;
     background: var(--green); border: 0; border-radius: 10px; cursor: pointer; min-height: 48px; }
   @media (max-width: 640px) {
-    header.top { padding: .7rem 1rem; gap: .8rem; }
-    .home-link { display: none; }
-    .logo { font-size: 1.15rem; }
+    header.top { padding: .8rem 1rem .7rem; }
+    .logo { font-size: 1.5rem; }
+    .logo img { width: 42px; height: 42px; }
+    nav.tabs a { font-size: .88rem; padding: .6rem .25rem; }
     .hero { padding: 1.4rem 1rem 0; }
     .hero p { font-size: .92rem; margin-bottom: 1rem; }
     .pills { padding: .9rem 0 .2rem; }
@@ -295,16 +308,22 @@
 </head>
 <body>
 <header class="top">
-  <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
-  <a class="auth-link home-link" href="/">Home</a>
-  {% if user %}
-    <a class="auth-link" href="/my-breaks">My Breaks</a>
-    <a class="auth-link" href="/account">Account</a>
-    <form method="post" action="/logout" class="auth-form"><button type="submit">Sign out</button></form>
-  {% else %}
-    <a class="auth-link" href="/login">Sign in</a>
-    <a class="auth-link cta" href="/signup">Sign up free</a>
-  {% endif %}
+  <div class="brandrow">
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+    {% if user %}
+    <form method="post" action="/logout" class="signout"><button type="submit">Sign out</button></form>
+    {% endif %}
+  </div>
+  <nav class="tabs">
+    <a href="/" class="active">Home</a>
+    {% if user %}
+    <a href="/my-breaks">My Breaks</a>
+    <a href="/account">Account</a>
+    {% else %}
+    <a href="/login">Sign in</a>
+    <a href="/signup">Sign up</a>
+    {% endif %}
+  </nav>
 </header>
 
 <div class="hero">

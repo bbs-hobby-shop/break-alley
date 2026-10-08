@@ -12,16 +12,28 @@
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
          color: var(--text); background: var(--bg); min-height: 100vh; }
   header.top { position: sticky; top: 0; z-index: 10; background: rgba(10,14,28,.92);
-    backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: .9rem 1.5rem;
-    display: flex; align-items: center; gap: 1rem; }
-  .logo { font-weight: 900; font-size: 1.35rem; color: var(--text); text-decoration: none;
-    display: flex; align-items: center; gap: .55rem; }
-  .logo img { width: 34px; height: 34px; border-radius: 8px; }
+    backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: 1rem 1.5rem .85rem; }
+  .brandrow { position: relative; display: flex; justify-content: center; align-items: center;
+    margin-bottom: .75rem; }
+  .logo { font-weight: 900; font-size: 1.9rem; color: var(--text); text-decoration: none;
+    display: flex; align-items: center; gap: .7rem; }
+  .logo img { width: 52px; height: 52px; border-radius: 12px; }
   .logo .wordmark span { color: var(--green); }
-  header .spacer { margin-left: auto; }
-  header a, header button.link { color: var(--muted); font-size: .88rem; text-decoration: none;
-    background: none; border: 0; cursor: pointer; font-weight: 700; font-family: inherit; }
-  header a:hover, header button.link:hover { color: var(--text); }
+  .signout { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; }
+  .signout button { background: none; border: 0; color: var(--muted); font-size: .8rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; padding: .3rem 0; }
+  .signout button:hover { color: var(--text); }
+  nav.tabs { display: flex; justify-content: center; gap: .5rem; }
+  nav.tabs a { flex: 1; max-width: 220px; text-align: center; padding: .65rem .5rem; border-radius: 10px;
+    color: var(--muted); font-size: .95rem; font-weight: 800; text-decoration: none; white-space: nowrap;
+    background: var(--card); border: 1px solid var(--line); }
+  nav.tabs a:hover { color: var(--text); border-color: var(--green); }
+  nav.tabs a.active { color: var(--green); border-color: var(--green); background: rgba(0,230,118,.07); }
+  @media (max-width: 640px) {
+    .logo { font-size: 1.5rem; }
+    .logo img { width: 42px; height: 42px; }
+    nav.tabs a { font-size: .88rem; padding: .6rem .25rem; }
+  }
   main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
   .pagenav { display: flex; gap: .5rem; margin-bottom: 1.8rem; }
   .pagenav a { flex: 1; text-align: center; padding: .75rem; border-radius: 12px;
@@ -67,10 +79,15 @@
 </head>
 <body>
 <header class="top">
-  <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
-  <span class="spacer"></span>
-  <a href="/">Home</a>
-  <form method="post" action="/logout" style="display:inline"><button class="link" type="submit">Sign out</button></form>
+  <div class="brandrow">
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+    <form method="post" action="/logout" class="signout"><button type="submit">Sign out</button></form>
+  </div>
+  <nav class="tabs">
+    <a href="/">Home</a>
+    <a href="/my-breaks" class="active">My Breaks</a>
+    <a href="/account">Account</a>
+  </nav>
 </header>
 <main>
   <h1>My Breaks</h1>
