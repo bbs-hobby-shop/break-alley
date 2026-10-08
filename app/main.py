@@ -843,7 +843,7 @@ def _client_ip(request: Request) -> str:
 @app.get("/signup", response_class=HTMLResponse)
 def signup_page(request: Request):
     if auth.get_current_user(request):
-        return RedirectResponse("/account", status_code=303)
+        return RedirectResponse("/my-breaks", status_code=303)
     return templates.TemplateResponse(request, "signup.html", {"error": None})
 
 
@@ -887,7 +887,7 @@ def signup(
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, next: str | None = Query(default=None)):
     if auth.get_current_user(request):
-        return RedirectResponse(next or "/account", status_code=303)
+        return RedirectResponse(next or "/my-breaks", status_code=303)
     return templates.TemplateResponse(request, "login.html", {"error": None, "next": next or ""})
 
 
@@ -940,16 +940,14 @@ class _LoginRequired(Exception):
     pass
 
 
-@app.get("/account", response_class=HTMLResponse)
-def account(request: Request, notice: str | None = Query(default=None)):
+@app.get("/my-breaks", response_class=HTMLResponse)
+def my_breaks(request: Request):
+    """Brian 2026-10-08: saved breaks, favorite breakers, live from followed
+    breakers, and saved searches live here — separate from account settings."""
     try:
         user = _require_user(request)
     except _LoginRequired:
-        return RedirectResponse("/login?next=/account", status_code=303)
-    notices = {
-        "email_updated": "Email address updated.",
-        "password_updated": "Password updated.",
-    }
+        return RedirectResponse("/login?next=/my-breaks", status_code=303)
     try:
         with db.get_conn() as conn:
             favs = db.list_favorites(conn, user["id"])
@@ -961,29 +959,34 @@ def account(request: Request, notice: str | None = Query(default=None)):
         error = None
     except Exception as exc:
         favs, live, searches, saved_listings, error = [], [], [], [], f"Database unavailable: {exc}"
-    return templates.TemplateResponse(request, "account.html", {
+    return templates.TemplateResponse(request, "my_breaks.html", {
         "user": user, "favorites": favs, "live": live,
         "searches": searches, "saved_listings": saved_listings, "error": error,
+    })
+
+
+@app.get("/account", response_class=HTMLResponse)
+def account(request: Request, notice: str | None = Query(default=None)):
+    """Account settings only (Brian 2026-10-08) — profile, security, delete.
+    Saved breaks/breakers/searches moved to /my-breaks."""
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return RedirectResponse("/login?next=/account", status_code=303)
+    notices = {
+        "email_updated": "Email address updated.",
+        "password_updated": "Password updated.",
+    }
+    return templates.TemplateResponse(request, "account.html", {
+        "user": user, "error": None,
         "notice": notices.get(notice or ""),
     })
 
 
 def _account_error(request: Request, user: dict, msg: str):
-    """Re-render the account page with an error (keeps favorites/searches)."""
-    try:
-        with db.get_conn() as conn:
-            favs = db.list_favorites(conn, user["id"])
-            live = [_enrich(r) for r in
-                    db.breaks_for_breakers(conn, [f["breaker"] for f in favs])]
-            searches = db.list_saved_searches(conn, user["id"])
-            saved_listings = [_enrich(dict(r)) for r in
-                              db.list_saved_listings(conn, user["id"])]
-    except Exception:
-        favs, live, searches, saved_listings = [], [], [], []
+    """Re-render the account settings page with an error."""
     return templates.TemplateResponse(request, "account.html", {
-        "user": user, "favorites": favs, "live": live,
-        "searches": searches, "saved_listings": saved_listings,
-        "error": msg, "notice": "",
+        "user": user, "error": msg, "notice": "",
     })
 
 
@@ -1163,7 +1166,7 @@ def save_search_route(
                            region.strip() or None)
     except Exception:
         pass
-    return RedirectResponse("/account", status_code=303)
+    return RedirectResponse("/my-breaks", status_code=303)
 
 
 @app.post("/searches/{search_id}/delete")
@@ -1177,4 +1180,4 @@ def delete_search_route(request: Request, search_id: int):
             db.delete_saved_search(conn, user["id"], search_id)
     except Exception:
         pass
-    return RedirectResponse("/account", status_code=303)
+    return RedirectResponse("/my-breaks", status_code=303)

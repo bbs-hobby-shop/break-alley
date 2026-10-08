@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Breaks — BreakAlley</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --bg: #0a0e1c; --card: #151c38; --card2: #1a2242; --line: #26305c;
+          --text: #f2f4ff; --muted: #8b93b8; --green: #00e676; --red: #ff3b5c; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
+         color: var(--text); background: var(--bg); min-height: 100vh; }
+  header.top { position: sticky; top: 0; z-index: 10; background: rgba(10,14,28,.92);
+    backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: .9rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem; }
+  .logo { font-weight: 900; font-size: 1.35rem; color: var(--text); text-decoration: none;
+    display: flex; align-items: center; gap: .55rem; }
+  .logo img { width: 34px; height: 34px; border-radius: 8px; }
+  .logo .wordmark span { color: var(--green); }
+  header .spacer { margin-left: auto; }
+  header a, header button.link { color: var(--muted); font-size: .88rem; text-decoration: none;
+    background: none; border: 0; cursor: pointer; font-weight: 700; font-family: inherit; }
+  header a:hover, header button.link:hover { color: var(--text); }
+  main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .pagenav { display: flex; gap: .5rem; margin-bottom: 1.8rem; }
+  .pagenav a { flex: 1; text-align: center; padding: .75rem; border-radius: 12px;
+    font-weight: 800; font-size: .92rem; text-decoration: none;
+    color: var(--muted); background: var(--card); border: 1px solid var(--line); }
+  .pagenav a.active { color: var(--green); border-color: var(--green);
+    background: rgba(0,230,118,.07); }
+  h1 { font-size: 1.7rem; font-weight: 900; margin: 0 0 .3rem; text-align: center; }
+  p.sub { color: var(--muted); margin: 0 0 1.8rem; font-size: .95rem; text-align: center; }
+  .card { background: linear-gradient(180deg, var(--card2), var(--card));
+    border: 1px solid var(--line); border-radius: 14px; padding: 1.4rem; margin-bottom: 1.1rem; }
+  .card h2 { font-size: .78rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 1rem; text-align: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; }
+  .chip { display: inline-flex; align-items: center; gap: .5rem; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 20px; padding: .45rem .9rem; font-size: .9rem; }
+  .chip a { color: var(--text); text-decoration: none; }
+  .chip a:hover { color: var(--green); }
+  .chip form { display: inline; }
+  .chip button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; }
+  .chip button:hover { color: var(--red); }
+  .bcard { display: flex; gap: 1rem; align-items: center; text-decoration: none; color: inherit;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1rem 1.2rem; margin-bottom: .7rem; }
+  .bcard:hover { border-color: var(--green); }
+  .bcard .meta .title { font-weight: 800; margin: 0 0 .3rem; }
+  .tag { display: inline-block; font-size: .72rem; font-weight: 800; border-radius: 20px;
+    padding: .15rem .6rem; background: var(--card); border: 1px solid var(--line); color: var(--muted); }
+  .tag.live { background: var(--red); border-color: var(--red); color: #fff; }
+  .empty { color: var(--muted); padding: .6rem 0; font-size: .92rem; text-align: center; }
+  .empty a { color: var(--green); font-weight: 700; }
+  .srow { display: flex; align-items: center; gap: .8rem; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: .7rem 1rem; margin-bottom: .5rem; }
+  .srow a.run { color: var(--green); font-weight: 800; text-decoration: none; }
+  .srow .detail { color: var(--muted); font-size: .82rem; }
+  .srow form { margin-left: auto; }
+  .srow button { background: none; border: 0; color: var(--red); cursor: pointer; font-size: .85rem;
+    font-family: inherit; }
+  .count { display: inline-block; min-width: 1.6em; padding: .1em .45em; border-radius: 12px;
+    background: rgba(0,230,118,.12); color: var(--green); font-size: .85em; font-weight: 800;
+    letter-spacing: 0; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+  <span class="spacer"></span>
+  <a href="/">Home</a>
+  <form method="post" action="/logout" style="display:inline"><button class="link" type="submit">Sign out</button></form>
+</header>
+<main>
+  <div class="pagenav">
+    <a href="/my-breaks" class="active">My Breaks</a>
+    <a href="/account">Account Settings</a>
+  </div>
+
+  <h1>My Breaks</h1>
+  <p class="sub">Everything you follow, all in one place.</p>
+
+  <div class="card">
+    <h2>● Live &amp; upcoming from your breakers</h2>
+    {% if live %}
+      {% for b in live %}
+      <a class="bcard" href="/break/{{ b.id }}">
+        <div class="meta">
+          <p class="title">{{ b.display_title }}</p>
+          {% if b.is_live %}<span class="tag live">● LIVE</span>{% endif %}
+          {% if b.date_label and not b.is_live %}<span class="tag">{{ b.date_label }}</span>{% endif %}
+          {% if b.breaker %}<span class="tag">{{ b.breaker }}</span>{% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty">Nothing live or scheduled from your breakers right now.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>★ Saved breaks <span class="count">{{ saved_listings|length }}</span></h2>
+    {% if saved_listings %}
+    <div class="chips">
+      {% for s in saved_listings %}
+      <span class="chip"><a href="/break/{{ s.id }}">{{ s.title_raw[:50] }}</a>
+        <form method="post" action="/saved-listings/toggle">
+          <input type="hidden" name="break_id" value="{{ s.id }}">
+          <input type="hidden" name="next" value="/my-breaks">
+          <button type="submit" title="Remove">×</button>
+        </form>
+      </span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">No saved breaks yet — tap ★ on any listing to save it. <a href="/">Find breaks →</a></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>★ Favorite breakers <span class="count">{{ favorites|length }}</span></h2>
+    {% if favorites %}
+    <div class="chips">
+      {% for f in favorites %}
+      <span class="chip">{{ f.breaker }}
+        <form method="post" action="/favorites/toggle">
+          <input type="hidden" name="breaker" value="{{ f.breaker }}">
+          <input type="hidden" name="next" value="/my-breaks">
+          <button type="submit" title="Remove">×</button>
+        </form>
+      </span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">No favorites yet — tap + next to a breaker's name to follow them. <a href="/">Find breaks →</a></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>⚲ Saved searches <span class="count">{{ searches|length }}</span></h2>
+    {% if searches %}
+      {% for s in searches %}
+      <div class="srow">
+        <a class="run" href="/?q={{ s.q|urlencode if s.q }}&format={{ s.format or '' }}&source={{ s.source or '' }}&max_price={{ s.max_price or '' }}&region={{ s.region or '' }}">{{ s.name }}</a>
+        <span class="detail">{{ [s.q, s.format, s.source]|select|join(' · ') }}</span>
+        <form method="post" action="/searches/{{ s.id }}/delete"><button type="submit">Delete</button></form>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="empty">No saved searches — run a search on the <a href="/">homepage</a>, then save it.</div>
+    {% endif %}
+  </div>
+</main>
+</body>
+</html>
