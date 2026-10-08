@@ -35,6 +35,8 @@
     --orange: #ff9f1c;
   }
   * { box-sizing: border-box; }
+  * { -webkit-tap-highlight-color: transparent; }
+  html { touch-action: manipulation; }
   body {
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     margin: 0; color: var(--text); background: var(--bg);
@@ -44,8 +46,7 @@
   }
   header.top {
     position: sticky; top: 0; z-index: 10;
-    background: rgba(10,14,28,.92); backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--line);
+    background: #0a0e1c; border-bottom: 1px solid var(--line);
     padding: .9rem 1.5rem; display: flex; align-items: center; gap: 1rem;
   }
   .logo { font-weight: 900; font-size: 1.35rem; letter-spacing: .5px; display: flex; align-items: center; gap: .6rem;
