@@ -30,6 +30,34 @@ SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 # x 200 results = 2,000 results per query, far above any realistic
 # 10-seller batch, while bounding Browse API call volume.
 MAX_PAGES = 10
+
+# Brian 2026-10-08: the first paginated run got burst-throttled (429) —
+# 10 back-to-back page fetches per query with zero delay. Be polite.
+PAGE_DELAY = 1.0  # seconds between paginated page fetches
+
+
+def _browse_get(params: dict, token: str, max_retries: int = 3):
+    """GET the Browse API with 429 backoff.
+
+    Rate limits are transient: wait and retry instead of failing the whole
+    seller batch. After max_retries, raise so the caller's batch handler
+    logs it and continues with the other batches.
+    """
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
+    }
+    for attempt in range(max_retries + 1):
+        resp = httpx.get(SEARCH_URL, params=params, headers=headers, timeout=30)
+        if resp.status_code != 429:
+            resp.raise_for_status()
+            return resp
+        wait = 5 * (2 ** attempt)  # 5s, 10s, 20s
+        print(f"ebay: 429 rate-limited — waiting {wait}s "
+              f"(attempt {attempt + 1}/{max_retries + 1})", file=sys.stderr)
+        time.sleep(wait)
+    resp.raise_for_status()
+    return resp
 OAUTH_SCOPE = "https://api.ebay.com/oauth/api_scope"
 MARKETPLACE = "EBAY_US"
 
@@ -100,21 +128,13 @@ def search_items(query: str, token: str, limit: int = 200,
 
     all_items: list[dict] = []
     offset = 0
-    for _ in range(MAX_PAGES):
+    for page in range(MAX_PAGES):
+        if page > 0:
+            time.sleep(PAGE_DELAY)  # don't burst-throttle eBay (429)
         params = {"q": query, "limit": page_size, "offset": offset}
         if filter_str:
             params["filter"] = filter_str
-        resp = httpx.get(
-            SEARCH_URL,
-            params=params,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
-            },
-            timeout=30,
-        )
-        resp.raise_for_status()
-        data = resp.json()
+        data = _browse_get(params, token).json()
         items = data.get("itemSummaries", []) or []
         all_items.extend(items)
         total = data.get("total", 0) or 0
