@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stats — BreakAlley admin</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root {
+    --bg: #0a0e1c; --card: #151c38; --card2: #1a2242; --line: #26305c;
+    --text: #f2f4ff; --muted: #8b93b8; --green: #00e676; --red: #ff3b5c;
+    --orange: #ff9f1c;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
+         color: var(--text); background: var(--bg); min-height: 100vh; }
+  main { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { font-size: 1.5rem; font-weight: 900; margin: 0 0 .3rem; }
+  h1 span { color: var(--green); }
+  p.sub { color: var(--muted); margin: 0 0 1.2rem; }
+  h2 { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+       color: var(--muted); margin: 2rem 0 .8rem; }
+  .denied { text-align: center; padding: 4rem 1rem; color: var(--muted); }
+  .err { background: rgba(255,59,92,.12); border: 1px solid var(--red); border-radius: 10px;
+         padding: .8rem 1rem; margin-bottom: 1rem; font-size: .9rem; }
+  .range { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .range a { color: var(--muted); text-decoration: none; font-size: .85rem; font-weight: 700;
+             padding: .4rem .9rem; border: 1px solid var(--line); border-radius: 20px; }
+  .range a.on { color: #04120a; background: var(--green); border-color: var(--green); }
+  .range .csv { margin-left: auto; color: var(--green); border-color: var(--green); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .7rem; }
+  .card { background: linear-gradient(180deg, var(--card2), var(--card));
+          border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; }
+  .card .k { font-size: .72rem; color: var(--muted); font-weight: 700; text-transform: uppercase;
+             letter-spacing: .8px; }
+  .card .v { font-size: 1.7rem; font-weight: 900; margin-top: .2rem; }
+  .card .v.green { color: var(--green); }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .8px;
+       font-weight: 800; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.hl { color: var(--green); font-weight: 800; }
+  .wrap { background: linear-gradient(180deg, var(--card2), var(--card));
+          border: 1px solid var(--line); border-radius: 12px; padding: .4rem .6rem;
+          overflow-x: auto; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 700px) { .two { grid-template-columns: 1fr; } }
+  .bar { display: flex; align-items: center; gap: .6rem; margin-bottom: .45rem; font-size: .85rem; }
+  .bar .lbl { width: 130px; color: var(--muted); white-space: nowrap; overflow: hidden;
+              text-overflow: ellipsis; }
+  .bar .track { flex: 1; background: rgba(255,255,255,.06); border-radius: 6px; height: 10px; }
+  .bar .fill { background: var(--green); border-radius: 6px; height: 10px; }
+  .bar .n { width: 44px; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); padding: 1rem 0; font-size: .9rem; }
+  .nav { margin-bottom: 1.5rem; }
+  .nav a { color: var(--muted); font-size: .85rem; text-decoration: none; margin-right: 1.2rem; }
+  .nav a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<main>
+{% if denied %}
+  <div class="denied">
+    <h1>Break <span>Alley</span> admin</h1>
+    <p>This page needs the admin key. If you're Brian, open your bookmarked link with <code>?key=...</code>.</p>
+  </div>
+{% else %}
+  <div class="nav">
+    <a href="/admin/suggestions?key={{ key }}">← Suggestions</a>
+    <a href="/">Homepage</a>
+  </div>
+  <h1>Sales <span>stats</span></h1>
+  <p class="sub">What to show a breaker: buyers sent, listing views, saves, follows — plus what buyers are searching for.</p>
+
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+
+  <div class="range">
+    {% for d in [7, 30, 90] %}
+    <a href="/admin/stats?key={{ key }}&days={{ d }}" class="{% if days == d %}on{% endif %}">Last {{ d }} days</a>
+    {% endfor %}
+    <a class="csv" href="/admin/stats/export?key={{ key }}&days={{ days }}">⬇ Export breaker CSV</a>
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="k">Buyers sent</div><div class="v green">{{ overview.clicks or 0 }}</div></div>
+    <div class="card"><div class="k">Listing views</div><div class="v">{{ overview.views or 0 }}</div></div>
+    <div class="card"><div class="k">Saves</div><div class="v">{{ overview.saves or 0 }}</div></div>
+    <div class="card"><div class="k">Follows</div><div class="v">{{ overview.follows or 0 }}</div></div>
+    <div class="card"><div class="k">Searches</div><div class="v">{{ overview.searches or 0 }}</div></div>
+    <div class="card"><div class="k">Signups</div><div class="v">{{ overview.signups or 0 }}</div></div>
+    <div class="card"><div class="k">Users</div><div class="v">{{ overview.users_total or 0 }}</div></div>
+    <div class="card"><div class="k">Live breaks</div><div class="v">{{ overview.breaks_total or 0 }}</div></div>
+  </div>
+
+  <h2>Breaker leaderboard — your sales sheet</h2>
+  <div class="wrap">
+  {% if leaderboard %}
+  <table>
+    <tr><th>Breaker</th><th class="num">Buyers sent</th><th class="num">Views</th>
+        <th class="num">Saves</th><th class="num">Follows</th><th class="num">Breaks listed</th></tr>
+    {% for r in leaderboard %}
+    <tr>
+      <td>{{ r.breaker }}</td>
+      <td class="num hl">{{ r.clicks }}</td>
+      <td class="num">{{ r.views }}</td>
+      <td class="num">{{ r.saves }}</td>
+      <td class="num">{{ r.follows }}</td>
+      <td class="num">{{ r.breaks_listed }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <div class="empty">No engagement data yet — stats start accumulating as people use the app.</div>
+  {% endif %}
+  </div>
+
+  <div class="two">
+    <div>
+      <h2>What buyers search for</h2>
+      <div class="wrap">
+      {% if searches %}
+        {% set top = searches[0].n %}
+        {% for s in searches %}
+        <div class="bar">
+          <div class="lbl">{{ s.term }}</div>
+          <div class="track"><div class="fill" style="width:{{ (s.n / top * 100)|round(1) }}%"></div></div>
+          <div class="n">{{ s.n }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty">No searches yet.</div>
+      {% endif %}
+      </div>
+    </div>
+    <div>
+      <h2>Buyers sent by platform</h2>
+      <div class="wrap">
+      {% if platforms %}
+        {% set top = platforms[0].clicks %}
+        {% for p in platforms %}
+        <div class="bar">
+          <div class="lbl">{{ p.platform|title }}</div>
+          <div class="track"><div class="fill" style="width:{{ (p.clicks / top * 100)|round(1) }}%"></div></div>
+          <div class="n">{{ p.clicks }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty">No clicks yet.</div>
+      {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <h2>Daily trend</h2>
+  <div class="wrap">
+  {% if daily %}
+  <table>
+    <tr><th>Day</th><th class="num">Buyers sent</th><th class="num">Views</th>
+        <th class="num">Saves</th><th class="num">Follows</th><th class="num">Searches</th><th class="num">Signups</th></tr>
+    {% for d in daily|reverse %}
+    <tr>
+      <td>{{ d.day }}</td>
+      <td class="num hl">{{ d.clicks }}</td>
+      <td class="num">{{ d.views }}</td>
+      <td class="num">{{ d.saves }}</td>
+      <td class="num">{{ d.follows }}</td>
+      <td class="num">{{ d.searches }}</td>
+      <td class="num">{{ d.signups }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <div class="empty">No data yet.</div>
+  {% endif %}
+  </div>
+{% endif %}
+</main>
+</body>
+</html>

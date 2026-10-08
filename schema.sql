@@ -172,6 +172,25 @@ CREATE TABLE IF NOT EXISTS products (
     aliases        TEXT[] NOT NULL DEFAULT '{}' -- lowercase alias strings matched as substrings
 );
 
+-- First-party analytics (Brian 2026-10-07): event log for sales metrics —
+-- outbound clicks per breaker, saves, follows, searches, signups, listing views.
+-- Powers /admin/stats. No third-party trackers; all data stays in our DB.
+CREATE TABLE IF NOT EXISTS analytics_events (
+    id         SERIAL PRIMARY KEY,
+    event_type TEXT NOT NULL,  -- 'outbound_click' | 'listing_saved' | 'listing_unsaved'
+                               -- | 'breaker_followed' | 'breaker_unfollowed'
+                               -- | 'search' | 'signup' | 'break_viewed'
+    user_id    INTEGER,         -- NULL for anonymous visitors
+    breaker    TEXT,            -- breaker name when the event is breaker-scoped
+    break_id   INTEGER,         -- break id when the event is listing-scoped
+    platform   TEXT,            -- 'ebay' | 'youtube' | 'twitch' | 'fanatics'
+    meta       JSONB,           -- extra context: search query/filters, referrer, etc.
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_events_type_time ON analytics_events (event_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_events_breaker ON analytics_events (breaker);
+CREATE INDEX IF NOT EXISTS idx_events_break_id ON analytics_events (break_id);
+
 -- Migrate check constraints on existing databases (idempotent).
 DO $$
 BEGIN

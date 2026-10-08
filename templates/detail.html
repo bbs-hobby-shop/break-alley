@@ -112,19 +112,19 @@
       {% endif %}
       {% for vl in b.video_links or [] %}
       {% if vl.url %}
-      <a class="watch-btn" href="{{ vl.url }}" target="_blank" rel="noopener" style="margin-bottom:.5rem">
+      <a class="watch-btn" href="/go/{{ b.id }}?dest={{ vl.url|urlencode }}" target="_blank" rel="noopener" style="margin-bottom:.5rem">
         Watch on {{ vl.platform or 'video' }} →
       </a>
       {% endif %}
       {% endfor %}
       {% if not b.video_links and b.video_url %}
-      <a class="watch-btn" href="{{ b.video_url }}" target="_blank" rel="noopener">
+      <a class="watch-btn" href="/go/{{ b.id }}?dest={{ b.video_url|urlencode }}" target="_blank" rel="noopener">
         Watch on {{ b.video_platform or 'video' }} →
       </a>
       {% endif %}
     </div>
     {% endif %}
-    <a class="cta" href="{{ b.affiliate_url or b.source_url }}" target="_blank" rel="noopener sponsored">
+    <a class="cta" href="/go/{{ b.id }}" target="_blank" rel="noopener sponsored">
       {% if b.source == 'ebay' %}Grab your slot on eBay →{% else %}Watch on {{ b.source|title }} →{% endif %}
     </a>
     <p class="note">You'll complete everything on the source platform — we just point you there.</p>

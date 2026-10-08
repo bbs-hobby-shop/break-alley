@@ -542,6 +542,117 @@ def list_saved_listings(conn, user_id: int) -> list[dict]:
     ).fetchall()]
 
 
+# Analytics events (Brian 2026-10-07): first-party sales metrics.
+# Never raises — analytics must never break the user-facing request.
+def log_event(conn, event_type: str, user_id: int | None = None,
+              breaker: str | None = None, break_id: int | None = None,
+              platform: str | None = None, meta: dict | None = None) -> None:
+    try:
+        import json
+        conn.execute(
+            """INSERT INTO analytics_events
+               (event_type, user_id, breaker, break_id, platform, meta)
+               VALUES (%(t)s, %(u)s, %(b)s, %(bid)s, %(p)s, %(m)s)""",
+            {"t": event_type, "u": user_id, "b": breaker, "bid": break_id,
+             "p": platform, "m": json.dumps(meta) if meta else None},
+        )
+    except Exception:
+        pass
+
+
+# Analytics rollups (Brian 2026-10-07): sales metrics dashboard.
+def analytics_overview(conn, days: int = 30) -> dict:
+    """Top-level counts for the stats dashboard."""
+    r = conn.execute(
+        """SELECT
+             COUNT(*) FILTER (WHERE event_type = 'outbound_click'
+                             AND created_at > NOW() - (%(d)s || ' days')::INTERVAL) AS clicks,
+             COUNT(*) FILTER (WHERE event_type = 'break_viewed'
+                             AND created_at > NOW() - (%(d)s || ' days')::INTERVAL) AS views,
+             COUNT(*) FILTER (WHERE event_type = 'listing_saved'
+                             AND created_at > NOW() - (%(d)s || ' days')::INTERVAL) AS saves,
+             COUNT(*) FILTER (WHERE event_type = 'breaker_followed'
+                             AND created_at > NOW() - (%(d)s || ' days')::INTERVAL) AS follows,
+             COUNT(*) FILTER (WHERE event_type = 'search'
+                             AND created_at > NOW() - (%(d)s || ' days')::INTERVAL) AS searches,
+             COUNT(*) FILTER (WHERE event_type = 'signup'
+                             AND created_at > NOW() - (%(d)s || ' days')::INTERVAL) AS signups,
+             (SELECT COUNT(*) FROM users) AS users_total,
+             (SELECT COUNT(*) FROM breaks) AS breaks_total
+           FROM analytics_events""",
+        {"d": days},
+    ).fetchone()
+    return dict(r) if r else {}
+
+
+def analytics_breaker_leaderboard(conn, days: int = 30, limit: int = 100) -> list[dict]:
+    """Per-breaker sales rollup: the table Brian uses for outreach."""
+    return [dict(r) for r in conn.execute(
+        """SELECT
+             e.breaker,
+             COUNT(*) FILTER (WHERE e.event_type = 'outbound_click') AS clicks,
+             COUNT(*) FILTER (WHERE e.event_type = 'break_viewed') AS views,
+             COUNT(*) FILTER (WHERE e.event_type = 'listing_saved') AS saves,
+             COUNT(*) FILTER (WHERE e.event_type = 'breaker_followed') AS follows,
+             (SELECT COUNT(DISTINCT b.id) FROM breaks b
+              WHERE b.breaker = e.breaker
+                AND b.fetched_at > NOW() - (%(d)s || ' days')::INTERVAL) AS breaks_listed
+           FROM analytics_events e
+           WHERE e.breaker IS NOT NULL
+             AND e.created_at > NOW() - (%(d)s || ' days')::INTERVAL
+           GROUP BY e.breaker
+           ORDER BY clicks DESC, views DESC
+           LIMIT %(limit)s""",
+        {"d": days, "limit": limit},
+    ).fetchall()]
+
+
+def analytics_daily(conn, days: int = 30) -> list[dict]:
+    """Per-day event counts for trend charts."""
+    return [dict(r) for r in conn.execute(
+        """SELECT DATE(created_at) AS day,
+                  COUNT(*) FILTER (WHERE event_type = 'outbound_click') AS clicks,
+                  COUNT(*) FILTER (WHERE event_type = 'break_viewed') AS views,
+                  COUNT(*) FILTER (WHERE event_type = 'listing_saved') AS saves,
+                  COUNT(*) FILTER (WHERE event_type = 'breaker_followed') AS follows,
+                  COUNT(*) FILTER (WHERE event_type = 'search') AS searches,
+                  COUNT(*) FILTER (WHERE event_type = 'signup') AS signups
+           FROM analytics_events
+           WHERE created_at > NOW() - (%(d)s || ' days')::INTERVAL
+           GROUP BY DATE(created_at)
+           ORDER BY day""",
+        {"d": days},
+    ).fetchall()]
+
+
+def analytics_top_searches(conn, days: int = 30, limit: int = 25) -> list[dict]:
+    """Most-searched terms — shows buyer demand for sales conversations."""
+    return [dict(r) for r in conn.execute(
+        """SELECT LOWER(meta->>'q') AS term, COUNT(*) AS n
+           FROM analytics_events
+           WHERE event_type = 'search'
+             AND created_at > NOW() - (%(d)s || ' days')::INTERVAL
+             AND meta->>'q' IS NOT NULL AND meta->>'q' <> ''
+           GROUP BY LOWER(meta->>'q')
+           ORDER BY n DESC
+           LIMIT %(limit)s""",
+        {"d": days, "limit": limit},
+    ).fetchall()]
+
+
+def analytics_platform_split(conn, days: int = 30) -> list[dict]:
+    """Outbound clicks by platform."""
+    return [dict(r) for r in conn.execute(
+        """SELECT platform, COUNT(*) AS clicks
+           FROM analytics_events
+           WHERE event_type = 'outbound_click'
+             AND created_at > NOW() - (%(d)s || ' days')::INTERVAL
+           GROUP BY platform
+           ORDER BY clicks DESC""",
+        {"d": days},
+    ).fetchall()]
+
+
 def breaks_for_breakers(conn, breakers: list[str], limit: int = 100) -> list[dict]:
     """Live-first breaks from the given breaker names (for My Breakers)."""
     if not breakers:

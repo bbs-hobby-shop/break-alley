@@ -100,6 +100,17 @@ def search(
                 favorites = db.favorite_breakers(conn, user["id"])
                 saved_ids = db.saved_listing_ids(conn, user["id"])
             updated_ago = _ago(db.last_data_update(conn))
+            # Brian 2026-10-07: track real searches (not plain homepage loads)
+            # for demand analytics — what buyers are looking for.
+            if q or format or source or max_price_val or live or auctions or sort or region:
+                db.log_event(
+                    conn, "search",
+                    user_id=user["id"] if user else None,
+                    meta={"q": q or None, "format": format, "source": source,
+                          "max_price": max_price_val, "live": live,
+                          "auctions": auctions, "sort": sort, "region": region,
+                          "result_count": len(results)},
+                )
         error = None
     except Exception as exc:  # DB not up / not migrated yet
         results, error = [], f"Database unavailable: {exc}"
@@ -118,6 +129,49 @@ def search(
     })
 
 
+@app.get("/go/{break_id}")
+def go_outbound(request: Request, break_id: int, dest: str = Query(default="")):
+    """Outbound click tracker (Brian 2026-10-07): logs the click for sales
+    metrics, then redirects. dest must match one of the break's known URLs
+    (prevents open-redirect abuse)."""
+    target = "/"
+    try:
+        with db.get_conn() as conn:
+            row = db.get_break(conn, break_id)
+            if row:
+                row = dict(row)
+                allowed = {row.get("source_url"), row.get("affiliate_url"),
+                           row.get("video_url")}
+                try:
+                    import json as _json
+                    vl = row.get("video_links")
+                    if isinstance(vl, str):
+                        vl = _json.loads(vl)
+                    for link in (vl or []):
+                        if isinstance(link, dict) and link.get("url"):
+                            allowed.add(link["url"])
+                except Exception:
+                    pass
+                allowed.discard(None)
+                allowed.discard("")
+                target = dest if dest in allowed else (
+                    row.get("affiliate_url") or row.get("source_url") or "/")
+                user = auth.get_current_user(request)
+                db.log_event(
+                    conn, "outbound_click",
+                    user_id=user["id"] if user else None,
+                    breaker=row.get("breaker"), break_id=break_id,
+                    platform=row.get("source"),
+                    meta={"dest": target,
+                          "kind": "video" if target == row.get("video_url")
+                                  or (dest in allowed and "video" in (dest or ""))
+                                  else "listing"},
+                )
+    except Exception:
+        pass
+    return RedirectResponse(target, status_code=302)
+
+
 @app.get("/break/{break_id}", response_class=HTMLResponse)
 def detail(request: Request, break_id: int):
     try:
@@ -125,6 +179,14 @@ def detail(request: Request, break_id: int):
             row = db.get_break(conn, break_id)
             if row:
                 row = _enrich(dict(row))
+                # Brian 2026-10-07: track listing views for sales metrics.
+                user = auth.get_current_user(request)
+                db.log_event(
+                    conn, "break_viewed",
+                    user_id=user["id"] if user else None,
+                    breaker=row.get("breaker"), break_id=break_id,
+                    platform=row.get("source"),
+                )
         error = None if row else "Break not found."
     except Exception as exc:
         row, error = None, f"Database unavailable: {exc}"
@@ -191,6 +253,67 @@ def admin_suggestions(
         "refresh_msg": refresh, "refresh_wait": wait or 0,
         "refresh_state": _refresh_status(),
     })
+
+
+# ---------------------------------------------------------------------------
+# Analytics dashboard (Brian 2026-10-07): sales metrics — clicks, views,
+# saves, follows per breaker, demand signals, trends. ADMIN_KEY-gated.
+# ---------------------------------------------------------------------------
+
+@app.get("/admin/stats", response_class=HTMLResponse)
+def admin_stats(
+    request: Request,
+    key: str | None = Query(default=None),
+    days: int = Query(default=30),
+):
+    if not _admin_key_ok(key):
+        return templates.TemplateResponse(request, "admin_stats.html", {
+            "denied": True, "key": key or "",
+        })
+    days = days if days in (7, 30, 90) else 30
+    try:
+        with db.get_conn() as conn:
+            overview = db.analytics_overview(conn, days)
+            leaderboard = db.analytics_breaker_leaderboard(conn, days)
+            daily = db.analytics_daily(conn, days)
+            searches = db.analytics_top_searches(conn, days)
+            platforms = db.analytics_platform_split(conn, days)
+        error = None
+    except Exception as exc:
+        overview, leaderboard, daily, searches, platforms = {}, [], [], [], []
+        error = f"Database unavailable: {exc}"
+    return templates.TemplateResponse(request, "admin_stats.html", {
+        "denied": False, "key": key or "", "days": days, "error": error,
+        "overview": overview, "leaderboard": leaderboard, "daily": daily,
+        "searches": searches, "platforms": platforms,
+    })
+
+
+@app.get("/admin/stats/export")
+def admin_stats_export(
+    key: str | None = Query(default=None),
+    days: int = Query(default=30),
+):
+    """CSV of the per-breaker rollup for sales outreach."""
+    from fastapi.responses import PlainTextResponse
+    if not _admin_key_ok(key):
+        return PlainTextResponse("denied", status_code=403)
+    days = days if days in (7, 30, 90) else 30
+    import csv, io
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["breaker", "outbound_clicks", "listing_views", "saves",
+                "follows", "breaks_listed", f"period_days={days}"])
+    try:
+        with db.get_conn() as conn:
+            for r in db.analytics_breaker_leaderboard(conn, days, limit=1000):
+                w.writerow([r["breaker"], r["clicks"], r["views"],
+                            r["saves"], r["follows"], r["breaks_listed"]])
+    except Exception as exc:
+        return PlainTextResponse(f"error: {exc}", status_code=500)
+    return PlainTextResponse(buf.getvalue(), media_type="text/csv",
+                             headers={"Content-Disposition":
+                                      "attachment; filename=breaker-stats.csv"})
 
 
 @app.post("/admin/suggestions/{suggestion_id}/approve")
@@ -584,6 +707,8 @@ def signup(
                 return templates.TemplateResponse(request, "signup.html", {
                     "error": "That email already has an account — try signing in."})
             user_id = db.create_user(conn, email, auth.hash_password(password))
+            # Brian 2026-10-07: track signups for growth metrics.
+            db.log_event(conn, "signup", user_id=user_id)
     except Exception:
         return templates.TemplateResponse(request, "signup.html", {
             "error": "Something went wrong creating your account. Try again."})
@@ -790,9 +915,13 @@ def favorite_toggle(
                 if breaker in db.favorite_breakers(conn, user["id"]):
                     db.remove_favorite(conn, user["id"], breaker)
                     following = False
+                    db.log_event(conn, "breaker_unfollowed",
+                                 user_id=user["id"], breaker=breaker)
                 else:
                     db.add_favorite(conn, user["id"], breaker)
                     following = True
+                    db.log_event(conn, "breaker_followed",
+                                 user_id=user["id"], breaker=breaker)
         except Exception:
             pass
     # Brian 2026-10-07: AJAX toggles get instant JSON; plain forms get the redirect.
@@ -820,9 +949,18 @@ def saved_listing_toggle(
                 if break_id in db.saved_listing_ids(conn, user["id"]):
                     db.unsave_listing(conn, user["id"], break_id)
                     saved = False
+                    db.log_event(conn, "listing_unsaved",
+                                 user_id=user["id"], break_id=break_id)
                 else:
                     db.save_listing(conn, user["id"], break_id)
                     saved = True
+                    # Grab breaker/platform for the sales rollup.
+                    br = db.get_break(conn, break_id)
+                    br = dict(br) if br else {}
+                    db.log_event(conn, "listing_saved",
+                                 user_id=user["id"], break_id=break_id,
+                                 breaker=br.get("breaker"),
+                                 platform=br.get("source"))
         except Exception:
             pass
     # Brian 2026-10-07: AJAX toggles get instant JSON; plain forms get the redirect.
