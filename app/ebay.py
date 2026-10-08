@@ -26,19 +26,19 @@ from . import config
 TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
 SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 
-# Pagination safety cap per search_items query (Brian 2026-10-08): 5 pages
-# x 200 results = 1,000 results per query. Generous for a 10-seller batch;
-# hitting the cap logs a visible warning (no silent truncation). Kept low
-# because eBay throttles us intermittently even at polite pacing — deep
-# pagination across 16 queries/run risks the whole run (2026-10-08 11:30).
-MAX_PAGES = 5
+# Pagination safety cap per search_items query (Brian 2026-10-08): 3 pages
+# x 200 results = 600 results per query. 3x the old 200 cap; hitting it
+# logs a visible warning (no silent truncation). Kept low because eBay's
+# undocumented burst limits throttle us even at polite pacing — fewer
+# calls per run is the only reliable lever.
+MAX_PAGES = 3
 
 # Brian 2026-10-08: eBay throttles us intermittently. Every Browse API
 # call is paced — no bursts, ever. (The 10:45 burst that started this came
-# from paginated pages firing with zero delay; the 12:00 failure showed
-# that spacing only the paginated pages wasn't enough because the 16
-# page-0 queries still went out back-to-back.)
-API_PACING = 1.0  # seconds before every Browse API call
+# from paginated pages firing with zero delay; 1/sec pacing still got
+# throttled at 12:29 — eBay's burst window is stricter than 1/sec and its
+# cooldown is long. 1 call per 2s is very conservative.)
+API_PACING = 2.0  # seconds before every Browse API call
 
 
 class EbayThrottled(Exception):
