@@ -758,7 +758,7 @@ FROM (
 ) ranked
 WHERE rn = 1
 ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
-LIMIT 1000;
+LIMIT 2000;
 """
 
 
