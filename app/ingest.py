@@ -16,10 +16,35 @@ Twitch roster every ~20 min (see app/twitch_roster.py).
 """
 import argparse
 import sys
+import time
 from pathlib import Path
+
+import psycopg.errors
 
 from . import config, db, ebay, fanatics_roster, twitch, twitch_roster, youtube, youtube_roster
 from .normalizer import normalize_ebay_item
+
+
+def _transact_with_retry(work, attempts=3):
+    """Run work(conn) in a fresh transaction, retrying on Postgres deadlocks.
+
+    The slice pollers (twitch/fanatics/youtube) wipe-and-rewrite the breaks
+    table while the eBay poller is upserting/pruning it — two transactions
+    occasionally lock rows in opposite order and Postgres kills one with
+    DeadlockDetected (2026-10-08: twitch poller failed 3x in 7h). Deadlocks
+    are transient by nature; a fresh attempt almost always succeeds.
+    """
+    last = None
+    for i in range(attempts):
+        try:
+            with db.get_conn() as conn:
+                return work(conn)
+        except psycopg.errors.DeadlockDetected as exc:
+            last = exc
+            print(f"deadlock detected (attempt {i + 1}/{attempts}) — retrying",
+                  file=sys.stderr)
+            time.sleep(2 * (i + 1))
+    raise last
 
 DEMO_ROWS = [
     {
@@ -263,7 +288,9 @@ def run_youtube() -> int:
     # YouTube data is transient (live/upcoming streams), so each run wipes
     # and rewrites the youtube slice in ONE transaction: stale streams vanish
     # instead of lingering forever, and a failed run rolls back cleanly.
-    with db.get_conn() as conn:
+    # Deadlock retry: the eBay poller may be writing breaks concurrently.
+    def _write_youtube(conn):
+        n = 0
         conn.execute("DELETE FROM breaks WHERE source = 'youtube'")
         for row in rows:
             if not row.get("source_url"):
@@ -275,6 +302,8 @@ def run_youtube() -> int:
             if row.get("channel_id"):
                 db.upsert_youtube_channel(
                     conn, row["channel_id"], title=row.get("breaker"))
+        return n
+    n = _transact_with_retry(_write_youtube)
     print(f"replaced youtube slice with {n} YouTube breaks")
     return 0
 
@@ -352,14 +381,18 @@ def run_twitch() -> int:
     n = 0
     # Twitch data is transient (currently-live streams), so each run wipes
     # and rewrites the twitch slice in ONE transaction: ended streams vanish
-    # instead of lingering as stale "live" rows.
-    with db.get_conn() as conn:
+    # instead of lingering as stale "live" rows. Deadlock retry: the eBay
+    # poller may be writing breaks concurrently.
+    def _write_twitch(conn):
+        n = 0
         conn.execute("DELETE FROM breaks WHERE source = 'twitch'")
         for row in rows:
             if not row.get("source_url"):
                 continue
             db.upsert_break(conn, row)
             n += 1
+        return n
+    n = _transact_with_retry(_write_twitch)
     print(f"replaced twitch slice with {n} Twitch breaks")
     return 0
 
@@ -387,10 +420,12 @@ def run_twitch_roster() -> int:
             print("twitch-roster: streams API failed — keeping existing slice",
                   file=sys.stderr)
             return 1
+    # Twitch data is transient (currently-live streams), so each run wipes
+    # and rewrites the twitch slice in ONE transaction: ended streams vanish
+    # instead of lingering as stale "live" rows. Deadlock retry: the eBay
+    # poller may be writing breaks concurrently (2026-10-08: 3 failures/7h).
+    def _write_twitch_roster(conn):
         n = 0
-        # Twitch data is transient (currently-live streams), so each run wipes
-        # and rewrites the twitch slice in ONE transaction: ended streams vanish
-        # instead of lingering as stale "live" rows.
         conn.execute("DELETE FROM breaks WHERE source = 'twitch'")
         for row in rows:
             if not row.get("source_url"):
@@ -400,6 +435,8 @@ def run_twitch_roster() -> int:
         for login, display_name in hit_logins.items():
             db.upsert_twitch_channel(conn, login, display_name=display_name)
         db.mark_twitch_checked(conn, checked)
+        return n
+    n = _transact_with_retry(_write_twitch_roster)
     print(f"twitch-roster: upserted {n} breaks from {len(checked)} channels")
     return 0
 
@@ -414,10 +451,12 @@ def run_fanatics() -> int:
             print("fanatics-roster: streams API failed — keeping existing slice",
                   file=sys.stderr)
             return 1
+    # Fanatics data is transient (currently-live streams), so each run
+    # wipes and rewrites the fanatics slice in ONE transaction: ended
+    # streams vanish instead of lingering as stale "live" rows.
+    # Deadlock retry: the eBay poller may be writing breaks concurrently.
+    def _write_fanatics(conn):
         n = 0
-        # Fanatics data is transient (currently-live streams), so each run
-        # wipes and rewrites the fanatics slice in ONE transaction: ended
-        # streams vanish instead of lingering as stale "live" rows.
         conn.execute("DELETE FROM breaks WHERE source = 'fanatics'")
         for row in rows:
             if not row.get("source_url"):
@@ -425,6 +464,8 @@ def run_fanatics() -> int:
             db.upsert_break(conn, row)
             n += 1
         db.mark_fanatics_checked(conn, checked)
+        return n
+    n = _transact_with_retry(_write_fanatics)
     print(f"fanatics-roster: upserted {n} breaks from {len(checked)} shops")
     return 0
 
