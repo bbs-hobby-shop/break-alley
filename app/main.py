@@ -88,7 +88,7 @@ def search(
     saved_ids: set[int] = set()
     try:
         with db.get_conn() as conn:
-            results = [
+            all_results = [
                 _enrich(dict(r)) for r in db.search_breaks(
                     conn, q=q or None, format=format,
                     max_price=max_price_val, source=source,
@@ -96,6 +96,11 @@ def search(
                     sort=sort, auction_only=True if auctions else None,
                 )
             ]
+            # Pagination (Brian 2026-10-07): render 60 at a time so the page
+            # stays fast on phones (1,500+ cards was choking the iOS keyboard).
+            total_results = len(all_results)
+            results = all_results[:PAGE_SIZE]
+            has_more = total_results > PAGE_SIZE
             if user:
                 favorites = db.favorite_breakers(conn, user["id"])
                 saved_ids = db.saved_listing_ids(conn, user["id"])
@@ -124,6 +129,8 @@ def search(
         upcoming_releases = []
     return templates.TemplateResponse(request, "search.html", {
         "results": results, "error": error,
+        "total_results": total_results, "has_more": has_more,
+        "page_size": PAGE_SIZE,
         "q": q or "", "format": format or "",
         "max_price": max_price or "", "source": source or "", "live": live,
         "region": region or "", "sort": sort or "", "auctions": auctions,
@@ -167,6 +174,62 @@ def breaker_page(request: Request, breaker_name: str):
         "formats": ["pyt", "random", "personal", "case_break", "box_break"],
         "format_labels": FORMAT_LABELS,
     })
+
+
+PAGE_SIZE = 60
+
+
+@app.get("/more", response_class=HTMLResponse)
+def load_more(
+    request: Request,
+    q: str | None = Query(default=None),
+    format: str | None = Query(default=None),
+    max_price: str | None = Query(default=None),
+    source: str | None = Query(default=None),
+    live: bool = Query(default=False),
+    region: str | None = Query(default=None),
+    sort: str | None = Query(default=None),
+    auctions: bool = Query(default=False),
+    offset: int = Query(default=0),
+):
+    """Brian 2026-10-07: AJAX pagination — returns the next PAGE_SIZE cards
+    as HTML fragments for the Load more button. Same filters as the search."""
+    format = format or None
+    source = source or None
+    region = region if region in ("us", "intl") else None
+    sort = sort if sort in ("soonest", "price_low", "price_high", "newest", "live", "ending") else None
+    try:
+        max_price_val = float(max_price) if max_price and max_price.strip() else None
+    except (ValueError, TypeError):
+        max_price_val = None
+    user = auth.get_current_user(request)
+    favorites: set[str] = set()
+    saved_ids: set[int] = set()
+    try:
+        with db.get_conn() as conn:
+            results = [
+                _enrich(dict(r)) for r in db.search_breaks(
+                    conn, q=q or None, format=format,
+                    max_price=max_price_val, source=source,
+                    live_only=True if live else None, region=region,
+                    sort=sort, auction_only=True if auctions else None,
+                    limit=PAGE_SIZE, offset=offset,
+                )
+            ]
+            if user:
+                favorites = db.favorite_breakers(conn, user["id"])
+                saved_ids = db.saved_listing_ids(conn, user["id"])
+    except Exception:
+        results = []
+    # Render just the cards via the shared partial
+    cards = []
+    for b in results:
+        cards.append(templates.get_template("_card.html").render({
+            "b": b, "user": user, "favorites": favorites, "saved_ids": saved_ids,
+            "q": q or "", "format": format or "", "source": source or "",
+            "max_price": max_price or "", "live": live,
+        }))
+    return HTMLResponse("\n".join(cards))
 
 
 @app.get("/go/{break_id}")

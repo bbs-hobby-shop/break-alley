@@ -948,7 +948,9 @@ LIMIT 2000;
 
 def search_breaks(conn, q=None, sport=None, format=None, max_price=None,
                   source=None, live_only=None, region=None, sort=None,
-                  auction_only=None):
+                  auction_only=None, limit=None, offset=None):
+    # Brian 2026-10-07: eBay team-by-team dedup now happens in SQL
+    # (ROW_NUMBER window fn), so LIMIT applies after grouping.
     # Brian 2026-10-07: eBay team-by-team dedup now happens in SQL
     # (ROW_NUMBER window fn), so LIMIT applies after grouping.
     out = [
@@ -973,6 +975,11 @@ def search_breaks(conn, q=None, sport=None, format=None, max_price=None,
         # Auctions ending soonest first; non-auctions keep their relative order after.
         out.sort(key=lambda r: (r.get("auction_ends_at") is None, r.get("auction_ends_at")))
     # Default ("recommended"): keep SQL order (live first, soonest, newest)
+    # Pagination (Brian 2026-10-07): applied after sorting so pages are stable.
+    if offset:
+        out = out[offset:]
+    if limit:
+        out = out[:limit]
     return out
 
 

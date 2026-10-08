@@ -200,6 +200,13 @@
   .find-btn:active { transform: translateY(0); }
   .section-label { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px; color: var(--muted); margin: 1.4rem 0 .8rem; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
   .res-count { text-transform: none; letter-spacing: 0; font-weight: 600; }
+  /* Load more (Brian 2026-10-07): 60 results per page so phones stay fast */
+  .load-more-wrap { max-width: 1080px; margin: 1.2rem auto; padding: 0 1.5rem; text-align: center; }
+  .load-more-btn { background: var(--card2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 12px; padding: .9rem 2rem; font-size: 1rem; font-weight: 700;
+    font-family: inherit; cursor: pointer; width: 100%; max-width: 420px; }
+  .load-more-btn:active { transform: scale(.98); }
+  .load-more-btn:disabled { opacity: .5; cursor: default; }
   .sort-wrap { display: flex; align-items: center; gap: .5rem; text-transform: none; letter-spacing: 0; }
   .sort-wrap label { font-size: .75rem; font-weight: 700; color: var(--muted); }
   .sort-select { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .45rem .7rem; font-size: .85rem; font-weight: 600; font-family: inherit; cursor: pointer; }
@@ -402,7 +409,7 @@
   {% endif %}
   {% if not breaker_page %}
   <div class="section-label">
-    <span>Breaks <span class="res-count">{{ results|length }} result{{ 's' if results|length != 1 }} found</span></span>
+    <span>Breaks <span class="res-count"><span id="shownCount">{{ results|length }}</span> of {{ total_results }} shown</span></span>
     <form method="get" action="/" class="sort-wrap">
       <input type="hidden" name="q" value="{{ q }}">
       <input type="hidden" name="format" value="{{ format }}">
@@ -454,57 +461,20 @@
   <div class="grid">
     {% if results %}
       {% for b in results %}
-      <div class="card-wrap">
-      <a class="card {% if b.is_live %}is-live{% endif %}" href="/break/{{ b.id }}">
-        {% if b.thumb_url %}
-        <img class="thumb thumb-img" src="{{ b.thumb_url }}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <div class="thumb" style="display:none">{{ b.format_icon }}</div>
-        {% else %}
-        <div class="thumb">{{ b.format_icon }}</div>
-        {% endif %}
-        <div class="meta">
-          <p class="title">{{ b.display_title }}</p>
-          <div class="tags">
-            {% if b.is_live %}<span class="tag live">● LIVE</span>{% endif %}
-            {% if b.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
-            {% if b.is_auction and b.auction_ends_at %}<span class="tag auction-timer" data-ends="{{ b.auction_ends_at }}">⏳ --</span>{% endif %}
-            {% if b.date_label and not b.is_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
-            {% if not b.date_label and b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
-            {# Brian 2026-10-07: break number, platform, and format tags removed — #}
-            {# only LIVE / AUCTION / countdown / start-time tags show on cards. #}
-            {% if b.breaker %}<span class="breaker-group"><span class="tag breaker-tag breaker-link" data-breaker="{{ b.breaker }}" role="link" tabindex="0" title="See all {{ b.breaker }} breaks">{{ b.breaker }}</span>{% if user %}<form class="follow-form" method="post" action="/favorites/toggle" style="display:inline-flex">
-              <input type="hidden" name="breaker" value="{{ b.breaker }}">
-              <input type="hidden" name="next" value="/?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
-              <button class="follow-btn {% if b.breaker in favorites %}following{% endif %}" type="submit" title="{% if b.breaker in favorites %}Unfollow {{ b.breaker }}{% else %}Follow {{ b.breaker }}{% endif %}">{% if b.breaker in favorites %}✓{% else %}+{% endif %}</button>
-            </form>{% endif %}</span>{% endif %}
-            {% if b.group_count and b.group_count > 1 %}
-              <span class="tag">{{ b.group_count }} teams</span>
-            {% endif %}
-            {% if b.slots_remaining is not none %}
-              <span class="tag {% if b.slots_remaining <= 5 %}slots-low{% endif %}">{{ b.slots_remaining }} slots left</span>
-            {% endif %}
-          </div>
-        </div>
-        <div class="right">
-          {% if b.is_auction and b.current_bid %}<div class="price">${{ b.current_bid }}</div><div class="per">current bid</div>
-          {% elif b.price %}<div class="price">${{ b.price }}</div><div class="per">per slot</div>{% endif %}
-        </div>
-      </a>
-      {% if user %}
-        <form class="fav-form" method="post" action="/saved-listings/toggle">
-          <input type="hidden" name="break_id" value="{{ b.id }}">
-          <input type="hidden" name="next" value="/?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
-          <button class="fav-btn {% if b.id in saved_ids %}faved{% endif %}" type="submit" title="{% if b.id in saved_ids %}Unsave this break{% else %}Save this break{% endif %}">★</button>
-        </form>
-        {% else %}
-        <a class="fav-btn fav-login" href="/signup" title="Sign up to save breaks">☆</a>
-        {% endif %}
-      </div>
+      {% include "_card.html" %}
       {% endfor %}
     {% elif not error %}
       <div class="empty">No breaks found. Try widening your search — or run the ingester to pull fresh listings.</div>
     {% endif %}
   </div>
+  {% if has_more %}
+  <div class="load-more-wrap">
+    <button type="button" class="load-more-btn" id="loadMoreBtn"
+            data-offset="{{ page_size }}" data-total="{{ total_results }}">
+      Show more breaks (<span id="remainingCount">{{ total_results - page_size }}</span> remaining)
+    </button>
+  </div>
+  {% endif %}
 </main>
 <section class="suggest">
   <h3>Know a breaker we're missing?</h3>
@@ -526,67 +496,68 @@
 // page never reloads (no scroll jump, no 2-3 second wait).
 (function() {
   function ajaxToggle(form, btn, applyState, revertState) {
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      applyState();  // instant visual flip
-      var data = new FormData(form);
-      fetch(form.action, {
-        method: 'POST',
-        body: new URLSearchParams(data),
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'
-      }).then(function(r) { return r.json(); }).then(function(j) {
-        if (!j || !j.ok) { revertState(); }
-      }).catch(function() { revertState(); });
-    });
+    applyState();  // instant visual flip
+    var data = new FormData(form);
+    fetch(form.action, {
+      method: 'POST',
+      body: new URLSearchParams(data),
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin'
+    }).then(function(r) { return r.json(); }).then(function(j) {
+      if (!j || !j.ok) { revertState(); }
+    }).catch(function() { revertState(); });
   }
 
-  // Breaker follow buttons (+ / ✓)
-  document.querySelectorAll('.follow-form').forEach(function(form) {
-    var btn = form.querySelector('.follow-btn');
+  // Event delegation (Brian 2026-10-07): handles cards added via Load more.
+  document.addEventListener('submit', function(e) {
+    var form = e.target.closest ? e.target.closest('.follow-form, .fav-form') : null;
+    if (!form) return;
+    e.preventDefault();
+    var btn = form.querySelector('.follow-btn, .fav-btn');
     if (!btn) return;
-    var isHero = btn.classList.contains('hero-follow-btn');
-    var wasFollowing = btn.classList.contains('following');
-    ajaxToggle(form, btn,
-      function() {  // optimistic: flip to the new state
-        wasFollowing = btn.classList.contains('following');
-        btn.classList.toggle('following', !wasFollowing);
-        btn.textContent = isHero
-          ? (wasFollowing ? '+ Follow' : '✓ Following')
-          : (wasFollowing ? '+' : '✓');
-      },
-      function() {  // server failed: flip back
-        btn.classList.toggle('following', wasFollowing);
-        btn.textContent = isHero
-          ? (wasFollowing ? '✓ Following' : '+ Follow')
-          : (wasFollowing ? '✓' : '+');
-      });
+    if (form.classList.contains('follow-form')) {
+      var isHero = btn.classList.contains('hero-follow-btn');
+      var wasFollowing = btn.classList.contains('following');
+      ajaxToggle(form, btn,
+        function() {
+          wasFollowing = btn.classList.contains('following');
+          btn.classList.toggle('following', !wasFollowing);
+          btn.textContent = isHero
+            ? (wasFollowing ? '+ Follow' : '✓ Following')
+            : (wasFollowing ? '+' : '✓');
+        },
+        function() {
+          btn.classList.toggle('following', wasFollowing);
+          btn.textContent = isHero
+            ? (wasFollowing ? '✓ Following' : '+ Follow')
+            : (wasFollowing ? '✓' : '+');
+        });
+    } else {
+      var wasSaved = btn.classList.contains('faved');
+      ajaxToggle(form, btn,
+        function() {
+          wasSaved = btn.classList.contains('faved');
+          btn.classList.toggle('faved', !wasSaved);
+        },
+        function() { btn.classList.toggle('faved', wasSaved); });
+    }
   });
 
-  // Listing save stars (★)
-  document.querySelectorAll('.fav-form').forEach(function(form) {
-    var btn = form.querySelector('.fav-btn');
-    if (!btn) return;
-    var wasSaved = btn.classList.contains('faved');
-    ajaxToggle(form, btn,
-      function() {
-        wasSaved = btn.classList.contains('faved');
-        btn.classList.toggle('faved', !wasSaved);
-      },
-      function() { btn.classList.toggle('faved', wasSaved); });
-  });
   // Breaker name taps -> breaker page (Brian 2026-10-07). Uses a span with a
   // click handler (not a nested <a>) because the card itself is a link.
-  document.querySelectorAll('.breaker-link[data-breaker]').forEach(function(el) {
-    function go(e) {
+  document.addEventListener('click', function(e) {
+    var el = e.target.closest ? e.target.closest('.breaker-link[data-breaker]') : null;
+    if (!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.location.href = '/breaker/' + encodeURIComponent(el.getAttribute('data-breaker'));
+  });
+  document.addEventListener('keydown', function(e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList &&
+        e.target.classList.contains('breaker-link')) {
       e.preventDefault();
-      e.stopPropagation();
-      window.location.href = '/breaker/' + encodeURIComponent(el.getAttribute('data-breaker'));
+      window.location.href = '/breaker/' + encodeURIComponent(e.target.getAttribute('data-breaker'));
     }
-    el.addEventListener('click', go);
-    el.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' || e.key === ' ') { go(e); }
-    });
   });
   // Custom dropdowns (Brian 2026-10-07): instant bottom sheets replacing
   // native <select> (which was slow to open on iOS).
@@ -652,6 +623,56 @@
       });
     });
   })();
+  // Load more pagination (Brian 2026-10-07): 60 cards per page so the page
+  // stays fast on phones. Fetches the next batch as HTML and appends it.
+  (function() {
+    var btn = document.getElementById('loadMoreBtn');
+    if (!btn) return;
+    var grid = document.querySelector('.grid');
+    var shownCount = document.getElementById('shownCount');
+    var remainingCount = document.getElementById('remainingCount');
+    var loading = false;
+    btn.addEventListener('click', function() {
+      if (loading) return;
+      loading = true;
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      var offset = parseInt(btn.getAttribute('data-offset'), 10) || 0;
+      var total = parseInt(btn.getAttribute('data-total'), 10) || 0;
+      // Preserve current filters in the request
+      var params = new URLSearchParams(window.location.search);
+      params.set('offset', offset);
+      fetch('/more?' + params.toString(), { credentials: 'same-origin' })
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+          var tmp = document.createElement('div');
+          tmp.innerHTML = html;
+          var cards = tmp.querySelectorAll('.card-wrap');
+          cards.forEach(function(c) { grid.appendChild(c); });
+          // Register any new auction countdowns
+          if (window.__registerAuctionTimers) window.__registerAuctionTimers(grid);
+          var newOffset = offset + cards.length;
+          btn.setAttribute('data-offset', newOffset);
+          var shown = Math.min(newOffset, total);
+          if (shownCount) shownCount.textContent = shown;
+          var remaining = total - shown;
+          if (remainingCount) remainingCount.textContent = remaining;
+          if (cards.length === 0 || remaining <= 0) {
+            btn.closest('.load-more-wrap').style.display = 'none';
+          } else {
+            btn.disabled = false;
+            btn.innerHTML = 'Show more breaks (<span id="remainingCount">' + remaining + '</span> remaining)';
+            remainingCount = document.getElementById('remainingCount');
+          }
+          loading = false;
+        })
+        .catch(function() {
+          btn.disabled = false;
+          btn.textContent = 'Try again';
+          loading = false;
+        });
+    });
+  })();
 })();
 </script>
 <script>
@@ -666,10 +687,22 @@
   function pad(n) { return String(n).padStart(2, '0'); }
   // Parse once, cache: [{el, ends, last}]
   var timers = [];
-  document.querySelectorAll('.auction-timer[data-ends]').forEach(function(el) {
-    var ends = new Date(el.getAttribute('data-ends')).getTime();
-    timers.push({ el: el, ends: ends, last: '' });
-  });
+  function registerTimers(root) {
+    (root || document).querySelectorAll('.auction-timer[data-ends]').forEach(function(el) {
+      if (el.__timerRegistered) return;
+      el.__timerRegistered = true;
+      var ends = new Date(el.getAttribute('data-ends')).getTime();
+      timers.push({ el: el, ends: ends, last: '' });
+    });
+    // Restart the interval if new timers arrived after it stopped
+    if (timers.length && !window.__auctionTick) {
+      tick();
+      window.__auctionTick = setInterval(tick, 1000);
+    }
+  }
+  // Exposed for Load more (Brian 2026-10-07)
+  window.__registerAuctionTimers = registerTimers;
+  registerTimers(document);
   function tick() {
     var now = Date.now();
     for (var i = 0; i < timers.length; i++) {
