@@ -157,15 +157,16 @@
   .cfield-dollar { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%);
     color: var(--muted); font-size: .9rem; pointer-events: none; }
   .cfield input { width: 100%; min-height: 48px; background: var(--card); color: var(--text);
-    border: 1px solid var(--line); border-radius: 10px; padding: .55rem .8rem .55rem 1.7rem;
+    border: 1px solid var(--line); border-radius: 10px; padding: .55rem .8rem .55rem 1.9rem;
     font-size: .9rem; font-family: inherit; box-sizing: border-box; }
   .cfield input::placeholder { color: var(--muted); }
-  .searchrow { display: flex; gap: .5rem; align-items: stretch; }
-  .search-icon { display: none; }
-  .find-btn { flex: 0 0 auto; background: var(--green); color: #04120a; border: none;
-    border-radius: 10px; padding: 0 1.2rem; font-size: 1rem; font-weight: 800;
-    font-family: inherit; cursor: pointer; min-height: 48px; }
-  .find-btn:active { transform: scale(.97); }
+  .cfield input:focus { outline: none; border-color: var(--green); }
+  .searchrow { display: flex; gap: .5rem; align-items: stretch; margin-bottom: .6rem; }
+  .searchrow input { flex: 1; min-width: 0; background: var(--card); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: .8rem 1rem;
+    font-size: 1rem; font-family: inherit; box-sizing: border-box; min-height: 48px; }
+  .searchrow input::placeholder { color: var(--muted); }
+  .searchrow input:focus { outline: none; border-color: var(--green); }
   /* Bottom sheet */
   .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50;
     opacity: 0; pointer-events: none; transition: opacity .18s ease; }
@@ -302,7 +303,6 @@
     <div class="searchrow">
       <span class="search-icon">🔍</span>
       <input type="text" name="q" value="{{ q }}" placeholder="Search breaks, products, or breakers…" autocomplete="off">
-      <button type="submit" class="find-btn">Find breaks</button>
     </div>
     <div class="filtergrid">
       <div class="cselect" data-name="format" data-label="Any format">
