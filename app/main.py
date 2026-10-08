@@ -88,17 +88,25 @@ def search(
     saved_ids: set[int] = set()
     try:
         with db.get_conn() as conn:
+            # Brian 2026-10-08: real result total (was capped at 2000 by the
+            # old SQL LIMIT). Cards still render 60 at a time for phone speed.
+            total_results = db.count_search_breaks(
+                conn, q=q or None, format=format,
+                max_price=max_price_val, source=source,
+                live_only=True if live else None, region=region,
+                auction_only=True if auctions else None,
+            )
             all_results = [
                 _enrich(dict(r)) for r in db.search_breaks(
                     conn, q=q or None, format=format,
                     max_price=max_price_val, source=source,
                     live_only=True if live else None, region=region,
                     sort=sort, auction_only=True if auctions else None,
+                    limit=PAGE_SIZE,
                 )
             ]
             # Pagination (Brian 2026-10-07): render 60 at a time so the page
             # stays fast on phones (1,500+ cards was choking the iOS keyboard).
-            total_results = len(all_results)
             results = all_results[:PAGE_SIZE]
             has_more = total_results > PAGE_SIZE
             if user:

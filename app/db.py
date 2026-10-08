@@ -900,7 +900,7 @@ def ensure_schema(conn) -> None:
     conn.execute(SCHEMA_MIGRATIONS)
 
 
-SEARCH_SQL = """
+SEARCH_BASE = """
 -- Brian 2026-10-07: grouping happens IN SQL via window functions, so LIMIT
 -- applies after dedup. (The old Python-side grouping after LIMIT 1000 let
 -- eBay's 4k rows crowd out other platforms in the All view.)
@@ -942,9 +942,22 @@ FROM (
              AND COALESCE(slots_remaining, -1) = 0)
 ) ranked
 WHERE rn = 1
-ORDER BY is_live DESC, starts_at NULLS LAST, fetched_at DESC
-LIMIT 2000;
 """
+
+# Brian 2026-10-08: sort orders live in SQL now (were Python-side), so
+# LIMIT/OFFSET paginate correctly and the real total can be counted cheaply.
+# (The old LIMIT 2000 + Python slicing capped the displayed total at 2000.)
+SORT_SQL = {
+    "soonest": "starts_at NULLS LAST, id",
+    "price_low": "price NULLS LAST, id",
+    "price_high": "price DESC NULLS LAST, id",
+    "newest": "id DESC",
+    "live": "is_live DESC, starts_at NULLS LAST, id",
+    "ending": "auction_ends_at NULLS LAST, id",
+}
+DEFAULT_SORT_SQL = "is_live DESC, starts_at NULLS LAST, fetched_at DESC, id"
+
+COUNT_SEARCH_SQL = "SELECT COUNT(*) FROM (" + SEARCH_BASE + ") AS c;"
 
 
 def search_breaks(conn, q=None, sport=None, format=None, max_price=None,
@@ -952,36 +965,36 @@ def search_breaks(conn, q=None, sport=None, format=None, max_price=None,
                   auction_only=None, limit=None, offset=None):
     # Brian 2026-10-07: eBay team-by-team dedup now happens in SQL
     # (ROW_NUMBER window fn), so LIMIT applies after grouping.
-    # Brian 2026-10-07: eBay team-by-team dedup now happens in SQL
-    # (ROW_NUMBER window fn), so LIMIT applies after grouping.
-    out = [
-        dict(r) for r in conn.execute(SEARCH_SQL, {
-            "q": q, "sport": sport, "format": format, "max_price": max_price,
-            "source": source, "live_only": live_only, "region": region,
-            "auction_only": auction_only,
-        }).fetchall()
-    ]
-    # Sort (Brian 2026-10-06)
-    if sort == "soonest":
-        out.sort(key=lambda r: (r.get("starts_at") is None, r.get("starts_at")))
-    elif sort == "price_low":
-        out.sort(key=lambda r: (r.get("price") is None, r.get("price")))
-    elif sort == "price_high":
-        out.sort(key=lambda r: (r.get("price") is None, -(r.get("price") or 0)))
-    elif sort == "newest":
-        out.sort(key=lambda r: r.get("id", 0), reverse=True)
-    elif sort == "live":
-        out.sort(key=lambda r: (not r.get("is_live"), r.get("starts_at") is None, r.get("starts_at")))
-    elif sort == "ending":
-        # Auctions ending soonest first; non-auctions keep their relative order after.
-        out.sort(key=lambda r: (r.get("auction_ends_at") is None, r.get("auction_ends_at")))
-    # Default ("recommended"): keep SQL order (live first, soonest, newest)
-    # Pagination (Brian 2026-10-07): applied after sorting so pages are stable.
-    if offset:
-        out = out[offset:]
+    # Brian 2026-10-08: sorting + pagination in SQL (were Python-side with a
+    # hardcoded LIMIT 2000 that capped the displayed total). The real total
+    # comes from count_search_breaks().
+    order_by = SORT_SQL.get(sort, DEFAULT_SORT_SQL)
+    sql = SEARCH_BASE + f"ORDER BY {order_by}"
+    params = {
+        "q": q, "sport": sport, "format": format, "max_price": max_price,
+        "source": source, "live_only": live_only, "region": region,
+        "auction_only": auction_only,
+    }
     if limit:
-        out = out[:limit]
-    return out
+        sql += " LIMIT %(limit)s"
+        params["limit"] = limit
+    if offset:
+        sql += " OFFSET %(offset)s"
+        params["offset"] = offset
+    sql += ";"
+    return [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+
+def count_search_breaks(conn, q=None, sport=None, format=None, max_price=None,
+                        source=None, live_only=None, region=None,
+                        auction_only=None):
+    """Real result total for the current filters (Brian 2026-10-08) —
+    same filters + grouping as search_breaks, but just a COUNT."""
+    return conn.execute(COUNT_SEARCH_SQL, {
+        "q": q, "sport": sport, "format": format, "max_price": max_price,
+        "source": source, "live_only": live_only, "region": region,
+        "auction_only": auction_only,
+    }).fetchone()["count"]
 
 
 def get_break(conn, break_id: int):
