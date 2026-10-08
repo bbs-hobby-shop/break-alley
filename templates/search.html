@@ -78,6 +78,8 @@
   .tag.breaker-tag { font-size: .95rem; font-weight: 700; color: #fff;
     padding: .55rem 1.1rem; display: inline-flex; align-items: center;
     justify-content: center; line-height: 1.2; }
+  a.tag.breaker-tag { text-decoration: none; cursor: pointer; }
+  a.tag.breaker-tag:hover { background: rgba(255,255,255,.14); }
   /* Breaker name + follow button stay glued as one unit (Brian 2026-10-07):
      the group never splits across lines, items are vertically centered. */
   .breaker-group { display: inline-flex; align-items: center; gap: .35rem;
@@ -90,6 +92,11 @@
   .hero h2 { margin: 0 0 .4rem; font-size: clamp(.9rem, 3.9vw, 2rem); font-weight: 900; letter-spacing: -.5px; white-space: nowrap; }
   .hero h2 em { font-style: normal; color: var(--green); }
   .hero p { margin: 0 0 1.4rem; color: var(--muted); }
+  /* Breaker page hero (Brian 2026-10-07) */
+  .breaker-hero { max-width: 1080px; margin: 0 auto 1rem; padding: 1.5rem 1.5rem 0; }
+  .breaker-hero .back { color: var(--muted); text-decoration: none; font-size: .85rem; }
+  .breaker-hero h2 { margin: .4rem 0 .2rem; font-size: 1.6rem; font-weight: 900; letter-spacing: -.3px; }
+  .breaker-hero p { margin: 0; color: var(--muted); font-size: .92rem; }
   /* Release calendar (Idea 2026-10-07): upcoming card drops buyers can see */
   .releases { max-width: 1080px; margin: 1.2rem auto 0; padding: 0 1.5rem; }
   .releases-inner { background: linear-gradient(135deg, rgba(0,230,118,.08), rgba(0,230,118,.02));
@@ -273,6 +280,13 @@
 
 <main>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  {% if breaker_page %}
+  <div class="breaker-hero">
+    <a class="back" href="/" onclick="if (history.length > 1) { history.back(); return false; }">← Back</a>
+    <h2>{{ breaker_page }}</h2>
+    <p>{{ results|length }} live &amp; upcoming break{{ 's' if results|length != 1 }}</p>
+  </div>
+  {% endif %}
   <div class="section-label">
     <span>Breaks <span class="res-count">{{ results|length }} result{{ 's' if results|length != 1 }} found</span></span>
     <form method="get" action="/" class="sort-wrap">
@@ -334,7 +348,7 @@
             {% if not b.date_label and b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
             {# Brian 2026-10-07: break number, platform, and format tags removed — #}
             {# only LIVE / AUCTION / countdown / start-time tags show on cards. #}
-            {% if b.breaker %}<span class="breaker-group"><span class="tag breaker-tag">{{ b.breaker }}</span>{% if user %}<form class="follow-form" method="post" action="/favorites/toggle" style="display:inline-flex">
+            {% if b.breaker %}<span class="breaker-group"><a class="tag breaker-tag breaker-link" href="/breaker/{{ b.breaker|urlencode }}">{{ b.breaker }}</a>{% if user %}<form class="follow-form" method="post" action="/favorites/toggle" style="display:inline-flex">
               <input type="hidden" name="breaker" value="{{ b.breaker }}">
               <input type="hidden" name="next" value="/?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
               <button class="follow-btn {% if b.breaker in favorites %}following{% endif %}" type="submit" title="{% if b.breaker in favorites %}Unfollow {{ b.breaker }}{% else %}Follow {{ b.breaker }}{% endif %}">{% if b.breaker in favorites %}✓{% else %}+{% endif %}</button>

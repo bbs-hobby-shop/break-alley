@@ -137,6 +137,38 @@ def search(
     })
 
 
+@app.get("/breaker/{breaker_name}", response_class=HTMLResponse)
+def breaker_page(request: Request, breaker_name: str):
+    """Brian 2026-10-07: tapping a breaker's name shows all their current
+    and upcoming breaks. Reuses the search template + card UI."""
+    import urllib.parse
+    breaker = urllib.parse.unquote(breaker_name)
+    user = auth.get_current_user(request)
+    favorites: set[str] = set()
+    saved_ids: set[int] = set()
+    try:
+        with db.get_conn() as conn:
+            results = [_enrich(dict(r)) for r in
+                       db.breaks_for_breakers(conn, [breaker], limit=200)]
+            if user:
+                favorites = db.favorite_breakers(conn, user["id"])
+                saved_ids = db.saved_listing_ids(conn, user["id"])
+        error = None
+    except Exception as exc:
+        results, error = [], f"Database unavailable: {exc}"
+    return templates.TemplateResponse(request, "search.html", {
+        "results": results, "error": error,
+        "q": "", "format": "", "max_price": "", "source": "", "live": False,
+        "region": "", "sort": "", "auctions": False, "suggested": "",
+        "user": user, "favorites": favorites, "saved_ids": saved_ids,
+        "refresh_running": False, "updated_ago": "",
+        "upcoming_releases": [],
+        "breaker_page": breaker,
+        "formats": ["pyt", "random", "personal", "case_break", "box_break"],
+        "format_labels": FORMAT_LABELS,
+    })
+
+
 @app.get("/go/{break_id}")
 def go_outbound(request: Request, break_id: int, dest: str = Query(default="")):
     """Outbound click tracker (Brian 2026-10-07): logs the click for sales
