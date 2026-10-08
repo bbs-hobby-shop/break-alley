@@ -33,9 +33,12 @@ SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 # pagination across 16 queries/run risks the whole run (2026-10-08 11:30).
 MAX_PAGES = 5
 
-# Brian 2026-10-08: eBay throttles us intermittently at 1s pacing.
-# 2s between page fetches keeps us under their burst limit.
-PAGE_DELAY = 2.0  # seconds between paginated page fetches
+# Brian 2026-10-08: eBay throttles us intermittently. Every Browse API
+# call is paced — no bursts, ever. (The 10:45 burst that started this came
+# from paginated pages firing with zero delay; the 12:00 failure showed
+# that spacing only the paginated pages wasn't enough because the 16
+# page-0 queries still went out back-to-back.)
+API_PACING = 1.0  # seconds before every Browse API call
 
 
 class EbayThrottled(Exception):
@@ -45,16 +48,16 @@ class EbayThrottled(Exception):
 def _browse_get(params: dict, token: str):
     """GET the Browse API with one 429 retry.
 
-    Rate limits are transient: wait 5s and retry once. If still throttled,
-    raise EbayThrottled so the caller can trip its circuit breaker instead
-    of burning the whole 15-min run in backoff sleeps (2026-10-08: 35s of
-    retries x 16 queries = a 9-minute hung run that risked overlapping the
-    next cron).
+    Every call is preceded by API_PACING so we never burst — eBay throttles
+    bursts even when total daily volume is fine (2026-10-08). On 429, wait
+    5s and retry once; if still throttled, raise EbayThrottled so the caller
+    trips its circuit breaker instead of hanging the run.
     """
     headers = {
         "Authorization": f"Bearer {token}",
         "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
     }
+    time.sleep(API_PACING)
     resp = httpx.get(SEARCH_URL, params=params, headers=headers, timeout=30)
     if resp.status_code == 429:
         print("ebay: 429 rate-limited — waiting 5s and retrying once",
@@ -136,12 +139,10 @@ def search_items(query: str, token: str, limit: int = 200,
     all_items: list[dict] = []
     offset = 0
     for page in range(MAX_PAGES):
-        if page > 0:
-            time.sleep(PAGE_DELAY)  # don't burst-throttle eBay (429)
         params = {"q": query, "limit": page_size, "offset": offset}
         if filter_str:
             params["filter"] = filter_str
-        data = _browse_get(params, token).json()
+        data = _browse_get(params, token).json()  # paced inside _browse_get
         items = data.get("itemSummaries", []) or []
         all_items.extend(items)
         total = data.get("total", 0) or 0
