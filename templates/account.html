@@ -77,11 +77,6 @@
   <form method="post" action="/logout" style="display:inline"><button class="link" type="submit">Sign out</button></form>
 </header>
 <main>
-  <div class="pagenav">
-    <a href="/my-breaks">My Breaks</a>
-    <a href="/account" class="active">Account Settings</a>
-  </div>
-
   <h1>Account Settings</h1>
   <p class="sub">{{ user.email }} · member since {{ user.created_at.strftime('%B %d, %Y') if user.created_at else '—' }}</p>
 
