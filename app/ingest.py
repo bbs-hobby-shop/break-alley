@@ -225,6 +225,7 @@ def run_ebay() -> int:
     # Fresh connection: the upsert block's conn is closed by now, and the
     # long poll run can also kill idle connections (2026-10-08: prune failed
     # every run with "the connection is closed", leaving ~2000 ended auctions).
+    prune_ok = True
     try:
         with db.get_conn() as prune_conn:
             pruned = db.prune_ended_ebay(prune_conn)
@@ -232,10 +233,15 @@ def run_ebay() -> int:
         if total:
             print(f"ebay: pruned ended/sold listings {pruned}")
     except Exception as e:
-        print(f"ebay prune failed (continuing): {e}")
+        prune_ok = False
+        print(f"ebay PRUNE FAILED: {e}", file=sys.stderr)
     if n == 0 and n_err > 0:
         # Every listing failed: something systemic is wrong -- mark the run
         # failed in the Render dashboard instead of exiting 0 on a stale site.
+        return 1
+    if not prune_ok:
+        # Brian 2026-10-08: a dead prune must NEVER fail silently again.
+        # Mark the run failed so the dashboard shows it red.
         return 1
     return 0
 
