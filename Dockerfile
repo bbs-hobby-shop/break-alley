@@ -23,4 +23,4 @@ ENV PORT=8000
 # Brian 2026-10-07: psql must never block uvicorn startup. If the DB is
 # unreachable, log it and start anyway — a 502 from no port is worse than
 # a 500 from no DB.
-CMD sh -c 'timeout 15 psql "$DATABASE_URL" -f schema.sql 2>&1 | head -20; exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT"'
+CMD sh -c 'timeout 30 psql "$DATABASE_URL" -f schema.sql >/tmp/schema.log 2>&1 || echo "schema init failed, see /tmp/schema.log"; exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT"'
