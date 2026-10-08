@@ -38,8 +38,12 @@ def check(name, passed, detail=""):
 
 
 def get_db():
-    from . import db
-    return db.get_conn()
+    # NOTE: db.get_conn() returns DICT rows, but this module was written
+    # with tuple indexing (row[0]). Use a plain tuple-row connection here.
+    # (2026-10-08: dict-row KeyError(0) made every DB check fail with "0".)
+    import psycopg
+    from . import config
+    return psycopg.connect(config.DATABASE_URL)
 
 
 def check_pollers():
@@ -316,9 +320,12 @@ def check_ui_controls():
                 issues.append(f"select '{name}' is not inside a form")
             if nopts < 2:
                 issues.append(f"select '{name}' has only {nopts} option(s)")
-        for text, in_form, _ in p.buttons:
-            if not in_form:
-                issues.append(f"button '{text}' is not inside a form")
+        for text, in_form, has_handler in p.buttons:
+            # Buttons outside a form are fine when JS-wired (onclick/data-*)
+            # — e.g. the custom bottom-sheet dropdown options (2026-10-08).
+            if not in_form and not has_handler:
+                issues.append(f"button '{text}' is not inside a form"
+                              " and has no JS handler")
         for href, text in p.links:
             if not href or href == "#":
                 issues.append(f"link '{text}' has empty/dead href")
