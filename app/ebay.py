@@ -15,6 +15,7 @@ No live calls are made by this module on import. Call run_ebay_ingest()
 explicitly (see ingest.py).
 """
 import base64
+import sys
 import time
 import urllib.parse
 
