@@ -145,6 +145,25 @@
   </div>
 
   <div class="card">
+    <h2>★ Saved breaks ({{ saved_listings|length }})</h2>
+    {% if saved_listings %}
+    <div class="chips">
+      {% for s in saved_listings %}
+      <span class="chip"><a href="/break/{{ s.id }}">{{ s.title_raw[:50] }}</a>
+        <form method="post" action="/saved-listings/toggle">
+          <input type="hidden" name="break_id" value="{{ s.id }}">
+          <input type="hidden" name="next" value="/account">
+          <button type="submit" title="Remove">×</button>
+        </form>
+      </span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">No saved breaks yet — tap ★ on any listing to save it. <a href="/">Find breaks →</a></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
     <h2>★ Favorite breakers ({{ favorites|length }})</h2>
     {% if favorites %}
     <div class="chips">
@@ -159,7 +178,7 @@
       {% endfor %}
     </div>
     {% else %}
-    <div class="empty">No favorites yet — tap ★ on any break to follow that breaker. <a href="/">Find breaks →</a></div>
+    <div class="empty">No favorites yet — tap + next to a breaker's name to follow them. <a href="/">Find breaks →</a></div>
     {% endif %}
   </div>
 

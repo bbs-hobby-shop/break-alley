@@ -85,6 +85,7 @@ def search(
     source = source or None
     user = auth.get_current_user(request)
     favorites: set[str] = set()
+    saved_ids: set[int] = set()
     try:
         with db.get_conn() as conn:
             results = [
@@ -97,6 +98,7 @@ def search(
             ]
             if user:
                 favorites = db.favorite_breakers(conn, user["id"])
+                saved_ids = db.saved_listing_ids(conn, user["id"])
             updated_ago = _ago(db.last_data_update(conn))
         error = None
     except Exception as exc:  # DB not up / not migrated yet
@@ -108,7 +110,7 @@ def search(
         "max_price": max_price or "", "source": source or "", "live": live,
         "region": region or "", "sort": sort or "", "auctions": auctions,
         "suggested": suggested or "",
-        "user": user, "favorites": favorites,
+        "user": user, "favorites": favorites, "saved_ids": saved_ids,
         "refresh_running": _public_refresh_running(),
         "updated_ago": updated_ago,
         "formats": ["pyt", "random", "personal", "case_break", "box_break"],
@@ -662,12 +664,14 @@ def account(request: Request, notice: str | None = Query(default=None)):
             live = [_enrich(r) for r in
                     db.breaks_for_breakers(conn, [f["breaker"] for f in favs])]
             searches = db.list_saved_searches(conn, user["id"])
+            saved_listings = [_enrich(dict(r)) for r in
+                              db.list_saved_listings(conn, user["id"])]
         error = None
     except Exception as exc:
-        favs, live, searches, error = [], [], [], f"Database unavailable: {exc}"
+        favs, live, searches, saved_listings, error = [], [], [], [], f"Database unavailable: {exc}"
     return templates.TemplateResponse(request, "account.html", {
         "user": user, "favorites": favs, "live": live,
-        "searches": searches, "error": error,
+        "searches": searches, "saved_listings": saved_listings, "error": error,
         "notice": notices.get(notice or ""),
     })
 
@@ -680,11 +684,14 @@ def _account_error(request: Request, user: dict, msg: str):
             live = [_enrich(r) for r in
                     db.breaks_for_breakers(conn, [f["breaker"] for f in favs])]
             searches = db.list_saved_searches(conn, user["id"])
+            saved_listings = [_enrich(dict(r)) for r in
+                              db.list_saved_listings(conn, user["id"])]
     except Exception:
-        favs, live, searches = [], [], []
+        favs, live, searches, saved_listings = [], [], [], []
     return templates.TemplateResponse(request, "account.html", {
         "user": user, "favorites": favs, "live": live,
-        "searches": searches, "error": msg, "notice": "",
+        "searches": searches, "saved_listings": saved_listings,
+        "error": msg, "notice": "",
     })
 
 
@@ -783,6 +790,30 @@ def favorite_toggle(
                     db.remove_favorite(conn, user["id"], breaker)
                 else:
                     db.add_favorite(conn, user["id"], breaker)
+        except Exception:
+            pass
+    return RedirectResponse(dest, status_code=303)
+
+
+@app.post("/saved-listings/toggle")
+def saved_listing_toggle(
+    request: Request,
+    break_id: int = Form(default=0),
+    next: str = Form(default="/"),
+):
+    """Brian 2026-10-07: the star on a card saves THAT LISTING."""
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return RedirectResponse("/signup", status_code=303)
+    dest = next if next.startswith("/") and not next.startswith("//") else "/"
+    if break_id:
+        try:
+            with db.get_conn() as conn:
+                if break_id in db.saved_listing_ids(conn, user["id"]):
+                    db.unsave_listing(conn, user["id"], break_id)
+                else:
+                    db.save_listing(conn, user["id"], break_id)
         except Exception:
             pass
     return RedirectResponse(dest, status_code=303)

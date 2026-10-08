@@ -66,6 +66,13 @@
   .card-wrap { position: relative; min-width: 0; }
   .card-wrap .fav-form { position: absolute; right: .9rem; bottom: .65rem; margin: 0; }
   .card-wrap .fav-login { position: absolute; right: .9rem; bottom: .65rem; text-decoration: none; }
+  /* Breaker follow button (Brian 2026-10-07): separate from the listing star */
+  .follow-form { display: inline; }
+  .follow-btn { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 12px; color: var(--muted); cursor: pointer; font-size: .7rem;
+    font-weight: 700; line-height: 1; padding: .15rem .45rem; margin-left: .25rem;
+    vertical-align: middle; }
+  .follow-btn.following { color: var(--green); border-color: var(--green); }
   .hero { max-width: 1080px; margin: 0 auto; padding: 2.2rem 1.5rem 0; }
   .hero h2 { margin: 0 0 .4rem; font-size: clamp(.9rem, 3.9vw, 2rem); font-weight: 900; letter-spacing: -.5px; white-space: nowrap; }
   .hero h2 em { font-style: normal; color: var(--green); }
@@ -292,7 +299,14 @@
             {% if b.break_no %}<span class="tag">{{ b.break_no }}</span>{% endif %}
             <span class="tag">{{ b.source|title }}</span>
             {% if b.format and b.format != 'unknown' %}<span class="tag">{{ format_labels.get(b.format, b.format) }}</span>{% endif %}
-            {% if b.breaker %}<span class="tag">{{ b.breaker }}</span>{% endif %}
+            {% if b.breaker %}<span class="tag breaker-tag">{{ b.breaker }}</span>{% endif %}
+            {% if b.breaker and user %}
+            <form class="follow-form" method="post" action="/favorites/toggle" style="display:inline">
+              <input type="hidden" name="breaker" value="{{ b.breaker }}">
+              <input type="hidden" name="next" value="/?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
+              <button class="follow-btn {% if b.breaker in favorites %}following{% endif %}" type="submit" title="{% if b.breaker in favorites %}Unfollow {{ b.breaker }}{% else %}Follow {{ b.breaker }}{% endif %}">{% if b.breaker in favorites %}✓{% else %}+{% endif %}</button>
+            </form>
+            {% endif %}
             {% if b.group_count and b.group_count > 1 %}
               <span class="tag">{{ b.group_count }} teams</span>
             {% endif %}
@@ -306,17 +320,15 @@
           {% elif b.price %}<div class="price">${{ b.price }}</div><div class="per">per slot</div>{% endif %}
         </div>
       </a>
-      {% if b.breaker %}
-        {% if user %}
-        <form class="fav-form" method="post" action="/favorites/toggle">
-          <input type="hidden" name="breaker" value="{{ b.breaker }}">
+      {% if user %}
+        <form class="fav-form" method="post" action="/saved-listings/toggle">
+          <input type="hidden" name="break_id" value="{{ b.id }}">
           <input type="hidden" name="next" value="/?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
-          <button class="fav-btn {% if b.breaker in favorites %}faved{% endif %}" type="submit" title="{% if b.breaker in favorites %}Unfavorite {{ b.breaker }}{% else %}Favorite {{ b.breaker }}{% endif %}">★</button>
+          <button class="fav-btn {% if b.id in saved_ids %}faved{% endif %}" type="submit" title="{% if b.id in saved_ids %}Unsave this break{% else %}Save this break{% endif %}">★</button>
         </form>
         {% else %}
-        <a class="fav-btn fav-login" href="/signup" title="Sign up to favorite breakers">☆</a>
+        <a class="fav-btn fav-login" href="/signup" title="Sign up to save breaks">☆</a>
         {% endif %}
-      {% endif %}
       </div>
       {% endfor %}
     {% elif not error %}

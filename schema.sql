@@ -142,6 +142,14 @@ CREATE TABLE IF NOT EXISTS user_favorites (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, breaker)
 );
+-- Brian 2026-10-07: star on a listing saves THAT LISTING (not the breaker).
+-- Breaker follows stay in user_favorites via the separate follow button.
+CREATE TABLE IF NOT EXISTS saved_listings (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    break_id   INTEGER NOT NULL REFERENCES breaks(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, break_id)
+);
 CREATE TABLE IF NOT EXISTS saved_searches (
     id         SERIAL PRIMARY KEY,
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

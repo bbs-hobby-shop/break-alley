@@ -508,6 +508,40 @@ def favorite_breakers(conn, user_id: int) -> set[str]:
     return {r["breaker"] for r in list_favorites(conn, user_id)}
 
 
+# Saved listings (Brian 2026-10-07): the star on a card saves THAT LISTING.
+# Separate from breaker follows (user_favorites).
+def save_listing(conn, user_id: int, break_id: int) -> None:
+    conn.execute(
+        """INSERT INTO saved_listings (user_id, break_id)
+           VALUES (%(user_id)s, %(break_id)s)
+           ON CONFLICT (user_id, break_id) DO NOTHING""",
+        {"user_id": user_id, "break_id": break_id},
+    )
+
+
+def unsave_listing(conn, user_id: int, break_id: int) -> None:
+    conn.execute(
+        "DELETE FROM saved_listings WHERE user_id = %(user_id)s AND break_id = %(break_id)s",
+        {"user_id": user_id, "break_id": break_id},
+    )
+
+
+def saved_listing_ids(conn, user_id: int) -> set[int]:
+    return {r["break_id"] for r in conn.execute(
+        "SELECT break_id FROM saved_listings WHERE user_id = %(user_id)s",
+        {"user_id": user_id},
+    ).fetchall()}
+
+
+def list_saved_listings(conn, user_id: int) -> list[dict]:
+    return [dict(r) for r in conn.execute(
+        """SELECT b.*, s.created_at AS saved_at FROM saved_listings s
+           JOIN breaks b ON b.id = s.break_id
+           WHERE s.user_id = %(user_id)s ORDER BY s.created_at DESC""",
+        {"user_id": user_id},
+    ).fetchall()]
+
+
 def breaks_for_breakers(conn, breakers: list[str], limit: int = 100) -> list[dict]:
     """Live-first breaks from the given breaker names (for My Breakers)."""
     if not breakers:
