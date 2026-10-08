@@ -221,9 +221,13 @@ def run_ebay() -> int:
             n += 1
     print(f"upserted {n} normalized breaks ({n_video} new with video info)"
           + (f", {n_err} errors" if n_err else ""))
-    # Remove ended auctions, sold-out BIN, and vanished listings (Brian 2026-10-07)
+    # Remove ended auctions, sold-out BIN, and vanished listings (Brian 2026-10-07).
+    # Fresh connection: the upsert block's conn is closed by now, and the
+    # long poll run can also kill idle connections (2026-10-08: prune failed
+    # every run with "the connection is closed", leaving ~2000 ended auctions).
     try:
-        pruned = db.prune_ended_ebay(conn)
+        with db.get_conn() as prune_conn:
+            pruned = db.prune_ended_ebay(prune_conn)
         total = sum(pruned.values())
         if total:
             print(f"ebay: pruned ended/sold listings {pruned}")

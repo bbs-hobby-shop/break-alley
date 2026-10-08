@@ -409,8 +409,12 @@ def check_audit_patterns():
                     check(f"audit:{source} has listings", live + upcoming > 0,
                           f"{live + upcoming} total")
                 else:
-                    has_both = live > 0 and upcoming > 0
-                    check(f"audit:{source} live+upcoming coverage", has_both,
+                    # The regression this guards is live-ONLY polling (the old
+                    # Twitch schedule gap): the poller must capture scheduled/
+                    # upcoming content. Live count is time-of-day dependent
+                    # (0 live at 6 AM is normal), so only upcoming is required.
+                    # (2026-10-08: requiring live>0 false-alarmed on quiet mornings.)
+                    check(f"audit:{source} live+upcoming coverage", upcoming > 0,
                           f"{live} live, {upcoming} upcoming")
 
             # 2. No platform should be empty while its roster is populated
