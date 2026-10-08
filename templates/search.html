@@ -332,9 +332,8 @@
             {% if b.is_auction and b.auction_ends_at %}<span class="tag auction-timer" data-ends="{{ b.auction_ends_at }}">⏳ --</span>{% endif %}
             {% if b.date_label and not b.is_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
             {% if not b.date_label and b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
-            {% if b.break_no %}<span class="tag">{{ b.break_no }}</span>{% endif %}
-            <span class="tag">{{ b.source|title }}</span>
-            {% if b.format and b.format != 'unknown' %}<span class="tag">{{ format_labels.get(b.format, b.format) }}</span>{% endif %}
+            {# Brian 2026-10-07: break number, platform, and format tags removed — #}
+            {# only LIVE / AUCTION / countdown / start-time tags show on cards. #}
             {% if b.breaker %}<span class="breaker-group"><span class="tag breaker-tag">{{ b.breaker }}</span>{% if user %}<form class="follow-form" method="post" action="/favorites/toggle" style="display:inline-flex">
               <input type="hidden" name="breaker" value="{{ b.breaker }}">
               <input type="hidden" name="next" value="/?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
