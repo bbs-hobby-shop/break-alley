@@ -49,6 +49,10 @@
     <p>This page needs the admin key. If you're Brian, open your bookmarked link with <code>?key=...</code>.</p>
   </div>
 {% else %}
+  <div class="nav" style="margin-bottom:1.5rem">
+    <a href="/admin/stats?key={{ key }}" style="color:var(--green);font-size:.85rem;text-decoration:none;font-weight:700">📊 Sales stats →</a>
+    <a href="/" style="color:var(--muted);font-size:.85rem;text-decoration:none;margin-left:1.2rem">Homepage</a>
+  </div>
   <h1>Breaker <span>suggestions</span></h1>
   <p class="sub">Approve adds the channel to the YouTube roster (checked every 6 hours). Nothing goes live until you approve it here.</p>
 
