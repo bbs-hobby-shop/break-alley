@@ -95,10 +95,23 @@
   .hero h2 em { font-style: normal; color: var(--green); }
   .hero p { margin: 0 0 1.4rem; color: var(--muted); }
   /* Breaker page hero (Brian 2026-10-07) */
-  .breaker-hero { max-width: 1080px; margin: 0 auto 1rem; padding: 1.5rem 1.5rem 0; }
+  .breaker-hero { max-width: 1080px; margin: 0 auto 1.2rem; padding: 1.5rem 1.5rem 0; }
   .breaker-hero .back { color: var(--muted); text-decoration: none; font-size: .85rem; }
-  .breaker-hero h2 { margin: .4rem 0 .2rem; font-size: 1.6rem; font-weight: 900; letter-spacing: -.3px; }
-  .breaker-hero p { margin: 0; color: var(--muted); font-size: .92rem; }
+  .breaker-hero .back:hover { color: var(--text); }
+  .breaker-hero-row { display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; margin-top: .5rem; flex-wrap: wrap; }
+  .breaker-hero h2 { margin: 0 0 .5rem; font-size: 1.7rem; font-weight: 900; letter-spacing: -.3px; }
+  .breaker-stats { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .bstat { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem;
+    font-weight: 700; color: var(--muted); background: rgba(255,255,255,.06);
+    border-radius: 20px; padding: .35rem .85rem; }
+  .bstat.live { color: #fff; background: var(--red); }
+  .bstat.live i { width: 8px; height: 8px; border-radius: 50%; background: #fff;
+    animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  .hero-follow { margin: 0; }
+  .hero-follow-btn { width: auto; height: auto; border-radius: 999px;
+    padding: .7rem 1.4rem; font-size: 1rem; }
   /* Release calendar (Idea 2026-10-07): upcoming card drops buyers can see */
   .releases { max-width: 1080px; margin: 1.2rem auto 0; padding: 0 1.5rem; }
   .releases-inner { background: linear-gradient(135deg, rgba(0,230,118,.08), rgba(0,230,118,.02));
@@ -283,12 +296,31 @@
 <main>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   {% if breaker_page %}
+  {% set live_count = results|selectattr('is_live')|list|length %}
+  {% set upcoming_count = results|length - live_count %}
+  {% set is_following = breaker_page in favorites %}
   <div class="breaker-hero">
     <a class="back" href="/" onclick="if (history.length > 1) { history.back(); return false; }">← Back</a>
-    <h2>{{ breaker_page }}</h2>
-    <p>{{ results|length }} live &amp; upcoming break{{ 's' if results|length != 1 }}</p>
+    <div class="breaker-hero-row">
+      <div>
+        <h2>{{ breaker_page }}</h2>
+        <div class="breaker-stats">
+          {% if live_count %}<span class="bstat live"><i></i>{{ live_count }} live now</span>{% endif %}
+          {% if upcoming_count %}<span class="bstat">{{ upcoming_count }} upcoming</span>{% endif %}
+          {% if not results|length %}<span class="bstat">No current breaks</span>{% endif %}
+        </div>
+      </div>
+      {% if user %}
+      <form class="follow-form hero-follow" method="post" action="/favorites/toggle">
+        <input type="hidden" name="breaker" value="{{ breaker_page }}">
+        <input type="hidden" name="next" value="/breaker/{{ breaker_page|urlencode }}">
+        <button class="follow-btn hero-follow-btn {% if is_following %}following{% endif %}" type="submit">{% if is_following %}✓ Following{% else %}+ Follow{% endif %}</button>
+      </form>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
+  {% if not breaker_page %}
   <div class="section-label">
     <span>Breaks <span class="res-count">{{ results|length }} result{{ 's' if results|length != 1 }} found</span></span>
     <form method="get" action="/" class="sort-wrap">
@@ -311,6 +343,8 @@
       </select>
     </form>
   </div>
+  {% endif %}
+  {% if not breaker_page %}
   <div class="refreshbar">
     <form method="post" action="/refresh">
       <input type="hidden" name="q" value="{{ q }}">
@@ -329,6 +363,7 @@
     <span class="updated">Updated {{ updated_ago }}</span>
     {% if refresh_running %}<span class="updated">— checking for new breaks, this page will update automatically…</span>{% endif %}
   </div>
+  {% endif %}
   <div class="grid">
     {% if results %}
       {% for b in results %}
@@ -423,16 +458,21 @@
   document.querySelectorAll('.follow-form').forEach(function(form) {
     var btn = form.querySelector('.follow-btn');
     if (!btn) return;
+    var isHero = btn.classList.contains('hero-follow-btn');
     var wasFollowing = btn.classList.contains('following');
     ajaxToggle(form, btn,
       function() {  // optimistic: flip to the new state
         wasFollowing = btn.classList.contains('following');
         btn.classList.toggle('following', !wasFollowing);
-        btn.textContent = wasFollowing ? '+' : '✓';
+        btn.textContent = isHero
+          ? (wasFollowing ? '+ Follow' : '✓ Following')
+          : (wasFollowing ? '+' : '✓');
       },
       function() {  // server failed: flip back
         btn.classList.toggle('following', wasFollowing);
-        btn.textContent = wasFollowing ? '✓' : '+';
+        btn.textContent = isHero
+          ? (wasFollowing ? '✓ Following' : '+ Follow')
+          : (wasFollowing ? '✓' : '+');
       });
   });
 
