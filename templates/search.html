@@ -199,8 +199,9 @@
     padding: .9rem 1rem; border-radius: 10px; cursor: pointer; }
   .sheet button[data-value]:active { background: rgba(255,255,255,.08); }
   .sheet button[data-value].sel { color: var(--green); font-weight: 800; }
-  .live-toggle { display: flex; align-items: center; justify-content: center; gap: .5rem; font-size: .95rem; font-weight: 700; color: var(--muted); margin: .4rem 0 .8rem; cursor: pointer; }
+  .live-toggle { display: flex; align-items: center; justify-content: center; gap: .5rem; font-size: .95rem; font-weight: 700; color: var(--muted); margin: 0; cursor: pointer; }
   .live-toggle input { width: 1.1rem; height: 1.1rem; accent-color: var(--green); cursor: pointer; }
+  .toggle-row { display: flex; gap: 1.5rem; justify-content: center; margin: .4rem 0 .8rem; }
   .find-btn {
     width: 100%; padding: .95rem; font-size: 1.05rem; font-weight: 800; color: #04120a;
     background: var(--green); border: 0; border-radius: 12px; cursor: pointer; font-family: inherit;
@@ -378,8 +379,10 @@
       <button type="button" data-value="us">US only</button>
       <button type="button" data-value="intl">International</button>
     </template>
-    <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
-    <label class="live-toggle"><input type="checkbox" name="auctions" value="1" {% if auctions %}checked{% endif %}> 🔨 Auctions only</label>
+    <div class="toggle-row">
+      <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
+      <label class="live-toggle"><input type="checkbox" name="auctions" value="1" {% if auctions %}checked{% endif %}> 🔨 Auctions only</label>
+    </div>
     <button type="submit" class="find-btn">Find breaks</button>
   </form>
 </div>
