@@ -306,7 +306,8 @@ def fetch_all_break_streams() -> tuple[list[dict], int]:
         row = normalize_youtube_video(vid, candidates[vid], details.get(vid))
         if not (row and row.get("source_url")):
             continue
-        if not looks_like_real_break(row["title_raw"], row.get("format")):
+        if not looks_like_real_break(row["title_raw"], row.get("format"),
+                                       row.get("breaker")):
             n_non_break += 1
         elif is_upcoming_or_live(row):
             rows.append(row)

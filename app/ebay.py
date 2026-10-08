@@ -24,6 +24,11 @@ from . import config
 
 TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
 SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
+
+# Pagination safety cap per search_items query (Brian 2026-10-08): 10 pages
+# x 200 results = 2,000 results per query, far above any realistic
+# 10-seller batch, while bounding Browse API call volume.
+MAX_PAGES = 10
 OAUTH_SCOPE = "https://api.ebay.com/oauth/api_scope"
 MARKETPLACE = "EBAY_US"
 
@@ -66,7 +71,9 @@ def get_app_token() -> str:
 def search_items(query: str, token: str, limit: int = 200,
                  auction_only: bool = False,
                  sellers: list[str] | None = None) -> list[dict]:
-    """Run one Browse API item_summary search. Returns raw itemSummary dicts.
+    """Run one Browse API item_summary search, paginating through ALL pages.
+
+    Returns raw itemSummary dicts.
 
     auction_only=True adds filter=buyingOptions:{AUCTION} so the returned
     items are auctions by construction (robust even if buyingOptions is
@@ -75,27 +82,50 @@ def search_items(query: str, token: str, limit: int = 200,
     sellers=[...] adds filter=sellers:{a|b|c} for roster-direct searching
     (Brian 2026-10-07 audit: keyword-only search missed rostered sellers'
     listings that didn't use the exact keywords).
+
+    Brian 2026-10-08: paginate with offset — the old code took only the
+    first 200 results per 10-seller batch, silently truncating before the
+    break filter ran. MAX_PAGES bounds API usage (10 pages x 200 = 2,000
+    results per query, far above any realistic 10-seller batch).
     """
-    params = {"q": query, "limit": min(limit, 200)}
+    page_size = min(limit, 200)
     filters = []
     if auction_only:
         filters.append("buyingOptions:{AUCTION}")
     if sellers:
         sellers_str = "|".join(sellers)
         filters.append(f"sellers:{{{sellers_str}}}")
-    if filters:
-        params["filter"] = ",".join(filters)
-    resp = httpx.get(
-        SEARCH_URL,
-        params=params,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
-        },
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json().get("itemSummaries", []) or []
+    filter_str = ",".join(filters) if filters else None
+
+    all_items: list[dict] = []
+    offset = 0
+    for _ in range(MAX_PAGES):
+        params = {"q": query, "limit": page_size, "offset": offset}
+        if filter_str:
+            params["filter"] = filter_str
+        resp = httpx.get(
+            SEARCH_URL,
+            params=params,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        items = data.get("itemSummaries", []) or []
+        all_items.extend(items)
+        total = data.get("total", 0) or 0
+        # Stop when we've seen everything or the page came back short.
+        if len(all_items) >= total or len(items) < page_size:
+            break
+        offset += page_size
+    else:
+        print(f"ebay: hit MAX_PAGES ({MAX_PAGES}) for query={query!r} "
+              f"sellers={sellers} — results may be truncated",
+              file=sys.stderr)
+    return all_items
 
 
 def get_item(item_id: str, token: str) -> dict | None:

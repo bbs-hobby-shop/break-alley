@@ -234,7 +234,8 @@ def fetch_all_break_streams() -> tuple[list[dict], int]:
             continue  # went offline between search and enrichment
         row = normalize_twitch_channel(candidates[uid], stream)
         if row and row.get("source_url"):
-            if looks_like_real_break(row["title_raw"], row.get("format")):
+            if looks_like_real_break(row["title_raw"], row.get("format"),
+                                       row.get("breaker")):
                 rows.append(row)
             else:
                 n_dropped += 1

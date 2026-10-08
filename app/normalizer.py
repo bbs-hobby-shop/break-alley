@@ -74,6 +74,19 @@ STRONG_BREAK_SIGNALS = [
 ]
 
 
+# Gaming channels are never box-break channels — checked against the
+# channel/breaker name as well as the title (Brian 2026-10-08: a Roblox
+# "Ragdoll Break Live" stream slipped through on title alone).
+GAMING_WORDS = [
+    r"\broblox\b",
+    r"\bfortnite\b",
+    r"\bminecraft\b",
+    r"\bgta\b",
+    r"\bgameplay\b",
+    r"\bgaming\b",
+]
+
+
 # Title words that mark a video as NOT a buy-in break even when it
 # is a scheduled stream: recaps/vlogs/etc. TCG and non-sports breaks
 # (Pokemon, Yu-Gi-Oh, Magic, Lorcana...) are welcome as long as they are
@@ -127,6 +140,10 @@ NON_BREAK_TITLE_WORDS = [
     # Card lots/repacks — not box breaks
     r"\b\d+\s+card\s+lot\b",
     r"\bguaranteed\b.{0,20}\b(holo|rare|vmax|vstar)\b",
+    # Gaming streams — "break" in game titles/context, not box breaks (Brian 2026-10-08)
+    *GAMING_WORDS,
+    # Gossip/celebrity "breaks silence" — not a box break (Brian 2026-10-08)
+    r"\bbreak\s+(his|her|their|the)\s+silence\b",
 ]
 
 
@@ -144,7 +161,8 @@ BREAK_CONTEXT_WORDS = [
 ]
 
 
-def looks_like_real_break(title: str, fmt: str | None) -> bool:
+def looks_like_real_break(title: str, fmt: str | None,
+                          breaker: str | None = None) -> bool:
     """True for titles that read like actual buy-in break listings.
 
     Candidates are already live/upcoming streams matching break queries, so
@@ -156,10 +174,16 @@ def looks_like_real_break(title: str, fmt: str | None) -> bool:
     A detected break format wins over non-break words: product names like
     "Topps Museum Collection" contain the blocklisted word "collection"
     (Brian 2026-10-07 — was dropping 155 real Fanatics breaks).
+
+    Gaming channels are never box-break channels: when the breaker/channel
+    name is passed, gaming words in it also reject the row (Brian
+    2026-10-08 — a Roblox "Ragdoll Break Live" stream passed on title alone).
     """
     if fmt and fmt != "unknown":
         return True
     if any(re.search(p, title, re.IGNORECASE) for p in NON_BREAK_TITLE_WORDS):
+        return False
+    if breaker and any(re.search(p, breaker, re.IGNORECASE) for p in GAMING_WORDS):
         return False
     if any(re.search(p, title, re.IGNORECASE) for p in STRONG_BREAK_SIGNALS):
         return True

@@ -183,7 +183,8 @@ def fetch_roster_breaks(conn):
         row = normalize_twitch_channel(ch, s)
         if not (row and row.get("source_url")):
             continue
-        if looks_like_real_break(row["title_raw"], row.get("format")):
+        if looks_like_real_break(row["title_raw"], row.get("format"),
+                                 row.get("breaker")):
             rows.append(row)
             hit[login] = s.get("user_name") or login
             n_live += 1
@@ -207,16 +208,16 @@ def fetch_roster_breaks(conn):
         # Build a row like normalize_twitch_channel but for upcoming
         from .normalizer import detect_format, detect_sport, normalize_product
         fmt = detect_format(title)
-        if not looks_like_real_break(title, fmt):
-            n_dropped += 1
-            continue
-        url = f"https://www.twitch.tv/{login}"
-        # Find display name from channels
+        # Find display name from channels (needed for the gaming filter)
         display = login
         for ch in channels:
             if (ch["login"] or "").lower() == login:
                 display = ch.get("display_name") or login
                 break
+        if not looks_like_real_break(title, fmt, display):
+            n_dropped += 1
+            continue
+        url = f"https://www.twitch.tv/{login}"
         rows.append({
             "source": "twitch",
             "source_url": url,

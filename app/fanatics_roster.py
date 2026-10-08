@@ -146,7 +146,8 @@ def fetch_roster_breaks(conn):
         # Upcoming streams without a real start time are placeholders — skip
         if is_upcoming and not row.get("starts_at"):
             continue
-        if looks_like_real_break(row["title_raw"], row.get("format")):
+        if looks_like_real_break(row["title_raw"], row.get("format"),
+                                 row.get("breaker")):
             rows.append(row)
             hit[shop_id] = shop.get("name") or shop_id
             # stamp last_hit_at for productive shops

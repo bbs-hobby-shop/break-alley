@@ -982,9 +982,10 @@ def purge_junk_breaks(conn) -> int:
     doesn't support \\b word boundaries the same way Python does.
     """
     import re
-    from .normalizer import NON_BREAK_TITLE_WORDS
+    from .normalizer import NON_BREAK_TITLE_WORDS, GAMING_WORDS
     from .ebay import load_ebay_roster
     pattern = "|".join(f"(?:{p})" for p in NON_BREAK_TITLE_WORDS)
+    gaming_pattern = "|".join(f"(?:{p})" for p in GAMING_WORDS)
     roster = load_ebay_roster()
     rows = conn.execute("SELECT id, title_raw, breaker, source FROM breaks").fetchall()
     junk_ids = []
@@ -996,6 +997,9 @@ def purge_junk_breaks(conn) -> int:
         if source == "ebay" and roster and breaker.lower() not in roster:
             junk_ids.append(r["id"])
         elif title and re.search(pattern, title, re.IGNORECASE):
+            junk_ids.append(r["id"])
+        elif breaker and re.search(gaming_pattern, breaker, re.IGNORECASE):
+            # Gaming channels are never box-break channels (Brian 2026-10-08)
             junk_ids.append(r["id"])
         elif breaker and "test.live.us-seller" in breaker.lower():
             junk_ids.append(r["id"])
