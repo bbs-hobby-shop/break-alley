@@ -118,10 +118,13 @@
     border: 1px solid rgba(0,230,118,.25); border-radius: 14px; padding: .9rem 1.2rem; }
   .releases h3 { margin: 0 0 .5rem; font-size: .8rem; font-weight: 800; letter-spacing: 1.2px;
     text-transform: uppercase; color: var(--green); }
-  .releases ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem .9rem; }
-  .releases li { font-size: .88rem; color: var(--text); }
-  .releases li .rdate { color: var(--green); font-weight: 800; margin-right: .35rem;
-    font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .releases ul { list-style: none; margin: 0; padding: 0; display: flex;
+    flex-direction: column; gap: .45rem; }
+  .releases li { font-size: .88rem; color: var(--text); display: flex;
+    align-items: baseline; gap: .6rem; }
+  .releases li .rdate { color: var(--green); font-weight: 800;
+    font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 3.2rem; }
+  .releases li .rprods { color: var(--text); }
   .filters { margin: 0; }
   .searchrow { margin-bottom: .6rem; }
   .searchrow input {
@@ -285,8 +288,8 @@
   <div class="releases-inner">
     <h3>🗓 Upcoming releases</h3>
     <ul>
-      {% for r in upcoming_releases %}
-      <li><span class="rdate">{{ r.release_date.strftime('%b %d') }}</span>{{ r.product_name }}</li>
+      {% for rdate, items in upcoming_releases|groupby('release_date') %}
+      <li><span class="rdate">{{ rdate.strftime('%b %d') }}</span><span class="rprods">{{ items|map(attribute='product_name')|join(' · ') }}</span></li>
       {% endfor %}
     </ul>
   </div>
