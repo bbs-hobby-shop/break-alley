@@ -136,11 +136,52 @@
   }
   .searchrow input:focus { border-color: var(--green); }
   .filtergrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; align-items: center; margin-bottom: .6rem; }
-  .filtergrid select, .filtergrid input[type=number] {
+  .filtergrid .cselect-btn, .filtergrid .cfield input {
     background: var(--card); color: var(--text); border: 1px solid var(--line); width: 100%;
     border-radius: 10px; padding: .55rem .8rem; font-size: .9rem; font-family: inherit;
     box-sizing: border-box;
   }
+  /* Custom dropdowns (Brian 2026-10-07): native <select> was slow to open on
+     iOS, so filters use instant JS-driven bottom sheets instead. */
+  .cselect { position: relative; }
+  .cselect-btn { width: 100%; min-height: 48px; display: flex; align-items: center;
+    justify-content: space-between; gap: .5rem; background: var(--card);
+    color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+    padding: .55rem .8rem; font-size: .9rem; font-family: inherit; cursor: pointer;
+    box-sizing: border-box; }
+  .cselect-btn:active { background: rgba(255,255,255,.08); }
+  .cselect-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cselect-chev { color: var(--muted); font-size: 1.1rem; line-height: 1; }
+  .cselect.has-value .cselect-value { color: var(--green); font-weight: 700; }
+  .cfield { position: relative; }
+  .cfield-dollar { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-size: .9rem; pointer-events: none; }
+  .cfield input { width: 100%; min-height: 48px; background: var(--card); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: .55rem .8rem .55rem 1.7rem;
+    font-size: .9rem; font-family: inherit; box-sizing: border-box; }
+  .cfield input::placeholder { color: var(--muted); }
+  .searchrow { display: flex; gap: .5rem; align-items: stretch; }
+  .search-icon { display: none; }
+  .find-btn { flex: 0 0 auto; background: var(--green); color: #04120a; border: none;
+    border-radius: 10px; padding: 0 1.2rem; font-size: 1rem; font-weight: 800;
+    font-family: inherit; cursor: pointer; min-height: 48px; }
+  .find-btn:active { transform: scale(.97); }
+  /* Bottom sheet */
+  .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50;
+    opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+  .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 51; background: #141a2e;
+    border-radius: 18px 18px 0 0; padding: .6rem .6rem calc(.8rem + env(safe-area-inset-bottom));
+    transform: translateY(105%); transition: transform .22s ease; max-height: 70vh;
+    overflow-y: auto; }
+  .sheet.open { transform: translateY(0); }
+  .sheet-grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line);
+    margin: .2rem auto .6rem; }
+  .sheet button[data-value] { display: block; width: 100%; text-align: left; background: none;
+    border: none; color: var(--text); font-size: 1.05rem; font-family: inherit;
+    padding: .9rem 1rem; border-radius: 10px; cursor: pointer; }
+  .sheet button[data-value]:active { background: rgba(255,255,255,.08); }
+  .sheet button[data-value].sel { color: var(--green); font-weight: 800; }
   .live-toggle { display: flex; align-items: center; justify-content: center; gap: .5rem; font-size: .95rem; font-weight: 700; color: var(--muted); margin: .4rem 0 .8rem; cursor: pointer; }
   .live-toggle input { width: 1.1rem; height: 1.1rem; accent-color: var(--green); cursor: pointer; }
   .find-btn {
@@ -155,6 +196,7 @@
   .sort-wrap { display: flex; align-items: center; gap: .5rem; text-transform: none; letter-spacing: 0; }
   .sort-wrap label { font-size: .75rem; font-weight: 700; color: var(--muted); }
   .sort-select { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .45rem .7rem; font-size: .85rem; font-weight: 600; font-family: inherit; cursor: pointer; }
+  .sort-cselect .cselect-btn { min-height: 0; width: auto; }
   .refreshbar { display: flex; align-items: center; gap: .8rem; margin: 0 0 .4rem; flex-wrap: wrap; }
   .refreshbar form { margin: 0; }
   .refresh-btn { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .45rem 1rem; font-weight: 700; cursor: pointer; font-size: .85rem; }
@@ -219,7 +261,7 @@
     main { padding: 0 1rem; }
     .searchrow input { font-size: 16px; padding: .8rem 1rem; }
     .filtergrid { grid-template-columns: 1fr 1fr; }
-    .filtergrid select, .filtergrid input[type=number] {
+    .filtergrid .cselect-btn, .filtergrid .cfield input {
       font-size: 16px; padding: .7rem .8rem; width: 100%; min-height: 48px;
     }
     .section-label { margin: 1.1rem 0 .7rem; }
@@ -258,27 +300,54 @@
   <form class="filters" method="get" action="/">
     <input type="hidden" name="sort" value="{{ sort }}">
     <div class="searchrow">
-      <input type="text" name="q" value="{{ q }}" placeholder="Search breaks, products, or breakers…">
+      <span class="search-icon">🔍</span>
+      <input type="text" name="q" value="{{ q }}" placeholder="Search breaks, products, or breakers…" autocomplete="off">
+      <button type="submit" class="find-btn">Find breaks</button>
     </div>
     <div class="filtergrid">
-      <select name="format" aria-label="Break format">
-        <option value="">Any format</option>
-        {% for f in formats %}<option value="{{ f }}" {% if format == f %}selected{% endif %}>{{ format_labels[f] }}</option>{% endfor %}
-      </select>
-      <input type="number" name="max_price" value="{{ max_price }}" min="0" step="0.01" placeholder="Max $" aria-label="Max price">
-      <select name="source" aria-label="Platform">
-        <option value="">All platforms</option>
-        <option value="ebay" {% if source == 'ebay' %}selected{% endif %}>eBay</option>
-        <option value="youtube" {% if source == 'youtube' %}selected{% endif %}>YouTube</option>
-        <option value="twitch" {% if source == 'twitch' %}selected{% endif %}>Twitch</option>
-        <option value="fanatics" {% if source == 'fanatics' %}selected{% endif %}>Fanatics Live</option>
-      </select>
-      <select name="region" aria-label="Breaker region">
-        <option value="">All regions</option>
-        <option value="us" {% if region == 'us' %}selected{% endif %}>US only</option>
-        <option value="intl" {% if region == 'intl' %}selected{% endif %}>International</option>
-      </select>
+      <div class="cselect" data-name="format" data-label="Any format">
+        <input type="hidden" name="format" value="{{ format }}">
+        <button type="button" class="cselect-btn" aria-label="Break format">
+          <span class="cselect-value">{{ format_labels[format] if format else 'Any format' }}</span>
+          <span class="cselect-chev">⌄</span>
+        </button>
+      </div>
+      <div class="cfield">
+        <span class="cfield-dollar">$</span>
+        <input type="number" name="max_price" value="{{ max_price }}" min="0" step="0.01" placeholder="Max price" aria-label="Max price" inputmode="decimal">
+      </div>
+      <div class="cselect" data-name="source" data-label="All platforms">
+        <input type="hidden" name="source" value="{{ source }}">
+        <button type="button" class="cselect-btn" aria-label="Platform">
+          <span class="cselect-value">{{ {'ebay':'eBay','youtube':'YouTube','twitch':'Twitch','fanatics':'Fanatics Live'}[source] if source else 'All platforms' }}</span>
+          <span class="cselect-chev">⌄</span>
+        </button>
+      </div>
+      <div class="cselect" data-name="region" data-label="All regions">
+        <input type="hidden" name="region" value="{{ region }}">
+        <button type="button" class="cselect-btn" aria-label="Breaker region">
+          <span class="cselect-value">{{ {'us':'US only','intl':'International'}[region] if region else 'All regions' }}</span>
+          <span class="cselect-chev">⌄</span>
+        </button>
+      </div>
     </div>
+    <!-- option data for custom dropdowns (rendered by JS into the sheet) -->
+    <template id="cselect-opts-format">
+      <button type="button" data-value="">Any format</button>
+      {% for f in formats %}<button type="button" data-value="{{ f }}">{{ format_labels[f] }}</button>{% endfor %}
+    </template>
+    <template id="cselect-opts-source">
+      <button type="button" data-value="">All platforms</button>
+      <button type="button" data-value="ebay">eBay</button>
+      <button type="button" data-value="youtube">YouTube</button>
+      <button type="button" data-value="twitch">Twitch</button>
+      <button type="button" data-value="fanatics">Fanatics Live</button>
+    </template>
+    <template id="cselect-opts-region">
+      <button type="button" data-value="">All regions</button>
+      <button type="button" data-value="us">US only</button>
+      <button type="button" data-value="intl">International</button>
+    </template>
     <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
     <label class="live-toggle"><input type="checkbox" name="auctions" value="1" {% if auctions %}checked{% endif %}> 🔨 Auctions only</label>
     <button type="submit" class="find-btn">Find breaks</button>
@@ -336,17 +405,24 @@
       <input type="hidden" name="region" value="{{ region }}">
       {% if live %}<input type="hidden" name="live" value="1">{% endif %}
       {% if auctions %}<input type="hidden" name="auctions" value="1">{% endif %}
-      <label for="sort">Sort by</label>
-      <select name="sort" id="sort" class="sort-select" onchange="this.form.submit()">
-        <option value="" {% if not sort %}selected{% endif %}>Recommended</option>
-        <option value="soonest" {% if sort == 'soonest' %}selected{% endif %}>Starting soonest</option>
-        <option value="ending" {% if sort == 'ending' %}selected{% endif %}>Auction: ending soonest</option>
-        <option value="live" {% if sort == 'live' %}selected{% endif %}>Live first</option>
-        <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>Price: low to high</option>
-        <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>Price: high to low</option>
-        <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest listed</option>
-      </select>
+      <label>Sort by</label>
+      <div class="cselect sort-cselect" data-name="sortsel" data-label="Recommended" data-autosubmit="1">
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <button type="button" class="cselect-btn sort-select" aria-label="Sort results">
+          <span class="cselect-value">{{ {'soonest':'Starting soonest','ending':'Auction: ending soonest','live':'Live first','price_low':'Price: low to high','price_high':'Price: high to low','newest':'Newest listed'}[sort] if sort else 'Recommended' }}</span>
+          <span class="cselect-chev">⌄</span>
+        </button>
+      </div>
     </form>
+    <template id="cselect-opts-sortsel">
+      <button type="button" data-value="">Recommended</button>
+      <button type="button" data-value="soonest">Starting soonest</button>
+      <button type="button" data-value="ending">Auction: ending soonest</button>
+      <button type="button" data-value="live">Live first</button>
+      <button type="button" data-value="price_low">Price: low to high</button>
+      <button type="button" data-value="price_high">Price: high to low</button>
+      <button type="button" data-value="newest">Newest listed</button>
+    </template>
   </div>
   {% endif %}
   {% if not breaker_page %}
@@ -506,6 +582,70 @@
       if (e.key === 'Enter' || e.key === ' ') { go(e); }
     });
   });
+  // Custom dropdowns (Brian 2026-10-07): instant bottom sheets replacing
+  // native <select> (which was slow to open on iOS).
+  (function() {
+    // Build the shared sheet once
+    var backdrop = document.createElement('div');
+    backdrop.className = 'sheet-backdrop';
+    var sheet = document.createElement('div');
+    sheet.className = 'sheet';
+    sheet.innerHTML = '<div class="sheet-grab"></div><div class="sheet-opts"></div>';
+    document.body.appendChild(backdrop);
+    document.body.appendChild(sheet);
+    var optsBox = sheet.querySelector('.sheet-opts');
+    var active = null;
+
+    function close() {
+      backdrop.classList.remove('open');
+      sheet.classList.remove('open');
+      active = null;
+    }
+    backdrop.addEventListener('click', close);
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') close();
+    });
+
+    document.querySelectorAll('.cselect').forEach(function(sel) {
+      var name = sel.getAttribute('data-name');
+      var hidden = sel.querySelector('input[type=hidden]');
+      var btn = sel.querySelector('.cselect-btn');
+      var label = sel.querySelector('.cselect-value');
+      var tpl = document.getElementById('cselect-opts-' + name);
+
+      function sync() {
+        sel.classList.toggle('has-value', !!hidden.value);
+      }
+      sync();
+
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Populate sheet from the template
+        optsBox.innerHTML = '';
+        var frag = tpl.content.cloneNode(true);
+        optsBox.appendChild(frag);
+        var opts = optsBox.querySelectorAll('button[data-value]');
+        opts.forEach(function(o) {
+          o.classList.toggle('sel', o.getAttribute('data-value') === hidden.value);
+          o.addEventListener('click', function() {
+            hidden.value = o.getAttribute('data-value');
+            label.textContent = o.textContent;
+            sync();
+            close();
+            // Sort dropdown auto-submits like the old native select did
+            if (sel.getAttribute('data-autosubmit')) {
+              var form = sel.closest('form');
+              if (form) form.submit();
+            }
+          });
+        });
+        active = sel;
+        backdrop.classList.add('open');
+        sheet.classList.add('open');
+      });
+    });
+  })();
 })();
 </script>
 <script>
