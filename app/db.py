@@ -560,7 +560,46 @@ def log_event(conn, event_type: str, user_id: int | None = None,
         pass
 
 
-# Analytics rollups (Brian 2026-10-07): sales metrics dashboard.
+# Release calendar (Idea 2026-10-07): card product releases that trigger the
+# extra YouTube roster pass. The pass reads dates from here — no hardcoded dates.
+def get_release_products(conn, release_date) -> list[str]:
+    """Product names releasing on a given date (for the release-night pass)."""
+    return [r["product_name"] for r in conn.execute(
+        "SELECT product_name FROM release_calendar WHERE release_date = %s ORDER BY product_name",
+        (release_date,),
+    ).fetchall()]
+
+
+def list_upcoming_releases(conn, days: int = 60) -> list[dict]:
+    """Releases from today forward (for the site display)."""
+    return [dict(r) for r in conn.execute(
+        """SELECT id, product_name, release_date, notes FROM release_calendar
+           WHERE release_date >= CURRENT_DATE
+           ORDER BY release_date, product_name LIMIT 50""",
+    ).fetchall()]
+
+
+def list_all_releases(conn) -> list[dict]:
+    """Full calendar for the admin page."""
+    return [dict(r) for r in conn.execute(
+        """SELECT id, product_name, release_date, notes FROM release_calendar
+           ORDER BY release_date DESC, product_name""",
+    ).fetchall()]
+
+
+def add_release(conn, product_name: str, release_date: str, notes: str | None = None) -> None:
+    conn.execute(
+        """INSERT INTO release_calendar (product_name, release_date, notes)
+           VALUES (%(name)s, %(date)s, %(notes)s)
+           ON CONFLICT (product_name, release_date) DO NOTHING""",
+        {"name": product_name.strip(), "date": release_date, "notes": (notes or "").strip() or None},
+    )
+
+
+def remove_release(conn, release_id: int) -> None:
+    conn.execute("DELETE FROM release_calendar WHERE id = %s", (release_id,))
+
+
 def analytics_overview(conn, days: int = 30) -> dict:
     """Top-level counts for the stats dashboard."""
     r = conn.execute(

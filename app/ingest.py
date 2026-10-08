@@ -419,20 +419,9 @@ def run_fanatics() -> int:
     return 0
 
 
-# Card release evenings with extra fetch passes (Idea 2026-10-06).
-# (month, day) in America/Chicago -> products releasing.
-RELEASE_NIGHTS = {
-    (10, 7): ["Topps Allen and Ginter Baseball",
-              "Topps Museum Collection Baseball"],
-    (10, 21): ["Upper Deck Stature Hockey",
-               "Panini Obsidian Football",
-               "Topps Heritage Football"],
-    (10, 22): ["Topps Flagship Basketball"],
-    (10, 28): ["Panini Donruss Football",
-               "Panini Crown Royale NWSL Soccer"],
-    (10, 30): ["Bowman U Best Football",
-               "Topps Inception Football"],
-}
+# Card release evenings with extra fetch passes (Idea 2026-10-06, calendar 2026-10-07).
+# Dates now live in the release_calendar table (editable via /admin) —
+# the pass reads from there, no hardcoded dates.
 
 
 def run_release_night() -> int:
@@ -446,7 +435,12 @@ def run_release_night() -> int:
     from zoneinfo import ZoneInfo
     from datetime import datetime
     today = datetime.now(ZoneInfo("America/Chicago")).date()
-    products = RELEASE_NIGHTS.get((today.month, today.day))
+    try:
+        with db.get_conn() as conn:
+            products = db.get_release_products(conn, today)
+    except Exception as exc:
+        print(f"release-night: database unavailable ({exc}) — skipping")
+        return 0
     if not products:
         print(f"release-night: {today} is not a release night — skipping")
         return 0

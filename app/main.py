@@ -100,6 +100,12 @@ def search(
                 favorites = db.favorite_breakers(conn, user["id"])
                 saved_ids = db.saved_listing_ids(conn, user["id"])
             updated_ago = _ago(db.last_data_update(conn))
+            # Release calendar (Idea 2026-10-07): upcoming card drops for the
+            # homepage banner. Never breaks the page if the table is missing.
+            try:
+                upcoming_releases = db.list_upcoming_releases(conn)
+            except Exception:
+                upcoming_releases = []
             # Brian 2026-10-07: track real searches (not plain homepage loads)
             # for demand analytics — what buyers are looking for.
             if q or format or source or max_price_val or live or auctions or sort or region:
@@ -115,6 +121,7 @@ def search(
     except Exception as exc:  # DB not up / not migrated yet
         results, error = [], f"Database unavailable: {exc}"
         updated_ago = "—"
+        upcoming_releases = []
     return templates.TemplateResponse(request, "search.html", {
         "results": results, "error": error,
         "q": q or "", "format": format or "",
@@ -124,6 +131,7 @@ def search(
         "user": user, "favorites": favorites, "saved_ids": saved_ids,
         "refresh_running": _public_refresh_running(),
         "updated_ago": updated_ago,
+        "upcoming_releases": upcoming_releases,
         "formats": ["pyt", "random", "personal", "case_break", "box_break"],
         "format_labels": FORMAT_LABELS,
     })
@@ -314,6 +322,62 @@ def admin_stats_export(
     return PlainTextResponse(buf.getvalue(), media_type="text/csv",
                              headers={"Content-Disposition":
                                       "attachment; filename=breaker-stats.csv"})
+
+
+@app.get("/admin/releases", response_class=HTMLResponse)
+def admin_releases(
+    request: Request,
+    key: str | None = Query(default=None),
+):
+    """Release calendar management (Idea 2026-10-07): add/remove release dates
+    without touching code or the cron schedule."""
+    if not _admin_key_ok(key):
+        return templates.TemplateResponse(request, "admin_releases.html", {
+            "denied": True, "key": key or "",
+        })
+    try:
+        with db.get_conn() as conn:
+            releases = db.list_all_releases(conn)
+        error = None
+    except Exception as exc:
+        releases, error = [], f"Database unavailable: {exc}"
+    from datetime import date
+    return templates.TemplateResponse(request, "admin_releases.html", {
+        "denied": False, "key": key or "", "releases": releases, "error": error,
+        "today": date.today().isoformat(),
+    })
+
+
+@app.post("/admin/releases/add")
+def admin_release_add(
+    key: str = Form(default=""),
+    product_name: str = Form(default=""),
+    release_date: str = Form(default=""),
+    notes: str = Form(default=""),
+):
+    if not _admin_key_ok(key):
+        return RedirectResponse("/admin/releases", status_code=303)
+    try:
+        with db.get_conn() as conn:
+            db.add_release(conn, product_name, release_date, notes)
+    except Exception:
+        pass
+    return RedirectResponse(f"/admin/releases?key={key}", status_code=303)
+
+
+@app.post("/admin/releases/{release_id}/remove")
+def admin_release_remove(
+    release_id: int,
+    key: str = Form(default=""),
+):
+    if not _admin_key_ok(key):
+        return RedirectResponse("/admin/releases", status_code=303)
+    try:
+        with db.get_conn() as conn:
+            db.remove_release(conn, release_id)
+    except Exception:
+        pass
+    return RedirectResponse(f"/admin/releases?key={key}", status_code=303)
 
 
 @app.post("/admin/suggestions/{suggestion_id}/approve")

@@ -191,6 +191,19 @@ CREATE INDEX IF NOT EXISTS idx_events_type_time ON analytics_events (event_type,
 CREATE INDEX IF NOT EXISTS idx_events_breaker ON analytics_events (breaker);
 CREATE INDEX IF NOT EXISTS idx_events_break_id ON analytics_events (break_id);
 
+-- Release calendar (Idea 2026-10-07): card product release dates that trigger
+-- the extra YouTube roster pass. Editable via /admin — no code changes needed
+-- to add/remove release nights. The pass reads from this table, not hardcoded dates.
+CREATE TABLE IF NOT EXISTS release_calendar (
+    id           SERIAL PRIMARY KEY,
+    product_name TEXT NOT NULL,
+    release_date DATE NOT NULL,
+    notes        TEXT,                     -- source/confirmation note
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (product_name, release_date)
+);
+CREATE INDEX IF NOT EXISTS idx_release_calendar_date ON release_calendar (release_date);
+
 -- Migrate check constraints on existing databases (idempotent).
 DO $$
 BEGIN

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release calendar — BreakAlley admin</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root {
+    --bg: #0a0e1c; --card: #151c38; --card2: #1a2242; --line: #26305c;
+    --text: #f2f4ff; --muted: #8b93b8; --green: #00e676; --red: #ff3b5c;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
+         color: var(--text); background: var(--bg); min-height: 100vh; }
+  main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { font-size: 1.5rem; font-weight: 900; margin: 0 0 .3rem; }
+  h1 span { color: var(--green); }
+  p.sub { color: var(--muted); margin: 0 0 1.6rem; }
+  .denied { text-align: center; padding: 4rem 1rem; color: var(--muted); }
+  .err { background: rgba(255,59,92,.12); border: 1px solid var(--red); border-radius: 10px;
+         padding: .8rem 1rem; margin-bottom: 1rem; font-size: .9rem; }
+  .nav { margin-bottom: 1.5rem; }
+  .nav a { color: var(--muted); font-size: .85rem; text-decoration: none; margin-right: 1.2rem; }
+  .nav a:hover { color: var(--text); }
+  .add { background: linear-gradient(180deg, var(--card2), var(--card));
+         border: 1px solid var(--line); border-radius: 12px; padding: 1.2rem;
+         margin-bottom: 1.5rem; }
+  .add h2, h2.sec { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 .8rem; }
+  h2.sec { margin: 2rem 0 .8rem; }
+  .add form { display: grid; grid-template-columns: 2fr 1fr; gap: .6rem; }
+  .add input { background: var(--bg); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: .55rem .8rem; font-size: .88rem; }
+  .add input[name=notes] { grid-column: 1 / -1; }
+  .btn { border: 0; border-radius: 8px; padding: .55rem 1.2rem; font-weight: 800;
+    cursor: pointer; font-size: .88rem; background: var(--green); color: #04120a;
+    grid-column: 1 / -1; }
+  .row { background: linear-gradient(180deg, var(--card2), var(--card));
+         border: 1px solid var(--line); border-radius: 12px; padding: .9rem 1.2rem;
+         margin-bottom: .6rem; display: flex; align-items: center; gap: 1rem; }
+  .row .date { color: var(--green); font-weight: 800; font-variant-numeric: tabular-nums;
+    min-width: 92px; }
+  .row .name { font-weight: 700; flex: 1; }
+  .row .notes { color: var(--muted); font-size: .8rem; flex-basis: 100%; margin-top: .2rem; }
+  .row .meta { display: flex; flex-wrap: wrap; flex: 1; gap: 0 .8rem; align-items: baseline; }
+  .row form { margin: 0; }
+  .btn.rm { background: transparent; color: var(--red); border: 1px solid var(--red);
+    padding: .4rem .8rem; font-size: .8rem; grid-column: auto; }
+  .empty { color: var(--muted); padding: 1rem 0; }
+  .past { opacity: .45; }
+</style>
+</head>
+<body>
+<main>
+{% if denied %}
+  <div class="denied">
+    <h1>Break <span>Alley</span> admin</h1>
+    <p>This page needs the admin key. If you're Brian, open your bookmarked link with <code>?key=...</code>.</p>
+  </div>
+{% else %}
+  <div class="nav">
+    <a href="/admin/suggestions?key={{ key }}">← Suggestions</a>
+    <a href="/admin/stats?key={{ key }}">📊 Sales stats</a>
+    <a href="/">Homepage</a>
+  </div>
+  <h1>Release <span>calendar</span></h1>
+  <p class="sub">Card product release dates. The extra YouTube pass fires on each of these evenings at 8 PM CT — no code changes needed.</p>
+
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+
+  <div class="add">
+    <h2>Add a release</h2>
+    <form method="post" action="/admin/releases/add">
+      <input type="hidden" name="key" value="{{ key }}">
+      <input type="text" name="product_name" placeholder="Product name (e.g. 2026 Topps Chrome Baseball)" required>
+      <input type="date" name="release_date" required>
+      <input type="text" name="notes" placeholder="Source/confirmation note (optional)">
+      <button type="submit" class="btn">Add release</button>
+    </form>
+  </div>
+
+  <h2 class="sec">Scheduled releases</h2>
+  {% if releases %}
+    {% for r in releases %}
+    <div class="row {% if r.release_date|string < today %}past{% endif %}">
+      <div class="meta">
+        <span class="date">{{ r.release_date.strftime('%b %d, %Y') }}</span>
+        <span class="name">{{ r.product_name }}</span>
+        {% if r.notes %}<span class="notes">{{ r.notes }}</span>{% endif %}
+      </div>
+      <form method="post" action="/admin/releases/{{ r.id }}/remove"
+            onsubmit="return confirm('Remove {{ r.product_name }} from the calendar?')">
+        <input type="hidden" name="key" value="{{ key }}">
+        <button type="submit" class="btn rm">Remove</button>
+      </form>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="empty">No releases scheduled yet.</div>
+  {% endif %}
+{% endif %}
+</main>
+</body>
+</html>
