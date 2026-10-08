@@ -119,11 +119,12 @@ services:
           name: break-alley-db
           property: connectionString
 
-  # ---- Release-night extra passes (Idea 2026-10-06) ----
-  # Runs daily at 01:00 UTC (8 PM CDT); the code no-ops except on the five
-  # October card release evenings (Oct 7, 21, 22, 28, 30), when it runs an
-  # extra YouTube roster pass (~107 API units). Attach the break-alley-shared
-  # env group on the dashboard for YOUTUBE_API_KEY (same as the roster cron).
+  # ---- Release-night extra passes (Idea 2026-10-06, calendar 2026-10-07) ----
+  # Runs daily at 01:00 UTC (8 PM CDT); the code reads release dates from the
+  # release_calendar table (editable at /admin/releases) and no-ops on other
+  # nights. On release nights it runs an extra YouTube roster pass
+  # (~107 API units). Attach the break-alley-shared env group on the dashboard
+  # for YOUTUBE_API_KEY (same as the roster cron).
   - type: cron
     name: break-alley-release-night
     runtime: docker
