@@ -783,15 +783,21 @@ def favorite_toggle(
         return RedirectResponse("/signup", status_code=303)
     breaker = (breaker or "").strip()
     dest = next if next.startswith("/") and not next.startswith("//") else "/"
+    following = None
     if breaker:
         try:
             with db.get_conn() as conn:
                 if breaker in db.favorite_breakers(conn, user["id"]):
                     db.remove_favorite(conn, user["id"], breaker)
+                    following = False
                 else:
                     db.add_favorite(conn, user["id"], breaker)
+                    following = True
         except Exception:
             pass
+    # Brian 2026-10-07: AJAX toggles get instant JSON; plain forms get the redirect.
+    if "application/json" in request.headers.get("accept", ""):
+        return {"ok": True, "breaker": breaker, "following": following}
     return RedirectResponse(dest, status_code=303)
 
 
@@ -807,15 +813,21 @@ def saved_listing_toggle(
     except _LoginRequired:
         return RedirectResponse("/signup", status_code=303)
     dest = next if next.startswith("/") and not next.startswith("//") else "/"
+    saved = None
     if break_id:
         try:
             with db.get_conn() as conn:
                 if break_id in db.saved_listing_ids(conn, user["id"]):
                     db.unsave_listing(conn, user["id"], break_id)
+                    saved = False
                 else:
                     db.save_listing(conn, user["id"], break_id)
+                    saved = True
         except Exception:
             pass
+    # Brian 2026-10-07: AJAX toggles get instant JSON; plain forms get the redirect.
+    if "application/json" in request.headers.get("accept", ""):
+        return {"ok": True, "break_id": break_id, "saved": saved}
     return RedirectResponse(dest, status_code=303)
 
 

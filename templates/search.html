@@ -69,12 +69,17 @@
   /* Breaker follow button (Brian 2026-10-07): separate from the listing star */
   .follow-form { display: inline; }
   .follow-btn { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
-    border-radius: 20px; color: #fff; cursor: pointer; font-size: 1rem;
+    border-radius: 20px; color: #fff; cursor: pointer; font-size: 1.35rem;
     font-weight: 700; line-height: 1; padding: .5rem .9rem; margin-left: .35rem;
-    vertical-align: middle; min-width: 44px; min-height: 44px; }
+    vertical-align: middle; min-width: 48px; min-height: 48px;
+    display: inline-flex; align-items: center; justify-content: center; }
   .follow-btn.following { color: var(--green); border-color: var(--green); }
-  .tag.breaker-tag { font-size: .92rem; font-weight: 700; color: #fff;
-    padding: .55rem 1rem; }
+  .tag.breaker-tag { font-size: .95rem; font-weight: 700; color: #fff;
+    padding: .55rem 1.1rem; display: inline-flex; align-items: center;
+    justify-content: center; line-height: 1.2; }
+  /* Listing save star (Brian 2026-10-07): bigger tap target */
+  .fav-btn { font-size: 1.6rem; min-width: 48px; min-height: 48px;
+    display: inline-flex; align-items: center; justify-content: center; }
   .hero { max-width: 1080px; margin: 0 auto; padding: 2.2rem 1.5rem 0; }
   .hero h2 { margin: 0 0 .4rem; font-size: clamp(.9rem, 3.9vw, 2rem); font-weight: 900; letter-spacing: -.5px; white-space: nowrap; }
   .hero h2 em { font-style: normal; color: var(--green); }
@@ -352,6 +357,58 @@
   </form>
   {% endif %}
 </section>
+<script>
+// Instant save/follow toggles (Brian 2026-10-07): optimistic UI via AJAX —
+// the button flips immediately, the server syncs in the background, and the
+// page never reloads (no scroll jump, no 2-3 second wait).
+(function() {
+  function ajaxToggle(form, btn, applyState, revertState) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      applyState();  // instant visual flip
+      var data = new FormData(form);
+      fetch(form.action, {
+        method: 'POST',
+        body: new URLSearchParams(data),
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
+      }).then(function(r) { return r.json(); }).then(function(j) {
+        if (!j || !j.ok) { revertState(); }
+      }).catch(function() { revertState(); });
+    });
+  }
+
+  // Breaker follow buttons (+ / ✓)
+  document.querySelectorAll('.follow-form').forEach(function(form) {
+    var btn = form.querySelector('.follow-btn');
+    if (!btn) return;
+    var wasFollowing = btn.classList.contains('following');
+    ajaxToggle(form, btn,
+      function() {  // optimistic: flip to the new state
+        wasFollowing = btn.classList.contains('following');
+        btn.classList.toggle('following', !wasFollowing);
+        btn.textContent = wasFollowing ? '+' : '✓';
+      },
+      function() {  // server failed: flip back
+        btn.classList.toggle('following', wasFollowing);
+        btn.textContent = wasFollowing ? '✓' : '+';
+      });
+  });
+
+  // Listing save stars (★)
+  document.querySelectorAll('.fav-form').forEach(function(form) {
+    var btn = form.querySelector('.fav-btn');
+    if (!btn) return;
+    var wasSaved = btn.classList.contains('faved');
+    ajaxToggle(form, btn,
+      function() {
+        wasSaved = btn.classList.contains('faved');
+        btn.classList.toggle('faved', !wasSaved);
+      },
+      function() { btn.classList.toggle('faved', wasSaved); });
+  });
+})();
+</script>
 <script>
 // Auction countdown timers (Brian 2026-10-07): live ticking countdown on eBay auction cards.
 // When a countdown expires, the card is removed from the page immediately
