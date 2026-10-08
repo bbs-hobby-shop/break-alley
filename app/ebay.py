@@ -36,26 +36,31 @@ MAX_PAGES = 10
 PAGE_DELAY = 1.0  # seconds between paginated page fetches
 
 
-def _browse_get(params: dict, token: str, max_retries: int = 3):
-    """GET the Browse API with 429 backoff.
+class EbayThrottled(Exception):
+    """eBay is rate-limiting us (persistent 429)."""
 
-    Rate limits are transient: wait and retry instead of failing the whole
-    seller batch. After max_retries, raise so the caller's batch handler
-    logs it and continues with the other batches.
+
+def _browse_get(params: dict, token: str):
+    """GET the Browse API with one 429 retry.
+
+    Rate limits are transient: wait 5s and retry once. If still throttled,
+    raise EbayThrottled so the caller can trip its circuit breaker instead
+    of burning the whole 15-min run in backoff sleeps (2026-10-08: 35s of
+    retries x 16 queries = a 9-minute hung run that risked overlapping the
+    next cron).
     """
     headers = {
         "Authorization": f"Bearer {token}",
         "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
     }
-    for attempt in range(max_retries + 1):
+    resp = httpx.get(SEARCH_URL, params=params, headers=headers, timeout=30)
+    if resp.status_code == 429:
+        print("ebay: 429 rate-limited — waiting 5s and retrying once",
+              file=sys.stderr)
+        time.sleep(5)
         resp = httpx.get(SEARCH_URL, params=params, headers=headers, timeout=30)
-        if resp.status_code != 429:
-            resp.raise_for_status()
-            return resp
-        wait = 5 * (2 ** attempt)  # 5s, 10s, 20s
-        print(f"ebay: 429 rate-limited — waiting {wait}s "
-              f"(attempt {attempt + 1}/{max_retries + 1})", file=sys.stderr)
-        time.sleep(wait)
+        if resp.status_code == 429:
+            raise EbayThrottled("eBay rate limit (429) persisted after retry")
     resp.raise_for_status()
     return resp
 OAUTH_SCOPE = "https://api.ebay.com/oauth/api_scope"
@@ -197,27 +202,35 @@ def load_ebay_roster() -> set[str]:
     return {s for s in sellers if s}
 
 
-def fetch_all_break_listings() -> list[dict]:
-    """Search rostered sellers directly. Returns raw itemSummary dicts.
+def fetch_all_break_listings() -> tuple[list[dict], dict]:
+    """Search rostered sellers directly. Returns (raw itemSummary dicts, stats).
 
     Brian 2026-10-07: ROSTER-ONLY — no keyword searches outside the approved
     roster, on any platform. We search each approved seller directly via
     filter=sellers:{...} with a broad 'break' query (regular + auction
     variants). Nothing from outside the roster is ever queried.
+
+    Brian 2026-10-08: circuit breaker — if eBay throttles us (persistent
+    429), stop making API calls for the rest of the run instead of burning
+    it in retries. stats["throttled"] counts throttled batches so the
+    caller can fail the run visibly when no fresh data was fetched.
     """
     token = get_app_token()
     roster = load_ebay_roster()
     if not roster:
         print("ebay: roster is empty — add sellers to app/seed_ebay_sellers.txt.")
-        return []
+        return [], {"throttled": 0, "batches": 0}
     print(f"ebay: roster-only mode, {len(roster)} approved sellers")
 
     seen: dict[str, dict] = {}
     n_found = 0
+    n_throttled = 0
+    n_batches = 0
     sellers = sorted(roster)
     # eBay allows multiple sellers per filter; batch to stay under URL limits
     for i in range(0, len(sellers), 10):
         batch = sellers[i:i + 10]
+        n_batches += 1
         try:
             # Regular listings from these sellers
             for item in search_items("break", token, sellers=batch):
@@ -244,10 +257,18 @@ def fetch_all_break_listings() -> list[dict]:
                     item["_known_auction"] = True
                     seen[item_id] = item
                 n_found += 1
+        except EbayThrottled as exc:
+            # Circuit breaker: eBay is throttling us — more calls are futile.
+            # Stop fetching, keep what we have; the caller fails visibly if
+            # nothing fresh came in.
+            n_throttled += 1
+            print(f"ebay: throttled on batch {n_batches} ({exc}) — "
+                  f"stopping API calls for this run", file=sys.stderr)
+            break
         except Exception as exc:
             print(f"ebay: seller batch failed ({exc}) — continuing",
                   file=sys.stderr)
             continue
     print(f"ebay: {n_found} listings from {len(sellers)} rostered sellers "
           f"(roster-only, no keyword search)")
-    return list(seen.values())
+    return list(seen.values()), {"throttled": n_throttled, "batches": n_batches}

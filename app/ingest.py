@@ -177,8 +177,15 @@ def run_ebay() -> int:
             print(f"ebay: checked {n_checked} breaks with start times, marked {n_live} as live")
     except Exception as e:
         print(f"ebay time backfill failed: {e}", file=sys.stderr)
-    items = ebay.fetch_all_break_listings()
+    items, fetch_stats = ebay.fetch_all_break_listings()
     print(f"fetched {len(items)} raw eBay listings")
+    if not items and fetch_stats["throttled"] > 0:
+        # eBay throttled us all run: no fresh data. Fail visibly so the
+        # dashboard shows it red and Brian hears about it — a silent exit 0
+        # would leave stale data with no alert (Brian 2026-10-08).
+        print("ebay: throttled (429) — no fresh listings this run",
+              file=sys.stderr)
+        return 1
     n = 0
     n_video = 0
     n_err = 0
