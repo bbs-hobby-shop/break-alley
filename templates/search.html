@@ -140,7 +140,7 @@
   }
   .searchrow input:focus { border-color: var(--green); }
   .filtergrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; align-items: center; margin-bottom: .6rem; }
-  .filtergrid .cselect-btn, .filtergrid .cfield-btn {
+  .filtergrid .cselect-btn, .filtergrid .cfield input {
     background: var(--card); color: var(--text); border: 1px solid var(--line); width: 100%;
     border-radius: 10px; padding: .55rem .8rem; font-size: .9rem; font-family: inherit;
     box-sizing: border-box;
@@ -158,50 +158,21 @@
   .cselect-chev { color: var(--muted); font-size: 1.1rem; line-height: 1; }
   .cselect.has-value .cselect-value { color: var(--green); font-weight: 700; }
   .cfield { position: relative; }
+  .cfield-dollar { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-size: .9rem; pointer-events: none; }
+  .cfield input { width: 100%; min-height: 48px; background: var(--card); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: .55rem .8rem .55rem 2.1rem;
+    font-size: .9rem; font-family: inherit; box-sizing: border-box; }
+  .cfield input::placeholder { color: var(--muted); }
+  .cfield input:focus { outline: none; border-color: var(--green); }
   .searchrow { display: flex; gap: .5rem; align-items: stretch; margin-bottom: .6rem; position: relative; }
-  .search-bar-btn { flex: 1; min-width: 0; display: flex; align-items: center;
-    justify-content: space-between; gap: .5rem; background: var(--card); color: var(--text);
-    border: 1px solid var(--line); border-radius: 10px; padding: .8rem 1rem;
-    font-size: 1rem; font-family: inherit; box-sizing: border-box; min-height: 48px;
-    cursor: pointer; text-align: left; }
-  .search-bar-btn:active { background: rgba(255,255,255,.06); }
-  .search-bar-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    color: var(--muted); }
-  .search-bar-text.has-q { color: var(--text); }
-  .search-icon { font-size: 1.2rem; opacity: .6; flex: 0 0 auto; }
-  /* Search overlay: minimal DOM so the iOS keyboard opens instantly */
-  .search-overlay { position: fixed; inset: 0; z-index: 60; background: var(--bg);
-    display: none; padding: calc(.8rem + env(safe-area-inset-top)) 1rem 1rem; }
-  .search-overlay.open { display: block; }
-  .search-overlay-bar { display: flex; gap: .5rem; align-items: center; }
-  .search-overlay-bar input { flex: 1; min-width: 0; background: var(--card); color: var(--text);
-    border: 1px solid var(--green); border-radius: 10px; padding: .8rem 1rem; font-size: 16px;
-    font-family: inherit; box-sizing: border-box; min-height: 48px; }
-  .search-overlay-bar input:focus { outline: none; }
-  .search-overlay-bar button { flex: 0 0 auto; background: var(--green); color: #04120a;
-    border: none; border-radius: 10px; padding: .8rem 1rem; font-size: 1rem; font-weight: 800;
-    font-family: inherit; cursor: pointer; min-height: 48px; }
-  .search-overlay-bar #searchOverlayCancel { background: var(--card2); color: var(--text); }
-  /* Max price as a tappable bar (opens the bottom sheet with a number input) */
-  .cfield-btn { width: 100%; min-height: 48px; display: flex; align-items: center; gap: .45rem;
-    background: var(--card); color: var(--text); border: 1px solid var(--line);
-    border-radius: 10px; padding: .55rem .8rem; font-size: .9rem; font-family: inherit;
-    cursor: pointer; box-sizing: border-box; text-align: left; }
-  .cfield-btn:active { background: rgba(255,255,255,.06); }
-  .cfield-btn .cfield-dollar { position: static; transform: none; color: var(--muted); }
-  .cfield-value { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cfield-btn.has-value .cfield-value { color: var(--green); font-weight: 700; }
-  .cfield-btn.has-value .cfield-dollar { color: var(--green); }
-  /* Max price sheet input */
-  .sheet .price-input { width: 100%; background: var(--card); color: var(--text);
-    border: 1px solid var(--green); border-radius: 10px; padding: .9rem 1rem; font-size: 16px;
-    font-family: inherit; box-sizing: border-box; margin-bottom: .6rem; }
-  .sheet .price-input:focus { outline: none; }
-  .sheet .price-done { width: 100%; background: var(--green); color: #04120a; border: none;
-    border-radius: 10px; padding: .9rem; font-size: 1.05rem; font-weight: 800;
-    font-family: inherit; cursor: pointer; }
-  .sheet .price-clear { width: 100%; background: none; border: none; color: var(--muted);
-    padding: .7rem; font-size: .95rem; font-family: inherit; cursor: pointer; }
+  .searchrow input { flex: 1; min-width: 0; background: var(--card); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: .8rem 2.8rem .8rem 1rem;
+    font-size: 1rem; font-family: inherit; box-sizing: border-box; min-height: 48px; }
+  .searchrow input::placeholder { color: var(--muted); }
+  .searchrow input:focus { outline: none; border-color: var(--green); }
+  .search-icon { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+    font-size: 1.2rem; pointer-events: none; opacity: .6; }
   /* Bottom sheet */
   .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50;
     opacity: 0; pointer-events: none; transition: opacity .18s ease; }
@@ -295,9 +266,9 @@
     .pills { padding: .9rem 0 .2rem; }
     .pills a { padding: .55rem 1rem; }
     main { padding: 0 1rem; }
-    .searchrow .search-bar-btn { font-size: 16px; }
+    .searchrow input { font-size: 16px; padding: .8rem 1rem; }
     .filtergrid { grid-template-columns: 1fr 1fr; }
-    .filtergrid .cselect-btn, .filtergrid .cfield-btn {
+    .filtergrid .cselect-btn, .filtergrid .cfield input {
       font-size: 16px; padding: .7rem .8rem; width: 100%; min-height: 48px;
     }
     .section-label { margin: 1.1rem 0 .7rem; }
@@ -336,22 +307,8 @@
   <form class="filters" method="get" action="/">
     <input type="hidden" name="sort" value="{{ sort }}">
     <div class="searchrow">
-      <button type="button" class="search-bar-btn" id="searchBarBtn" aria-label="Search">
-        <span class="search-bar-text" id="searchBarText">{{ q if q else 'Search breaks, products, or breakers…' }}</span>
-        <span class="search-icon">🔍</span>
-      </button>
-      <input type="hidden" name="q" id="qHidden" value="{{ q }}">
-    </div>
-    <!-- Search overlay: lightweight page for the keyboard (Brian 2026-10-07).
-         Focusing a text input on the 1,500-card page was extremely slow on iOS;
-         the keyboard now opens on this minimal overlay instead. -->
-    <div class="search-overlay" id="searchOverlay" aria-hidden="true">
-      <div class="search-overlay-bar">
-        <input type="text" id="searchOverlayInput" placeholder="Search breaks, products, or breakers…"
-               autocomplete="off" enterkeyhint="search" aria-label="Search">
-        <button type="button" id="searchOverlayGo">Search</button>
-        <button type="button" id="searchOverlayCancel">Cancel</button>
-      </div>
+      <input type="text" name="q" value="{{ q }}" placeholder="Search breaks, products, or breakers…" autocomplete="off" enterkeyhint="search">
+      <span class="search-icon">🔍</span>
     </div>
     <div class="filtergrid">
       <div class="cselect" data-name="format" data-label="Any format">
@@ -362,11 +319,8 @@
         </button>
       </div>
       <div class="cfield">
-        <button type="button" class="cfield-btn" id="maxPriceBtn" aria-label="Max price">
-          <span class="cfield-dollar">$</span>
-          <span class="cfield-value" id="maxPriceText">{{ max_price if max_price else 'Max price' }}</span>
-        </button>
-        <input type="hidden" name="max_price" id="maxPriceHidden" value="{{ max_price }}">
+        <span class="cfield-dollar">$</span>
+        <input type="number" name="max_price" value="{{ max_price }}" min="0" step="0.01" placeholder="Max price" aria-label="Max price" inputmode="decimal">
       </div>
       <div class="cselect" data-name="source" data-label="All platforms">
         <input type="hidden" name="source" value="{{ source }}">
@@ -697,98 +651,6 @@
         sheet.classList.add('open');
       });
     });
-  })();
-  // Custom search + max-price bars (Brian 2026-10-07): text inputs on the
-  // 1,500-card page were extremely slow on iOS (keyboard + full-page reflow).
-  // Tapping now opens a minimal overlay/sheet so the keyboard opens instantly.
-  (function() {
-    // --- Search overlay ---
-    var barBtn = document.getElementById('searchBarBtn');
-    var barText = document.getElementById('searchBarText');
-    var qHidden = document.getElementById('qHidden');
-    var overlay = document.getElementById('searchOverlay');
-    var ovInput = document.getElementById('searchOverlayInput');
-    var ovGo = document.getElementById('searchOverlayGo');
-    var ovCancel = document.getElementById('searchOverlayCancel');
-    if (barBtn && overlay) {
-      if (qHidden.value) barText.classList.add('has-q');
-      barBtn.addEventListener('click', function() {
-        ovInput.value = qHidden.value;
-        overlay.classList.add('open');
-        overlay.setAttribute('aria-hidden', 'false');
-        setTimeout(function() { ovInput.focus(); }, 60);
-      });
-      function closeOv() {
-        overlay.classList.remove('open');
-        overlay.setAttribute('aria-hidden', 'true');
-        ovInput.blur();
-      }
-      ovCancel.addEventListener('click', closeOv);
-      function submitSearch() {
-        qHidden.value = ovInput.value.trim();
-        closeOv();
-        barBtn.closest('form').submit();
-      }
-      ovGo.addEventListener('click', submitSearch);
-      ovInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); submitSearch(); }
-        if (e.key === 'Escape') closeOv();
-      });
-    }
-
-    // --- Max price sheet (reuses the bottom-sheet infra) ---
-    var mpBtn = document.getElementById('maxPriceBtn');
-    var mpText = document.getElementById('maxPriceText');
-    var mpHidden = document.getElementById('maxPriceHidden');
-    if (mpBtn && mpHidden) {
-      function mpSync() {
-        var v = mpHidden.value;
-        mpBtn.classList.toggle('has-value', !!v);
-        mpText.textContent = v ? v : 'Max price';
-      }
-      mpSync();
-      mpBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        var backdrop = document.querySelector('.sheet-backdrop');
-        var sheet = document.querySelector('.sheet');
-        var optsBox = sheet.querySelector('.sheet-opts');
-        optsBox.innerHTML = '';
-        var grab = document.createElement('div');
-        grab.className = 'sheet-grab';
-        var inp = document.createElement('input');
-        inp.className = 'price-input';
-        inp.type = 'number'; inp.min = '0'; inp.step = '0.01';
-        inp.inputMode = 'decimal'; inp.placeholder = 'Max price';
-        inp.value = mpHidden.value;
-        inp.setAttribute('aria-label', 'Max price');
-        var done = document.createElement('button');
-        done.type = 'button'; done.className = 'price-done'; done.textContent = 'Done';
-        var clear = document.createElement('button');
-        clear.type = 'button'; clear.className = 'price-clear'; clear.textContent = 'Clear';
-        optsBox.appendChild(grab); optsBox.appendChild(inp);
-        optsBox.appendChild(done); optsBox.appendChild(clear);
-        function close() {
-          backdrop.classList.remove('open');
-          sheet.classList.remove('open');
-          inp.blur();
-        }
-        backdrop.onclick = close;
-        done.addEventListener('click', function() {
-          mpHidden.value = inp.value;
-          mpSync(); close();
-        });
-        clear.addEventListener('click', function() {
-          mpHidden.value = ''; mpSync(); close();
-        });
-        inp.addEventListener('keydown', function(e) {
-          if (e.key === 'Enter') { e.preventDefault(); done.click(); }
-        });
-        backdrop.classList.add('open');
-        sheet.classList.add('open');
-        setTimeout(function() { inp.focus(); }, 250);
-      });
-    }
   })();
 })();
 </script>
