@@ -73,6 +73,12 @@ KNOWN_COUNTRIES = {
     "UCI5LAOCy4SHLoRsNGjxr8Aw": "TW",
     # KwiatuCards: Polish breaker (API reports PL; ID-pinned)
     "UCf15ztZMysW3n8rXxOqeOXg": "PL",
+    # Flying V Cards: Canadian hockey group breaks (Brian approved 2026-10-07)
+    "UCzrJQ1QGG19T2Vmc-9CWH_w": "CA",
+    # Ty The Card Guy: Edmonton AB hockey group breaks (Brian approved 2026-10-07)
+    "UCxnQmu6CJTaEIqEYWvmeCvg": "CA",
+    # Hokej Karty: Czech hockey card shop group breaks (Brian approved 2026-10-07)
+    "UCTm16TWigrtCUgIWv-7Y-1Q": "CZ",
 }
 
 # Title-substring fallback for discovered channels whose IDs aren't in

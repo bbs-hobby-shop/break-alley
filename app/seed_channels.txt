@@ -103,7 +103,6 @@ UCZN8wJgFBwerz7yS2-wwwqw  # Cardlines — approved 2026-10-06 (roster expansion)
 UCTHwLd2AkLvFHwQYG1IlhSQ  # Gimko — Australia, approved 2026-10-06 (roster expansion)
 UCbRCFgmcB0ZsshHB0JDVTVA  # West's Sports Cards — Canada, approved 2026-10-06 (roster expansion)
 UCwNb9UAKlcgWnSGJm80HTBA  # RCB Sports Cards (Restlesscraft Breakers) — approved 2026-10-06 (roster expansion)
-UC_PjmujGaQkPa1GCEoSL8Iw  # The GroupBreakers — approved 2026-10-06 (roster expansion)
 UCfiiHFSn_WBScnPmj7JsaVg  # Boca Breaks — approved 2026-10-06 (roster expansion)
 UCxeVWp4QwgGZz61y5bf2w6g  # Layton Channel 2 — approved 2026-10-06 (cross-platform audit)
 UCtVYqNtGa6b7VTAfKuckYDA  # Ryan Jay (ryans_cardhouse eBay) — approved 2026-10-06 (cross-platform audit)
@@ -145,3 +144,6 @@ UCkxNRrLjDs1YgJ9sIEU8YpA
 UC-huOEAW2s3UtCEKbsc23BQ
 UC-D_KHgDPQkaazqLz9EbpVQ
 UCgndbqYkmrMmsVBKcSWiKFA
+UCzrJQ1QGG19T2Vmc-9CWH_w  # Flying V Cards — @FlyingVCards, hockey group breaks, CA (added 2026-10-07, Brian approved)
+UCxnQmu6CJTaEIqEYWvmeCvg  # Ty The Card Guy — @TyTheCardGuy, hockey group breaks, Edmonton CA (added 2026-10-07, Brian approved)
+UCTm16TWigrtCUgIWv-7Y-1Q  # Hokej Karty — @HOKEJKARTY, Czech hockey group breaks, CZ (added 2026-10-07, Brian approved)

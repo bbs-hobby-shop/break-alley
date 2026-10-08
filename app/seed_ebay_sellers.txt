@@ -79,3 +79,7 @@ bestcardbreaks
 uk_blue_eyes_tcg
 grandsalamisportscards
 breakinglegends2318
+lmsboxbreaks  # LMS Box Breaks — multi-sport PYT/random/personals (added 2026-10-07, Brian approved)
+topnotchsportsclub  # Top Notch Sports Club — $1-start PYT/case, Mentor OH (added 2026-10-07, Brian approved)
+bigapplebreakszn  # Big Apple Breakz — $1-start PYT/random-team, NY (added 2026-10-07, Brian approved)
+528breaks  # 528 Breaks — $1-start PYT/random-team, MT (added 2026-10-07, Brian approved)
