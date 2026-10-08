@@ -6,6 +6,9 @@ Runs every morning at 6 AM CDT. Verifies every part of the app is working:
 - Times accurate (not stale, timezone sane)
 - Links valid (source URLs, affiliate URLs)
 - Site responsive, search working
+- UI controls audit: every button, dropdown, form, and link on the homepage,
+  a break detail page, and a breaker page is wired to a real route/handler
+  (Brian 2026-10-07)
 - Database integrity
 - Security basics
 
@@ -187,6 +190,156 @@ def check_site():
         check("site: fanatics search works", False, str(e)[:100])
 
 
+def check_ui_controls():
+    """Brian 2026-10-07: every button, dropdown, form, and link on the key
+    pages must be wired to a real route/handler. Catches dead buttons,
+    selects outside forms, empty hrefs, and nested <a> tags (which broke
+    every card on 2026-10-07)."""
+    from html.parser import HTMLParser
+
+    # Known app routes (path templates) for validating form actions + links
+    try:
+        from . import main as app_main
+        routes = set()
+        for r in app_main.app.routes:
+            p = getattr(r, "path", "")
+            if p:
+                # turn /breaker/{breaker_name} into a regex
+                routes.add(re.sub(r"\{[^}]+\}", r"[^/]+", p))
+    except Exception as e:
+        check("ui: routes loaded", False, str(e)[:80])
+        return
+
+    def route_exists(path):
+        if not path or not path.startswith("/"):
+            return False
+        return any(re.fullmatch(rx, path.split("?")[0]) for rx in routes)
+
+    class ControlParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.forms = []       # (action, method)
+            self.selects = []     # (name, option_count, in_form)
+            self.buttons = []     # (text, in_form, has_handler)
+            self.links = []       # (href, text)
+            self.nested_a = 0
+            self._form_depth = 0
+            self._a_depth = 0
+            self._cur_select = None
+            self._cur_button = None
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            if tag == "form":
+                self._form_depth += 1
+                self.forms.append((a.get("action", ""), a.get("method", "get")))
+            elif tag == "select":
+                self._cur_select = [a.get("name", ""), 0, self._form_depth > 0]
+            elif tag == "option" and self._cur_select is not None:
+                self._cur_select[1] += 1
+            elif tag == "button":
+                self._cur_button = [a.get("type", "submit"),
+                                    self._form_depth > 0,
+                                    "onclick" in a or "data-" in str(attrs)]
+            elif tag == "a":
+                if self._a_depth > 0:
+                    self.nested_a += 1
+                self._a_depth += 1
+                self.links.append((a.get("href", ""), ""))
+            elif tag == "input" and a.get("type") in ("submit", "button"):
+                self.buttons.append((a.get("value", a.get("type")),
+                                     self._form_depth > 0, True))
+
+        def handle_data(self, data):
+            if self._cur_button is not None:
+                self._cur_button[0] += data.strip()[:30]
+            if self.links and self._a_depth > 0:
+                href, txt = self.links[-1]
+                self.links[-1] = (href, (txt + data.strip()[:30]))
+
+        def handle_endtag(self, tag):
+            if tag == "form":
+                self._form_depth = max(0, self._form_depth - 1)
+            elif tag == "select" and self._cur_select is not None:
+                self.selects.append(tuple(self._cur_select))
+                self._cur_select = None
+            elif tag == "button" and self._cur_button is not None:
+                self.buttons.append((self._cur_button[0],
+                                     self._cur_button[1],
+                                     self._cur_button[2]))
+                self._cur_button = None
+            elif tag == "a":
+                self._a_depth = max(0, self._a_depth - 1)
+
+    def fetch(path):
+        req = urllib.request.Request(
+            SITE_URL + path, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return resp.read().decode("utf-8", errors="ignore")
+
+    # Pages to audit: homepage, a real break detail, a real breaker page
+    pages = [("/", "homepage")]
+    try:
+        conn = get_db()
+        row = conn.execute(
+            "SELECT id FROM breaks WHERE is_live = TRUE LIMIT 1").fetchone()
+        if row:
+            pages.append((f"/break/{row[0]}", "break detail"))
+        brow = conn.execute(
+            "SELECT breaker FROM breaks WHERE breaker IS NOT NULL "
+            "LIMIT 1").fetchone()
+        if brow:
+            pages.append(("/breaker/" + urllib.parse.quote(brow[0]),
+                          "breaker page"))
+        conn.close()
+    except Exception:
+        pass
+
+    total_issues = []
+    for path, label in pages:
+        try:
+            html = fetch(path)
+        except Exception as e:
+            check(f"ui: {label} loads", False, str(e)[:80])
+            continue
+        p = ControlParser()
+        try:
+            p.feed(html)
+        except Exception:
+            pass
+        issues = []
+        for action, method in p.forms:
+            if not route_exists(action):
+                issues.append(f"form action '{action}' has no route")
+        for name, nopts, in_form in p.selects:
+            if not in_form:
+                issues.append(f"select '{name}' is not inside a form")
+            if nopts < 2:
+                issues.append(f"select '{name}' has only {nopts} option(s)")
+        for text, in_form, _ in p.buttons:
+            if not in_form:
+                issues.append(f"button '{text}' is not inside a form")
+        for href, text in p.links:
+            if not href or href == "#":
+                issues.append(f"link '{text}' has empty/dead href")
+            elif href.startswith("/") and not route_exists(href):
+                issues.append(f"link '{text}' -> '{href}' has no route")
+        if p.nested_a:
+            issues.append(f"{p.nested_a} nested <a> tag(s) — breaks layout")
+        n_controls = (len(p.forms) + len(p.selects) + len(p.buttons)
+                      + len(p.links))
+        if issues:
+            total_issues += [f"{label}: {i}" for i in issues]
+        check(f"ui: {label} controls wired",
+              not issues,
+              f"{n_controls} controls checked" if not issues
+              else "; ".join(issues[:3]))
+
+    if total_issues:
+        check("ui: no dead controls anywhere", False,
+              f"{len(total_issues)} issue(s)")
+
+
 def check_prune():
     """Ended/sold listings are being removed (not accumulating)."""
     try:
@@ -286,6 +439,7 @@ def main():
     check_data_quality()
     check_times()
     check_site()
+    check_ui_controls()
     check_prune()
     check_security()
 
