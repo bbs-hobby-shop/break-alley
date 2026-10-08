@@ -152,6 +152,16 @@ def search(
     })
 
 
+@app.get("/guide", response_class=HTMLResponse)
+def guide_page(request: Request):
+    """Brian 2026-10-08: newcomer guide — what each break format means
+    and how each platform works. Static content, no DB needed."""
+    user = auth.get_current_user(request)
+    return templates.TemplateResponse(request, "guide.html", {
+        "request": request, "user": user,
+    })
+
+
 @app.get("/breaker/{breaker_name}", response_class=HTMLResponse)
 def breaker_page(request: Request, breaker_name: str):
     """Brian 2026-10-07: tapping a breaker's name shows all their current

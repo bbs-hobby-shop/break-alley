@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New to box breaks? — BreakAlley</title>
+<meta name="description" content="A quick guide to box break formats and platforms: pick your team, random team, personal, case breaks, and how eBay, YouTube, Twitch, and Fanatics Live work.">
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<meta name="theme-color" content="#0a0e1c">
+<style>
+  :root {
+    --bg: #0a0e1c; --bg2: #10162e; --card: #151c38; --card2: #1a2242;
+    --line: #26305c; --text: #f2f4ff; --muted: #8b93b8;
+    --green: #00e676; --purple: #7c5cff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { touch-action: manipulation; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; color: var(--text); background: var(--bg);
+    background-image: radial-gradient(900px 400px at 15% -5%, rgba(124,92,255,.14), transparent),
+                      radial-gradient(800px 380px at 90% 0%, rgba(0,230,118,.08), transparent);
+    min-height: 100vh;
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: #0a0e1c; border-bottom: 1px solid var(--line);
+    padding: 1rem 1.5rem .85rem;
+  }
+  .brandrow { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: .75rem; }
+  .logo { font-weight: 900; font-size: 1.9rem; letter-spacing: .5px; display: flex; align-items: center; gap: .7rem;
+    color: var(--text); text-decoration: none; }
+  .logo img { width: 52px; height: 52px; border-radius: 12px; }
+  .logo .wordmark span { color: var(--green); }
+  .signout { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; }
+  .signout button { background: none; border: 0; color: var(--muted); font-size: .8rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; padding: .3rem 0; }
+  nav.tabs { display: flex; justify-content: center; gap: .5rem; }
+  nav.tabs a { flex: 1; max-width: 220px; text-align: center; padding: .65rem .5rem; border-radius: 10px;
+    color: var(--muted); text-decoration: none; font-weight: 700; border: 1px solid transparent; }
+  main { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  h1 { font-size: 1.7rem; margin: 0 0 .5rem; }
+  .lede { color: var(--muted); font-size: 1.05rem; line-height: 1.55; margin: 0 0 2rem; }
+  h2 { font-size: 1.25rem; margin: 2.2rem 0 .9rem; color: var(--green); }
+  .item { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1rem 1.2rem; margin-bottom: .8rem; }
+  .item h3 { margin: 0 0 .35rem; font-size: 1.05rem; }
+  .item p { margin: 0; color: var(--muted); line-height: 1.55; font-size: .97rem; }
+  .cta { text-align: center; margin-top: 2.5rem; }
+  .cta a { display: inline-block; background: var(--green); color: #06130c; font-weight: 800;
+    text-decoration: none; padding: .9rem 2rem; border-radius: 12px; font-size: 1.05rem; }
+  @media (max-width: 560px) { nav.tabs a { font-size: .88rem; padding: .6rem .25rem; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brandrow">
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+    {% if user %}
+    <form method="post" action="/logout" class="signout"><button type="submit">Sign out</button></form>
+    {% endif %}
+  </div>
+  <nav class="tabs">
+    <a href="/">Home</a>
+    {% if user %}
+    <a href="/my-breaks">My Breaks</a>
+    <a href="/account">Account</a>
+    {% else %}
+    <a href="/login">Sign in</a>
+    <a href="/signup">Sign up</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  <h1>New to box breaks?</h1>
+  <p class="lede">A box break is simple: a breaker opens sealed sports cards live on stream, and you buy a piece of the action — a team, a random slot, or the whole box. Whatever gets pulled for your spot is yours, shipped to you.</p>
+
+  <h2>Formats</h2>
+  <div class="item">
+    <h3>Pick Your Team (PYT)</h3>
+    <p>You choose your team (or teams) and pay per team. Every card pulled for your teams is yours. Popular teams cost more — you're paying for the odds.</p>
+  </div>
+  <div class="item">
+    <h3>Random Team</h3>
+    <p>You buy a slot at one flat price. Teams are randomized live before the break, so everyone pays the same and luck decides who you get.</p>
+  </div>
+  <div class="item">
+    <h3>Personal</h3>
+    <p>The entire box is yours. Every card pulled goes to you. The priciest option, but nothing is shared.</p>
+  </div>
+  <div class="item">
+    <h3>Case Break</h3>
+    <p>A full sealed case (multiple boxes) split across many slots. Bigger card pools, bigger hits, more spots to buy.</p>
+  </div>
+  <div class="item">
+    <h3>Box Break</h3>
+    <p>The catch-all term: one or more boxes opened live, with cards distributed according to the format above.</p>
+  </div>
+
+  <h2>Platforms</h2>
+  <div class="item">
+    <h3>eBay</h3>
+    <p>Buy your slot like any other listing — auction or Buy It Now. The break itself streams on the seller's channel, usually YouTube. Most structured way to buy in.</p>
+  </div>
+  <div class="item">
+    <h3>YouTube</h3>
+    <p>Breakers run scheduled live shows. Buy slots through the links in the stream description or the breaker's site, then watch the break live.</p>
+  </div>
+  <div class="item">
+    <h3>Twitch</h3>
+    <p>Live-first streaming. Buy through the breaker's site, then watch and chat in real time. The most interactive of the bunch.</p>
+  </div>
+  <div class="item">
+    <h3>Fanatics Live</h3>
+    <p>Fanatics' own live-shopping platform. Buy your spot and watch the break in the same app.</p>
+  </div>
+
+  <div class="cta"><a href="/">Find a break</a></div>
+</main>
+</body>
+</html>
