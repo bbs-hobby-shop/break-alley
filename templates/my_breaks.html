@@ -93,7 +93,13 @@
   <h1>My Breaks</h1>
   <p class="sub">Everything you follow, all in one place.</p>
 
-  <div class="card">
+  <div class="pagenav" id="sectabs">
+    <a href="#" data-sec="sec-live" class="active">From your breakers</a>
+    <a href="#" data-sec="sec-saved">Saved breaks</a>
+    <a href="#" data-sec="sec-fav">Favorite breakers</a>
+  </div>
+
+  <div class="card sect" id="sec-live">
     <h2>● Live &amp; upcoming from your breakers</h2>
     {% if live %}
       {% for b in live %}
@@ -111,7 +117,7 @@
     {% endif %}
   </div>
 
-  <div class="card">
+  <div class="card sect" id="sec-saved" style="display:none">
     <h2>★ Saved breaks <span class="count">{{ saved_listings|length }}</span></h2>
     {% if saved_listings %}
     <div class="chips">
@@ -130,12 +136,12 @@
     {% endif %}
   </div>
 
-  <div class="card">
+  <div class="card sect" id="sec-fav" style="display:none">
     <h2>★ Favorite breakers <span class="count">{{ favorites|length }}</span></h2>
     {% if favorites %}
     <div class="chips">
       {% for f in favorites %}
-      <span class="chip">{{ f.breaker }}
+      <span class="chip"><a href="/breaker/{{ f.breaker|urlencode }}">{{ f.breaker }}</a>
         <form method="post" action="/favorites/toggle">
           <input type="hidden" name="breaker" value="{{ f.breaker }}">
           <input type="hidden" name="next" value="/my-breaks">
@@ -149,20 +155,17 @@
     {% endif %}
   </div>
 
-  <div class="card">
-    <h2>⚲ Saved searches <span class="count">{{ searches|length }}</span></h2>
-    {% if searches %}
-      {% for s in searches %}
-      <div class="srow">
-        <a class="run" href="/?q={{ s.q|urlencode if s.q }}&format={{ s.format or '' }}&source={{ s.source or '' }}&max_price={{ s.max_price or '' }}&region={{ s.region or '' }}">{{ s.name }}</a>
-        <span class="detail">{{ [s.q, s.format, s.source]|select|join(' · ') }}</span>
-        <form method="post" action="/searches/{{ s.id }}/delete"><button type="submit">Delete</button></form>
-      </div>
-      {% endfor %}
-    {% else %}
-    <div class="empty">No saved searches — run a search on the <a href="/">homepage</a>, then save it.</div>
-    {% endif %}
-  </div>
 </main>
+<script>
+document.getElementById('sectabs').addEventListener('click', function(e) {
+  var t = e.target.closest('a[data-sec]');
+  if (!t) return;
+  e.preventDefault();
+  this.querySelectorAll('a').forEach(function(a) { a.classList.remove('active'); });
+  t.classList.add('active');
+  document.querySelectorAll('.card.sect').forEach(function(c) { c.style.display = 'none'; });
+  document.getElementById(t.dataset.sec).style.display = '';
+});
+</script>
 </body>
 </html>

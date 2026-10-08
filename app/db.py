@@ -475,7 +475,7 @@ def update_password_hash(conn, user_id: int, password_hash: str) -> None:
 
 
 def delete_user(conn, user_id: int) -> None:
-    """Delete the account; favorites + saved searches cascade."""
+    """Delete the account; favorites cascade."""
     conn.execute("DELETE FROM users WHERE id = %(id)s", {"id": user_id})
 
 
@@ -709,36 +709,6 @@ def breaks_for_breakers(conn, breakers: list[str], limit: int = 100) -> list[dic
     ).fetchall()]
 
 
-def save_search(conn, user_id: int, name: str, q: str | None,
-                format: str | None, source: str | None,
-                max_price: float | None, region: str | None = None) -> int:
-    if region not in ("us", "intl"):
-        region = None
-    cur = conn.execute(
-        """INSERT INTO saved_searches (user_id, name, q, format, source, max_price, region)
-           VALUES (%(user_id)s, %(name)s, %(q)s, %(format)s, %(source)s, %(max_price)s, %(region)s)
-           RETURNING id""",
-        {"user_id": user_id, "name": name.strip()[:80], "q": q,
-         "format": format, "source": source, "max_price": max_price,
-         "region": region},
-    )
-    return cur.fetchone()["id"]
-
-
-def list_saved_searches(conn, user_id: int) -> list[dict]:
-    return [dict(r) for r in conn.execute(
-        """SELECT id, name, q, format, source, max_price, region, created_at
-           FROM saved_searches WHERE user_id = %(user_id)s
-           ORDER BY created_at DESC""",
-        {"user_id": user_id},
-    ).fetchall()]
-
-
-def delete_saved_search(conn, user_id: int, search_id: int) -> None:
-    conn.execute(
-        "DELETE FROM saved_searches WHERE id = %(id)s AND user_id = %(user_id)s",
-        {"id": search_id, "user_id": user_id},
-    )
 
 
 def last_data_update(conn):
@@ -866,7 +836,7 @@ CREATE TABLE IF NOT EXISTS breaker_suggestions (
 );
 CREATE INDEX IF NOT EXISTS idx_breaker_suggestions_status ON breaker_suggestions (status);
 
--- User accounts (optional perks: favorite breakers, saved searches).
+-- User accounts (optional perks: favorite breakers).
 CREATE TABLE IF NOT EXISTS users (
     id            SERIAL PRIMARY KEY,
     email         TEXT NOT NULL UNIQUE,
