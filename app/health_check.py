@@ -433,6 +433,9 @@ def main():
     print(f"BreakAlley daily health check — {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}")
     print("=" * 60)
 
+    # BRIAN'S RULE (2026-10-07): run every check ONE AT A TIME, sequentially.
+    # Never parallelize/thread these — hammering the DB and site with
+    # concurrent checks risks overloading and crashing things.
     check_pollers()
     check_roster_tables()
     check_audit_patterns()
