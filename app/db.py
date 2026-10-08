@@ -1011,7 +1011,7 @@ def purge_junk_breaks(conn) -> int:
     ).rowcount
 
 
-def prune_ended_ebay(conn) -> dict:
+def prune_ended_ebay(conn, skip_vanished: bool = False) -> dict:
     """Remove ended/sold eBay listings (Brian 2026-10-07). Three rules:
 
     1. ended_auctions: auction end time passed (no grace — Brian 2026-10-07
@@ -1019,6 +1019,12 @@ def prune_ended_ebay(conn) -> dict:
     2. sold_out: Buy It Now listings whose quantity hit 0.
     3. vanished: not seen in the feed for 24h (96 missed 15-min poller runs)
        — safety net for anything that disappeared from eBay's search.
+
+    skip_vanished=True (Brian 2026-10-08): when eBay throttles us and no
+    fresh data comes in, the vanished rule would eventually delete the
+    ENTIRE eBay catalog (everything goes >24h stale). Skip it during
+    throttles; ended/sold rules are still safe (based on auction times,
+    not feed freshness).
 
     Returns dict of counts per rule.
     """
@@ -1034,10 +1040,13 @@ def prune_ended_ebay(conn) -> dict:
            AND NOT COALESCE(is_auction, FALSE)
            AND slots_remaining = 0"""
     ).rowcount
-    counts["vanished"] = conn.execute(
-        """DELETE FROM breaks WHERE source='ebay'
-           AND fetched_at < NOW() - INTERVAL '24 hours'"""
-    ).rowcount
+    if skip_vanished:
+        counts["vanished"] = 0
+    else:
+        counts["vanished"] = conn.execute(
+            """DELETE FROM breaks WHERE source='ebay'
+               AND fetched_at < NOW() - INTERVAL '24 hours'"""
+        ).rowcount
     return counts
 
 

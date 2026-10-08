@@ -180,9 +180,18 @@ def run_ebay() -> int:
     items, fetch_stats = ebay.fetch_all_break_listings()
     print(f"fetched {len(items)} raw eBay listings")
     if not items and fetch_stats["throttled"] > 0:
-        # eBay throttled us all run: no fresh data. Fail visibly so the
-        # dashboard shows it red and Brian hears about it — a silent exit 0
-        # would leave stale data with no alert (Brian 2026-10-08).
+        # eBay throttled us all run: no fresh data. Still prune ended/sold
+        # (SQL-only, no API) so dead auctions don't pile up — but skip the
+        # vanished rule or a long throttle would nuke the whole catalog.
+        # Then fail visibly so Brian hears about it (Brian 2026-10-08).
+        try:
+            with db.get_conn() as prune_conn:
+                pruned = db.prune_ended_ebay(prune_conn, skip_vanished=True)
+            total = pruned["ended_auctions"] + pruned["sold_out"]
+            if total:
+                print(f"ebay: throttled-run prune removed {total} ended/sold")
+        except Exception as e:
+            print(f"ebay PRUNE FAILED: {e}", file=sys.stderr)
         print("ebay: throttled (429) — no fresh listings this run",
               file=sys.stderr)
         return 1
