@@ -507,30 +507,45 @@
 // Auction countdown timers (Brian 2026-10-07): live ticking countdown on eBay auction cards.
 // When a countdown expires, the card is removed from the page immediately
 // (Brian 2026-10-07: ended listings must disappear ASAP, not linger as "Ended").
+// Perf (2026-10-07): end dates are parsed once at startup and the DOM is only
+// touched when the displayed text actually changes — the old version re-parsed
+// every date and rewrote every timer each second, keeping the main thread busy
+// (this made the filter dropdowns slow to open on iOS).
 (function() {
   function pad(n) { return String(n).padStart(2, '0'); }
+  // Parse once, cache: [{el, ends, last}]
+  var timers = [];
+  document.querySelectorAll('.auction-timer[data-ends]').forEach(function(el) {
+    var ends = new Date(el.getAttribute('data-ends')).getTime();
+    timers.push({ el: el, ends: ends, last: '' });
+  });
   function tick() {
     var now = Date.now();
-    document.querySelectorAll('.auction-timer[data-ends]').forEach(function(el) {
-      var ends = new Date(el.getAttribute('data-ends')).getTime();
-      if (isNaN(ends)) { el.textContent = '⏳ --'; return; }
-      var diff = ends - now;
+    for (var i = 0; i < timers.length; i++) {
+      var t = timers[i];
+      if (isNaN(t.ends)) { continue; }
+      var diff = t.ends - now;
       if (diff <= 0) {
-        var card = el.closest('.card-wrap');
+        var card = t.el.closest('.card-wrap');
         if (card) { card.style.display = 'none'; }
-        return;
+        timers.splice(i, 1); i--;
+        continue;
       }
       var d = Math.floor(diff / 86400000),
           h = Math.floor(diff % 86400000 / 3600000),
           m = Math.floor(diff % 3600000 / 60000),
           s = Math.floor(diff % 60000 / 1000);
-      el.textContent = d > 0
+      var txt = d > 0
         ? '⏳ ' + d + 'd ' + pad(h) + 'h ' + pad(m) + 'm'
         : '⏳ ' + pad(h) + ':' + pad(m) + ':' + pad(s);
-    });
+      if (txt !== t.last) { t.el.textContent = txt; t.last = txt; }
+    }
+    if (!timers.length && window.__auctionTick) {
+      clearInterval(window.__auctionTick); window.__auctionTick = null;
+    }
   }
   tick();
-  setInterval(tick, 1000);
+  if (timers.length) { window.__auctionTick = setInterval(tick, 1000); }
 })();
 </script>
 </body>
