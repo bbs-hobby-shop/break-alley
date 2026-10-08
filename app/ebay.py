@@ -26,14 +26,16 @@ from . import config
 TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
 SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 
-# Pagination safety cap per search_items query (Brian 2026-10-08): 10 pages
-# x 200 results = 2,000 results per query, far above any realistic
-# 10-seller batch, while bounding Browse API call volume.
-MAX_PAGES = 10
+# Pagination safety cap per search_items query (Brian 2026-10-08): 5 pages
+# x 200 results = 1,000 results per query. Generous for a 10-seller batch;
+# hitting the cap logs a visible warning (no silent truncation). Kept low
+# because eBay throttles us intermittently even at polite pacing — deep
+# pagination across 16 queries/run risks the whole run (2026-10-08 11:30).
+MAX_PAGES = 5
 
-# Brian 2026-10-08: the first paginated run got burst-throttled (429) —
-# 10 back-to-back page fetches per query with zero delay. Be polite.
-PAGE_DELAY = 1.0  # seconds between paginated page fetches
+# Brian 2026-10-08: eBay throttles us intermittently at 1s pacing.
+# 2s between page fetches keeps us under their burst limit.
+PAGE_DELAY = 2.0  # seconds between paginated page fetches
 
 
 class EbayThrottled(Exception):
@@ -146,6 +148,9 @@ def search_items(query: str, token: str, limit: int = 200,
         # Stop when we've seen everything or the page came back short.
         if len(all_items) >= total or len(items) < page_size:
             break
+        if page == 0 and total > page_size:
+            print(f"ebay: paginating query={query!r} sellers={sellers} "
+                  f"(total={total})")
         offset += page_size
     else:
         print(f"ebay: hit MAX_PAGES ({MAX_PAGES}) for query={query!r} "
