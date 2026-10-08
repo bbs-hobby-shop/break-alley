@@ -204,6 +204,26 @@ CREATE TABLE IF NOT EXISTS release_calendar (
 );
 CREATE INDEX IF NOT EXISTS idx_release_calendar_date ON release_calendar (release_date);
 
+-- Seed: confirmed October 2026 releases (Idea 2026-10-07). Dates verified
+-- 2026-10-07 against DK Network, Bleacher Seats, CardAtlas, DA Card World,
+-- CardPulse. Oct 30 products per the original brief. Idempotent.
+INSERT INTO release_calendar (product_name, release_date, notes) VALUES
+ ('2026 Topps Allen & Ginter Baseball', '2026-10-07', 'Confirmed: multiple calendars. First pass ran 2026-10-07.'),
+ ('2026 Topps Museum Collection Baseball', '2026-10-07', 'From the original brief; first pass ran 2026-10-07.'),
+ ('2026-27 Upper Deck Series 1 Hockey', '2026-10-07', 'Confirmed: Cardlines hobby release date.'),
+ ('2026 Topps Update Series Baseball', '2026-10-14', 'Confirmed: DK Network, Bleacher Seats.'),
+ ('2025-26 Panini Select Basketball', '2026-10-14', 'Confirmed: DK Network, Bleacher Seats.'),
+ ('2026 Panini Donruss Optic NWSL Soccer', '2026-10-14', 'Confirmed: DK Network, Bleacher Seats.'),
+ ('2026 Topps Chrome Formula 1', '2026-10-15', 'Confirmed: CardPulse officially announced.'),
+ ('2026 Topps Heritage Football', '2026-10-21', 'Confirmed: DA Card World presell Oct 21, 2026.'),
+ ('2026 Panini Obsidian Football', '2026-10-21', 'Confirmed: Bleacher Seats 10/21/26.'),
+ ('2026 Panini Donruss Football', '2026-10-28', 'Confirmed: Bleacher Seats 10/28/26.'),
+ ('2026 Panini Crown Royale NWSL Soccer', '2026-10-28', 'Confirmed: Bleacher Seats, CardPulse.'),
+ ('2026-27 Topps Basketball', '2026-10-28', 'Confirmed: Bleacher Seats 10/28/26.'),
+ ('2026 Bowman U Best Football', '2026-10-30', 'From the original brief.'),
+ ('2026 Topps Inception Football', '2026-10-30', 'From the original brief.')
+ON CONFLICT (product_name, release_date) DO NOTHING;
+
 -- Migrate check constraints on existing databases (idempotent).
 DO $$
 BEGIN
