@@ -87,3 +87,7 @@ kingpinbreaks  # Kingpin Breaks — Knoxville TN, per-team PYT auctions (added 2
 breakscenter  # Breaks Center — eBay Live player breaks (added 2026-10-08, Brian approved)
 mamabreaks  # MamaBreaks — PYP/PYC case breaks via eBay Live (added 2026-10-08, Brian approved)
 gradientcollects  # Gradient Collects — $1-start break auctions + eBay Live (added 2026-10-08, Brian approved)
+pearlslabs  # pearlslabs — Pokémon $1-start rip&ship (added 2026-10-08, Brian approved)
+cardandallgaming  # cardandallgaming — Pokémon $1-start auctions, Raleigh NC (added 2026-10-08, Brian approved)
+houseofcards-nola  # houseofcards-nola — $1-start team-break auctions + eBay Live mixers, NOLA (added 2026-10-08, Brian approved)
+ksehd  # ksehd — hockey per-team case breaks, CA (added 2026-10-08, Brian approved)
