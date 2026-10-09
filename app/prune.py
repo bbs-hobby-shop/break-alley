@@ -16,8 +16,14 @@ from datetime import datetime, timezone
 from . import db
 
 
-def feed_is_fresh(conn, max_age_hours: int = 24) -> bool:
-    """Has the eBay poller successfully refreshed listings recently?"""
+def feed_is_fresh(conn, max_age_hours: int = 2) -> bool:
+    """Has the eBay poller successfully refreshed listings recently?
+
+    Default 2h (a few poll intervals): during a 429 throttle, MAX(fetched_at)
+    can look "fresh" for up to 24h after the last success while the feed is
+    actually dead — and the vanished rule would then nuke live listings.
+    A tight window keeps the vanished rule honest.
+    """
     row = conn.execute(
         "SELECT MAX(fetched_at) AS m FROM breaks WHERE source = 'ebay'"
     ).fetchone()
