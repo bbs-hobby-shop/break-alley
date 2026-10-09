@@ -1524,6 +1524,14 @@ async def push_test(request: Request):
             "SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = %s",
             (user["id"],),
         ).fetchall()
+        # Make the test look exactly like a real live alert: use one of the
+        # user's followed breakers (Brian 2026-10-09).
+        fav = conn.execute(
+            "SELECT breaker FROM user_favorites WHERE user_id = %s "
+            "ORDER BY created_at LIMIT 1",
+            (user["id"],),
+        ).fetchone()
+        test_breaker = fav["breaker"] if fav else "JRI Cards"
     if not subs:
         return JSONResponse({"ok": False, "error": "no_subscriptions", "count": count,
                              "user_id": user["id"]})
@@ -1531,8 +1539,8 @@ async def push_test(request: Request):
     for s in subs:
         if push_mod.send_push(
             {"endpoint": s["endpoint"], "p256dh": s["p256dh"], "auth": s["auth"]},
-            "BreakAlley",
-            "Push alerts are working — you'll hear about live breaks instantly.",
+            f"{test_breaker} is LIVE",
+            "Test alert — real notifications will look exactly like this.",
             "/my-breaks",
         ):
             sent += 1
