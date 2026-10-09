@@ -67,25 +67,42 @@
 </header>
 <main>
   <div class="hero">
-    {% if is_pro %}<div class="pro-badge">PRO ACTIVE</div>{% endif %}
+    {% if is_pro %}
+    <div class="pro-badge">PRO ACTIVE</div>
+    <h1>You're <em>Pro</em>.</h1>
+    <p>Here's everything your subscription does for you.</p>
+    {% else %}
     <h1>Never miss a <em>break</em> again.</h1>
     <p>BreakAlley Pro alerts you the instant your breakers go live.</p>
+    {% endif %}
   </div>
   <div class="price-card">
+    {% if is_pro %}
+    <ul class="features">
+      <li><b>Live alerts</b> — push the second a followed breaker goes live</li>
+      <li><b>Starting-soon reminders</b> — followed or saved breaks starting within 30 min</li>
+      <li><b>Auction-ending reminders</b> — saved or followed auctions ending within the hour</li>
+      <li><b>New-break alerts</b> — a followed breaker lists a new break</li>
+      <li><b>Unlimited breaker follows</b> — free tier caps at 5</li>
+    </ul>
+    <a class="btn" href="/account">Choose which alerts you get</a>
+    <button class="btn ghost" id="manageBtn">Manage subscription</button>
+    {% else %}
     <div class="price">$4.99<small>/month</small></div>
     <ul class="features">
-      <li><b>Instant push alerts</b> — notified the second a followed breaker goes live</li>
+      <li><b>Live alerts</b> — push the second a followed breaker goes live</li>
+      <li><b>Starting-soon reminders</b> — followed or saved breaks starting within 30 min</li>
+      <li><b>Auction-ending reminders</b> — saved or followed auctions ending within the hour</li>
+      <li><b>New-break alerts</b> — a followed breaker lists a new break</li>
       <li><b>Unlimited breaker follows</b> — free tier caps at 5</li>
-      <li><b>Saved search alerts</b> — get pinged when a matching break appears</li>
-      <li><b>Price tracking</b> — buy-in history and deal alerts</li>
-      <li><b>Calendar sync</b> — one-tap add for upcoming breaks</li>
+      <li><b>Price tracking</b> — buy-in history and deal alerts <i style="color:var(--muted)">(coming soon)</i></li>
+      <li><b>Calendar sync</b> — one-tap add for upcoming breaks <i style="color:var(--muted)">(coming soon)</i></li>
     </ul>
-    {% if is_pro %}
-      <button class="btn ghost" id="manageBtn">Manage subscription</button>
-    {% elif user %}
+    {% if user %}
       <button class="btn" id="upgradeBtn">Go Pro — $4.99/mo</button>
     {% else %}
       <a class="btn" href="/signup?next=/pro">Sign up to go Pro</a>
+    {% endif %}
     {% endif %}
   </div>
   <p class="fine">Cancel anytime — you keep Pro until the end of your billing period. Free BreakAlley search stays free forever.</p>
