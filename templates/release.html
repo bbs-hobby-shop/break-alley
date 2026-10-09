@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if release %}{{ release.product_name }} — BreakAlley{% else %}Release not found — BreakAlley{% endif %}</title>
+<meta name="description" content="{% if release %}{{ release.product_name }} release details: box configuration, key hits, and release date.{% endif %}">
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<meta name="theme-color" content="#0a0e1c">
+<style>
+  :root {
+    --bg: #0a0e1c; --bg2: #10162e; --card: #151c38; --card2: #1a2242;
+    --line: #26305c; --text: #f2f4ff; --muted: #8b93b8;
+    --green: #00e676; --purple: #7c5cff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { touch-action: manipulation; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; color: var(--text); background: var(--bg);
+    background-image: radial-gradient(900px 400px at 15% -5%, rgba(124,92,255,.14), transparent),
+                      radial-gradient(800px 380px at 90% 0%, rgba(0,230,118,.08), transparent);
+    min-height: 100vh;
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: #0a0e1c; border-bottom: 1px solid var(--line);
+    padding: 1rem 1.5rem .85rem;
+  }
+  .brandrow { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: .75rem; }
+  .logo { font-weight: 900; font-size: 1.9rem; letter-spacing: .5px; display: flex; align-items: center; gap: .7rem;
+    color: var(--text); text-decoration: none; }
+  .logo img { width: 52px; height: 52px; border-radius: 12px; }
+  .logo .wordmark span { color: var(--green); }
+  .signout { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; }
+  .signout button { background: none; border: 0; color: var(--muted); font-size: .8rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; padding: .3rem 0; }
+  nav.tabs { display: flex; justify-content: center; gap: .5rem; }
+  nav.tabs a { flex: 1; max-width: 220px; text-align: center; padding: .65rem .5rem; border-radius: 10px;
+    color: var(--muted); text-decoration: none; font-weight: 700; border: 1px solid transparent; }
+  main { max-width: 680px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .back { color: var(--muted); text-decoration: none; font-size: .9rem; font-weight: 700; }
+  .back:hover { color: var(--text); }
+  .mfr { display: inline-block; background: var(--purple); color: #fff; font-size: .78rem;
+    font-weight: 800; border-radius: 999px; padding: .3rem .9rem; margin: 1.2rem 0 .6rem;
+    text-transform: uppercase; letter-spacing: .5px; }
+  h1 { font-size: 1.7rem; margin: 0 0 .4rem; line-height: 1.25; }
+  .rdate { color: var(--green); font-weight: 800; font-size: 1.05rem; margin-bottom: 1.2rem; }
+  .desc { color: #c6cbe4; line-height: 1.65; margin-bottom: 1.8rem; }
+  .specs { display: grid; gap: .9rem; margin-bottom: 1.8rem; }
+  .spec { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.25rem; }
+  .spec h3 { margin: 0 0 .4rem; font-size: .82rem; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  .spec p { margin: 0; line-height: 1.6; }
+  .cta-row { display: flex; gap: .8rem; flex-wrap: wrap; margin-top: 1.5rem; }
+  .btn { display: inline-block; padding: .85rem 1.5rem; border-radius: 10px; font-weight: 800;
+    text-decoration: none; font-size: .95rem; }
+  .btn.primary { background: var(--green); color: #06130c; }
+  .btn.ghost { border: 1px solid var(--line); color: var(--text); }
+  .empty { text-align: center; padding: 4rem 1rem; color: var(--muted); }
+  @media (max-width: 560px) { nav.tabs a { font-size: .88rem; padding: .6rem .25rem; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brandrow">
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+    {% if user %}
+    <form method="post" action="/logout" class="signout"><button type="submit">Sign out</button></form>
+    {% endif %}
+  </div>
+  <nav class="tabs">
+    <a href="/">Home</a>
+    {% if user %}
+    <a href="/my-breaks">My Breaks</a>
+    <a href="/account">Account</a>
+    {% else %}
+    <a href="/login">Sign in</a>
+    <a href="/signup">Sign up</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+{% if release %}
+  <a class="back" href="/">← Back to home</a>
+  {% if release.manufacturer %}<div><span class="mfr">{{ release.manufacturer }}</span></div>{% endif %}
+  <h1>{{ release.product_name }}</h1>
+  <div class="rdate">🗓 {{ release.release_date.strftime('%A, %B %d, %Y') }}</div>
+  {% if release.description %}<p class="desc">{{ release.description }}</p>{% endif %}
+  <div class="specs">
+    {% if release.box_config %}
+    <div class="spec"><h3>📦 Box configuration</h3><p>{{ release.box_config }}</p></div>
+    {% endif %}
+    {% if release.key_hits %}
+    <div class="spec"><h3>✨ Key hits</h3><p>{{ release.key_hits }}</p></div>
+    {% endif %}
+    {% if release.sport %}
+    <div class="spec"><h3>🏟 Sport</h3><p>{{ release.sport }}</p></div>
+    {% endif %}
+  </div>
+  <div class="cta-row">
+    <a class="btn primary" href="/results?q={{ release.product_name|urlencode }}">Find breaks of this set</a>
+    {% if release.product_url %}
+    <a class="btn ghost" href="{{ release.product_url }}" target="_blank" rel="noopener">Official product page ↗</a>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="empty">
+    <h2>Release not found</h2>
+    <p><a href="/" style="color:var(--green);">Back to home</a></p>
+  </div>
+{% endif %}
+</main>
+</body>
+</html>

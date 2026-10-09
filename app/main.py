@@ -193,6 +193,25 @@ def guide_page(request: Request):
     })
 
 
+@app.get("/release/{release_id}", response_class=HTMLResponse)
+def release_page(request: Request, release_id: int):
+    """Brian 2026-10-08: clickable release titles — each upcoming set gets
+    a detail page with manufacturer info, box config, and key hits."""
+    user = auth.get_current_user(request)
+    try:
+        with db.get_conn() as conn:
+            release = db.get_release(conn, release_id)
+    except Exception:
+        release = None
+    if not release:
+        return templates.TemplateResponse(request, "release.html", {
+            "request": request, "user": user, "release": None,
+        }, status_code=404)
+    return templates.TemplateResponse(request, "release.html", {
+        "request": request, "user": user, "release": release,
+    })
+
+
 @app.get("/breaker/{breaker_name}", response_class=HTMLResponse)
 def breaker_page(request: Request, breaker_name: str):
     """Brian 2026-10-07: tapping a breaker's name shows all their current

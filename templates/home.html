@@ -142,7 +142,8 @@
   .releases li .rdate { color: var(--green); font-weight: 800;
     font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 3.2rem; }
   .releases li .rprods { color: var(--text); display: flex; flex-direction: column; gap: .15rem; }
-  .releases li .rprod { display: block; }
+  .releases li .rprod { display: block; color: var(--text); text-decoration: none; }
+  .releases li a.rprod:hover { color: var(--green); text-decoration: underline; }
   .filters { margin: 0; }
   .searchrow { margin-bottom: .6rem; }
   .searchrow input {
@@ -343,7 +344,7 @@
     <h3>🗓 Upcoming releases</h3>
     <ul>
       {% for rdate, items in upcoming_releases|groupby('release_date') %}
-      <li><span class="rdate">{{ rdate.strftime('%b %d') }}</span><span class="rprods">{% for it in items %}<span class="rprod">{{ it.product_name }}</span>{% endfor %}</span></li>
+      <li><span class="rdate">{{ rdate.strftime('%b %d') }}</span><span class="rprods">{% for it in items %}<a class="rprod" href="/release/{{ it.id }}">{{ it.product_name }}</a>{% endfor %}</span></li>
       {% endfor %}
     </ul>
   </div>

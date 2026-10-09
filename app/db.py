@@ -647,6 +647,37 @@ def list_upcoming_releases(conn, days: int = 60) -> list[dict]:
            ORDER BY release_date, product_name LIMIT 50""",
     ).fetchall()]
 
+def get_release(conn, release_id: int) -> dict | None:
+    """Single release with full detail fields (Brian 2026-10-08: detail pages)."""
+    row = conn.execute(
+        """SELECT id, product_name, release_date, notes, manufacturer, sport,
+                  description, box_config, key_hits, product_url
+           FROM release_calendar WHERE id = %s""",
+        (release_id,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def update_release_details(conn, release_id: int, manufacturer: str | None = None,
+                           sport: str | None = None, description: str | None = None,
+                           box_config: str | None = None, key_hits: str | None = None,
+                           product_url: str | None = None) -> None:
+    """Fill in the detail-page fields for a release (Brian 2026-10-08)."""
+    conn.execute(
+        """UPDATE release_calendar
+           SET manufacturer = COALESCE(%(mfr)s, manufacturer),
+               sport = COALESCE(%(sport)s, sport),
+               description = COALESCE(%(desc)s, description),
+               box_config = COALESCE(%(box)s, box_config),
+               key_hits = COALESCE(%(hits)s, key_hits),
+               product_url = COALESCE(%(url)s, product_url)
+           WHERE id = %(rid)s""",
+        {"mfr": manufacturer, "sport": sport, "desc": description,
+         "box": box_config, "hits": key_hits, "url": product_url,
+         "rid": release_id},
+    )
+
+
 
 def list_all_releases(conn) -> list[dict]:
     """Full calendar for the admin page."""
@@ -950,6 +981,14 @@ CREATE TABLE IF NOT EXISTS saved_searches (
 );
 ALTER TABLE saved_searches ADD COLUMN IF NOT EXISTS region TEXT;
 CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches (user_id);
+
+-- Release detail pages (Brian 2026-10-08): set info for clickable titles.
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS manufacturer TEXT;
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS sport TEXT;
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS box_config TEXT;
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS key_hits TEXT;
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS product_url TEXT;
 """
 
 

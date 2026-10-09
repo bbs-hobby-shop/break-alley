@@ -259,3 +259,12 @@ CREATE TABLE IF NOT EXISTS whatnot_show_submissions (
     reviewed_at     TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_whatnot_submissions_status ON whatnot_show_submissions (status);
+
+-- Release detail pages (Brian 2026-10-08): each upcoming set gets a detail
+-- page with manufacturer info, box configuration, and key hits.
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS manufacturer TEXT;
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS sport TEXT;
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS box_config TEXT;
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS key_hits TEXT;
+ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS product_url TEXT;
