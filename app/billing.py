@@ -99,22 +99,42 @@ def sync_subscription(conn, event) -> None:
         return
 
     if etype in ("customer.subscription.updated", "customer.subscription.deleted"):
-        customer_id = obj.get("customer")
-        status = obj.get("status", "")
+        # Source of truth is the live subscription object, not the event
+        # payload: webhook events can be duplicated, retried, or delivered
+        # out of order (2026-10-09: a cancel event returned 200 but the DB
+        # never got the expiry date). One extra API call per webhook keeps
+        # every delivery converging on the true current state.
+        sub_id = obj.get("id")
+        src = obj
+        if sub_id:
+            try:
+                live = _client().Subscription.retrieve(sub_id)
+                if hasattr(live, "to_dict"):
+                    live = live.to_dict()
+                if isinstance(live, dict):
+                    src = live
+            except Exception:
+                log.warning("billing: subscription retrieve failed for %s; "
+                            "falling back to event payload", sub_id)
+        customer_id = src.get("customer")
+        if isinstance(customer_id, dict):  # expanded customer object
+            customer_id = customer_id.get("id")
+        status = src.get("status", "")
         # Active/trialing = Pro. Anything else = not Pro.
         is_pro = status in ("active", "trialing")
         # If scheduled to cancel at period end, keep Pro until then but record the date.
-        cancel_at_period_end = obj.get("cancel_at_period_end", False)
-        cancel_at = obj.get("cancel_at")  # Unix timestamp or None
+        cancel_at_period_end = src.get("cancel_at_period_end", False)
+        cancel_at = src.get("cancel_at")  # Unix timestamp or None
         pro_expires_at = None
         if cancel_at_period_end and cancel_at:
             from datetime import datetime, timezone
             pro_expires_at = datetime.fromtimestamp(cancel_at, tz=timezone.utc)
         if customer_id:
-            conn.execute(
+            cur = conn.execute(
                 "UPDATE users SET is_pro = %s, stripe_subscription_id = %s, "
                 "pro_expires_at = %s WHERE stripe_customer_id = %s",
-                (is_pro, obj.get("id"), pro_expires_at, customer_id),
+                (is_pro, src.get("id"), pro_expires_at, customer_id),
             )
-            log.info("billing: customer %s pro=%s (status %s, cancel_at_end=%s)",
-                     customer_id, is_pro, status, cancel_at_period_end)
+            log.info("billing: customer %s pro=%s (status %s, cancel_at_end=%s, rows=%s)",
+                     customer_id, is_pro, status, cancel_at_period_end,
+                     getattr(cur, "rowcount", "?"))

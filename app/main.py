@@ -22,6 +22,12 @@ from . import auth, config, db, push, youtube
 from .ingest import run_ebay, run_fanatics, run_twitch_roster, run_youtube, run_youtube_roster
 from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
 
+import logging
+# Brian 2026-10-09: our own loggers ("breakalley.*") default to WARNING via
+# the root logger, which hid the billing webhook's info lines during the
+# cancel-date investigation. Keep them visible.
+logging.getLogger("breakalley").setLevel(logging.INFO)
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
