@@ -1463,17 +1463,26 @@ async def push_unsubscribe(request: Request):
 async def push_test(request: Request):
     """Send a test push to the logged-in user (Brian 2026-10-09)."""
     from . import push as push_mod
+    import logging
+    log = logging.getLogger("breakalley.push_test")
     try:
         user = _require_user(request)
     except _LoginRequired:
         return JSONResponse({"ok": False, "error": "login_required"}, status_code=401)
     with db.get_conn() as conn:
+        # Debug: count all subs for this user
+        count = conn.execute(
+            "SELECT COUNT(*) AS c FROM push_subscriptions WHERE user_id = %s",
+            (user["id"],),
+        ).fetchone()["c"]
+        log.info("push_test: user %s has %s subscriptions", user["id"], count)
         subs = conn.execute(
             "SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = %s",
             (user["id"],),
         ).fetchall()
     if not subs:
-        return JSONResponse({"ok": False, "error": "no_subscriptions"})
+        return JSONResponse({"ok": False, "error": "no_subscriptions", "count": count,
+                             "user_id": user["id"]})
     sent = 0
     for s in subs:
         if push_mod.send_push(
