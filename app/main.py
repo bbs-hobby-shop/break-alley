@@ -241,8 +241,10 @@ def breaker_page(request: Request, breaker_name: str):
         error = None
     except Exception as exc:
         results, error = [], f"Database unavailable: {exc}"
-    return templates.TemplateResponse(request, "search.html", {
+    return templates.TemplateResponse(request, "results.html", {
         "results": results, "error": error,
+        "total_results": len(results), "has_more": False,
+        "page_size": PAGE_SIZE,
         "q": "", "format": "", "max_price": "", "source": "", "live": False,
         "region": "", "sort": "", "auctions": False, "suggested": "",
         "user": user, "favorites": favorites, "saved_ids": saved_ids,

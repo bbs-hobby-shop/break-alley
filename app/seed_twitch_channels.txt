@@ -47,3 +47,4 @@ dearcindyphan  # PandaTCG — US, Twitch Partner, Sunday group breaks (added 202
 honeyholebreaks  # Honey Hole Breaks — SoCal, sports/entertainment group breaks + personal rips (added 2026-10-08, Brian approved)
 ripnshipgaming  # Brian approved 2026-10-08
 magictradersnl  # Brian approved 2026-10-08 (Whatnot simulcast — Twitch is simulcast only)
+thornswarehouse  # Thorns Warehouse — Pokemon TCG rip-and-ship (Brian approved 2026-10-09, weekly discovery)

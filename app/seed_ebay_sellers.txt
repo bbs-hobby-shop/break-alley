@@ -94,3 +94,6 @@ ksehd  # ksehd — hockey per-team case breaks, CA (added 2026-10-08, Brian appr
 morrisontradingpost
 cardshub_it
 renegadecollectibles
+mojobreak  # Mojobreak Sports Cards — NHL Series 1 case breaks on eBay Live (Brian approved 2026-10-09, weekly discovery)
+freshwaxbreaks  # $1-start team-break auctions, multi-sport (Brian approved 2026-10-09, weekly discovery)
+mint_memorabilia  # Bowman Chrome PYT mixers + $20K bounty (Brian approved 2026-10-09, weekly discovery)
