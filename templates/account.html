@@ -112,6 +112,7 @@
       {% if has_push %}
       <div class="kv"><span class="k">Push alerts</span><span class="v">On ✓</span></div>
       <button class="btn ghost" id="testPushBtn" type="button" style="margin-top: .5rem;">Send test push</button>
+      <button class="btn ghost" id="resetPushBtn" type="button" style="margin-top: .5rem;">Reset push (re-subscribe)</button>
       {% else %}
       <button class="btn ghost" id="enablePushBtn" type="button">Enable push alerts</button>
       {% endif %}
@@ -194,7 +195,13 @@ document.getElementById('manageSubBtn')?.addEventListener('click', async functio
 document.getElementById('testPushBtn')?.addEventListener('click', async function() {
   const r = await fetch('/api/push/test', { method: 'POST' });
   const j = await r.json();
-  alert(j.ok ? `Test push sent to ${j.sent} device(s).` : 'Failed: ' + (j.error || 'unknown'));
+  alert(j.ok ? `Test push sent to ${j.sent} device(s).` : 'Failed: ' + (j.error || 'unknown') + (j.count !== undefined ? ` (db count: ${j.count})` : ''));
+});
+document.getElementById('resetPushBtn')?.addEventListener('click', async function() {
+  if (!confirm('This will remove your push subscription. You can re-enable it after. Continue?')) return;
+  const r = await fetch('/api/push/unsubscribe', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}' });
+  const j = await r.json();
+  if (j.ok) { location.reload(); } else { alert('Failed: ' + (j.error || 'unknown')); }
 });
 document.getElementById('enablePushBtn')?.addEventListener('click', async function() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
