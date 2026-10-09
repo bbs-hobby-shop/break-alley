@@ -23,7 +23,8 @@ def vapid_public_key() -> str:
     return _vapid()["public"]
 
 
-def send_push(subscription: dict, title: str, body: str, url: str = "/") -> str:
+def send_push(subscription: dict, title: str, body: str, url: str = "/",
+             tag: str = "") -> str:
     """Send one push notification.
 
     Returns "ok" on success, "expired" when the push service says the
@@ -43,7 +44,8 @@ def send_push(subscription: dict, title: str, body: str, url: str = "/") -> str:
                 "endpoint": subscription["endpoint"],
                 "keys": {"p256dh": subscription["p256dh"], "auth": subscription["auth"]},
             },
-            data=json.dumps({"title": title, "body": body, "url": url}),
+            data=json.dumps({"title": title, "body": body, "url": url,
+                             "tag": tag or "breakalley-push"}),
             vapid_private_key=v["private"],
             vapid_claims={"sub": v["subject"]},
         )
@@ -67,7 +69,8 @@ def send_push(subscription: dict, title: str, body: str, url: str = "/") -> str:
         return "failed"
 
 
-def notify_breaker_live(conn, breaker_name: str, break_title: str, break_url: str) -> int:
+def notify_breaker_live(conn, breaker_name: str, break_title: str, break_url: str,
+                        tag: str = "") -> int:
     """Notify all Pro users following this breaker that they're live.
 
     Called from pollers when a breaker transitions to live. Best-effort;
@@ -95,6 +98,7 @@ def notify_breaker_live(conn, breaker_name: str, break_title: str, break_url: st
             title=f"{breaker_name} is LIVE",
             body=break_title,
             url=break_url,
+            tag=tag,
         )
         if result == "expired":
             dead.append(r["id"])
@@ -125,7 +129,8 @@ def check_and_notify_new_live(conn):
     ).fetchall()
     for r in rows:
         try:
-            sent = notify_breaker_live(conn, r["breaker"] or "A breaker", r["title_raw"], r["source_url"])
+            sent = notify_breaker_live(conn, r["breaker"] or "A breaker", r["title_raw"], r["source_url"],
+                                     tag=f"live-{r['id']}")
             # Only mark notified if at least one device was reached — a
             # failed send retries on the next poller run instead of being
             # silently swallowed (Brian 2026-10-09).
@@ -181,7 +186,7 @@ def set_push_prefs(conn, user_id: int, live_alerts: bool, starting_soon: bool,
     )
 
 
-def _send_to_user(conn, user_id: int, title: str, body: str, url: str) -> tuple[int, int]:
+def _send_to_user(conn, user_id: int, title: str, body: str, url: str, tag: str = "") -> tuple[int, int]:
     """Send a push to all of a user's devices. Returns (sent, dead_pruned)."""
     subs = conn.execute(
         "SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = %s",
@@ -191,7 +196,7 @@ def _send_to_user(conn, user_id: int, title: str, body: str, url: str) -> tuple[
     for s in subs:
         result = send_push(
             {"endpoint": s["endpoint"], "p256dh": s["p256dh"], "auth": s["auth"]},
-            title=title, body=body, url=url or "/",
+            title=title, body=body, url=url or "/", tag=tag,
         )
         if result == "ok":
             sent += 1
@@ -267,6 +272,7 @@ def check_and_notify_starting_soon(conn, minutes_ahead: int = 30):
                 title=f"{r['breaker'] or 'A breaker'} starts in {mins_left} min",
                 body=r["title_raw"] or "",
                 url=r["source_url"] or "/",
+                tag=f"soon-{r['id']}",
             )
             if result == "ok":
                 total_sent += 1
@@ -352,6 +358,7 @@ def check_and_notify_auction_ending(conn, minutes_ahead: int = 60):
             title=f"{r['breaker'] or 'A breaker'} auction ends in {mins_left} min",
             body=body,
             url=r["source_url"] or "/",
+            tag=f"auction-{r['id']}",
         )
         total_sent += sent
         total_dead += dead
@@ -446,6 +453,7 @@ def check_and_notify_new_breaks(conn):
                 title=f"{c['breaker']} has a new break",
                 body=c["title_raw"] or "",
                 url=c["source_url"] or "/",
+                tag=f"newbreak-{c['id']}",
             )
             total_sent += sent
             total_dead += dead

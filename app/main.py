@@ -1554,6 +1554,7 @@ async def push_test(request: Request):
             f"{test_breaker} is LIVE",
             "Test alert — real notifications will look exactly like this.",
             "/my-breaks",
+            tag="test-push",
         ) == "ok":
             sent += 1
     return JSONResponse({"ok": True, "sent": sent, "total": len(subs)})
