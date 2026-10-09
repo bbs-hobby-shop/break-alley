@@ -268,3 +268,115 @@ ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS box_config TEXT;
 ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS key_hits TEXT;
 ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS product_url TEXT;
+
+-- Populate release detail fields (Brian 2026-10-08): researched 2026-10-09
+-- from Topps/Panini/Upper Deck official pages and hobby sources.
+-- Idempotent: only fills in NULL fields, safe to re-run.
+UPDATE release_calendar SET
+  manufacturer = 'Topps', sport = 'Baseball',
+  description = 'A&G returns with its signature blend of baseball and beyond — a 300-card base set spanning MLB stars, rookies, and non-sport personalities. New inserts include Mini Musical Methods, N43, and Career 250. Rip Cards hide mini cards inside, and 1/1 Cut Signatures feature historical figures.',
+  box_config = '18 packs per box, 8 cards per pack (144 cards)',
+  key_hits = '2 autograph, relic, printing plate, or Rip Card cards per box on average. Chases: Mini Baseball Autos (Ohtani, Judge, Harper), Mini Non-Baseball Autos, 1/1 Cut Signatures (Lincoln, Ruth, Clemente, Mantle), rookie autos (Murakami, Konnor Griffin, Roman Anthony).',
+  product_url = 'https://ripped.topps.com/2026-topps-allen-ginter-collector-cards-guide/'
+WHERE product_name = '2026 Topps Allen & Ginter Baseball' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Topps', sport = 'Baseball',
+  description = 'Topps'' premium high-end baseball release: a compact 100-card base set built around on-card autographs, metal-framed signatures, autograph relics, and jumbo game-used memorabilia presented as display pieces.',
+  box_config = '1 pack per box, 8 cards per pack',
+  key_hits = '1 autograph + 1 autograph relic + 1 relic per box on average. Chases: Museum Framed Autographs, Atelier Autographed Books, Jumbo Bat Nameplate 1/1s, Momentous Material Jumbo Patch Autos.',
+  product_url = 'https://ripped.topps.com/2026-topps-museum-collection-baseball-guide/'
+WHERE product_name = '2026 Topps Museum Collection Baseball' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Upper Deck', sport = 'Hockey',
+  description = 'Upper Deck''s flagship hockey season opener: the first 250 cards of the 2026-27 base set (198 veterans, 49 Young Guns rookies, 3 checklists). The Young Guns class is led by Porter Martone, Anton Frondell, James Hagens, and Cole Hutson.',
+  box_config = '12 packs per box, 12 cards per pack, 12 boxes per case',
+  key_hits = '6 Young Guns rookie cards, 1 numbered/short-print/printing plate, 1 Outburst Silver, 4 UD Canvas, 1 Blue Dazzlers per box on average. Parallel ladder: Deluxe /250, Exclusives /100, High Gloss /10, Outburst Gold 1/1.',
+  product_url = 'https://upperdeck.com/2026-27-upper-deck-series-one/'
+WHERE product_name = '2026-27 Upper Deck Series 1 Hockey' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Topps', sport = 'Baseball',
+  description = 'The final 2026 flagship release, closing Topps'' 75th-anniversary celebration: a 350-card base set of stars, top rookies, Future Stars, in-season call-ups, and traded players in new uniforms.',
+  box_config = '21 packs per box, 12 cards per pack',
+  key_hits = '1 autograph OR relic per box on average. Chases: Real One Autos, 75 Years of Topps Die-Cut Autos, Cover Athlete Autos, 1991 Topps Autos, City Connect relics. Rookies: JJ Wetherholt, Kevin McGonigle, Travis Bazzana.',
+  product_url = 'https://ripped.topps.com/2026-topps-update-series-baseball-box-guide/'
+WHERE product_name = '2026 Topps Update Series Baseball' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Panini', sport = 'Basketball',
+  description = 'Select returns with Optichrome technology but, for the first time, without NBA licensing — players appear in airbrushed images without team logos. A 400-card tiered base set (Concourse, Premier, Courtside, Mezzanine).',
+  box_config = '12 packs per box, 5 cards per pack',
+  key_hits = '3 autographs or memorabilia, 24 Base Prizms, 6 inserts/parallels per box on average. Chases: Colorgraphs, Rookie Jersey Autos (Edgecombe, Tre Johnson, Fears, Queen), Color Wheel and Stained Glass SSPs.'
+WHERE product_name = '2025-26 Panini Select Basketball' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Panini', sport = 'Soccer',
+  description = 'The first-ever NWSL edition of Donruss Optic — Optichrome designs covering the National Women''s Soccer League, headlined by Marta, Temwa Chawinga, Trinity Rodman, and Sophia Wilson.',
+  box_config = '16 packs per box, 5 cards per pack, 12 boxes per case',
+  key_hits = '3 autographs or memorabilia, 16 inserts, 4 numbered parallels, 16 Rated Rookies per box on average. Chases: Downtown and Night Moves case hits, new Kismet case hit, Signature Series autos.',
+  product_url = 'https://www.paniniamerica.net/2026-panini-donruss-optic-nwsl-trading-card-box-hobby.html'
+WHERE product_name = '2026 Panini Donruss Optic NWSL Soccer' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Topps', sport = 'Formula 1',
+  description = 'The seventh straight season of flagship F1 Chrome: a 200-card base set with an expanded 22-driver grid plus F2/F3 talent, legends, and team content. New Prism Refractor ladder and Full Grid Refractor /22.',
+  box_config = '20 packs per box, 4 cards per pack, 12 boxes per case',
+  key_hits = '1 Chrome Autograph, 4 Prism Refractors, 3+ numbered parallels per box. Chases: Hamilton, Verstappen, Norris autos; Arvid Lindblad F1 Debut Patch Auto 1/1. The Grail: a 9-card program with a 24K gold 1/1 Grand Prize Auto.',
+  product_url = 'https://ripped.topps.com/2026-topps-chrome-formula-1-what-box-is-best/'
+WHERE product_name = '2026 Topps Chrome Formula 1' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Topps', sport = 'Football',
+  description = 'Heritage brings the 1976 Topps Football design to today''s game: a 400-card base set with Team Cards, League Leaders, and Super Bowl LX subsets. New inserts dig into 1976 lore: The Expansion, All-Pro Series, New Age Performers.',
+  box_config = '20 packs per box, 8 cards per pack',
+  key_hits = '1 autograph or relic per box on average. Chases: Real One Autos, Heritage Rookie Autos (Mendoza, Love, Simpson), Brady/Allen/Burrow autos, Walter Payton cut signatures.',
+  product_url = 'https://www.topps.com/pages/topps-heritage-football'
+WHERE product_name = '2026 Topps Heritage Football' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Panini', sport = 'Football',
+  description = 'Obsidian''s 2026 return with its trademark dark/black Opti-Chrome aesthetics and die-cut designs. Autographs from top collegiate players and retired NFL legends; Electric Etch parallels throughout.',
+  box_config = '1 pack per box, 7 cards per pack, 12 boxes per case',
+  key_hits = '1 patch autograph, 1 additional autograph, 2 memorabilia cards per box on average. Case hits: Black Color Blast and Black Stained Glass SSPs.',
+  product_url = 'https://www.paniniamerica.net/2026-panini-obsidian-football-trading-card-box-hobby.html'
+WHERE product_name = '2026 Panini Obsidian Football' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Panini', sport = 'Football',
+  description = 'Donruss Football''s 2026 flagship: a 200-card base set with a wide parallel rainbow; autographs from all-time greats and top collegiate players; inserts headlined by Campus Kings, Downtown, and Downtown Duos.',
+  box_config = '12 packs per box, 10 cards per pack, 12 boxes per case',
+  key_hits = '1 autograph, 1 memorabilia card, 12 parallels, 36 inserts per box on average.',
+  product_url = 'https://www.paniniamerica.net/2026-panini-donruss-football-trading-card-box-hobby.html'
+WHERE product_name = '2026 Panini Donruss Football' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Panini', sport = 'Soccer',
+  description = 'The first-ever Crown Royale release for soccer: the classic die-cut crown base design, Crystal Purple parallels, larger Crown Control die-cuts, hard-signed autographs, and the legendary Kaboom! SSP insert.',
+  box_config = '1 pack per box, 8 cards per pack',
+  key_hits = '1 autograph + 2 memorabilia cards per box on average, plus 2 base parallels and 1 insert. Chase: Kaboom! SSP.'
+WHERE product_name = '2026 Panini Crown Royale NWSL Soccer' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Topps', sport = 'Basketball',
+  description = 'Topps Flagship Basketball: a 300-card base set introducing the deep 2026 rookie class — first official rookie cards of AJ Dybantsa (cover), Darryn Peterson, Cameron Boozer; first pack-pulled LeBron James 76ers and Giannis Heat cards.',
+  box_config = '20 packs per box, 12 cards per pack, 12 boxes per case',
+  key_hits = '1 autograph or relic per box on average. Chases: Real One Autos, Rookie Photo Shoot Autos, 1981-82 Topps Autos, new Clear Variations /10.'
+WHERE product_name = '2026-27 Topps Basketball' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Topps', sport = 'Football',
+  description = 'Bowman University prospects in the classic Bowman''s Best Chrome style: a 100-card set covering 81 colleges, headlined by NIL stars Arch Manning, Dante Moore, Bryce Underwood. New Quad and Hexagon multi-signer autographs.',
+  box_config = '4 packs per box, 10 cards per pack, 12 boxes per case (hobby-only)',
+  key_hits = '4 autographs, 3 numbered parallels, 8 inserts per box. Per case: 1 Best of the Best or Campus Crests insert.',
+  product_url = 'https://ripped.topps.com/2026-bowman-u-best-football-hobby-box-guide/'
+WHERE product_name = '2026 Bowman U Best Football' AND manufacturer IS NULL;
+
+UPDATE release_calendar SET
+  manufacturer = 'Topps', sport = 'Football',
+  description = 'Topps'' premium artistic football brand: bold canvas designs across stars, veterans, and the 2026 rookie class headlined by Fernando Mendoza. New Charged Particles and Immersion autographs.',
+  box_config = '1 pack per box, 7 cards per pack, 8 boxes per case',
+  key_hits = '1 autograph per box on average. Chases: Silver Signings, Dawn of Greatness, Genesis, Dual Rookie Autos, Gold Electricity parallels.',
+  product_url = 'https://www.topps.com/pages/topps-inception-football'
+WHERE product_name = '2026 Topps Inception Football' AND manufacturer IS NULL;
