@@ -111,6 +111,7 @@
     <div style="margin-top: .75rem;">
       {% if has_push %}
       <div class="kv"><span class="k">Push alerts</span><span class="v">On ✓</span></div>
+      <button class="btn ghost" id="testPushBtn" type="button" style="margin-top: .5rem;">Send test push</button>
       {% else %}
       <button class="btn ghost" id="enablePushBtn" type="button">Enable push alerts</button>
       {% endif %}
@@ -189,6 +190,11 @@ document.getElementById('manageSubBtn')?.addEventListener('click', async functio
   const r = await fetch('/api/stripe/portal', { method: 'POST' });
   const j = await r.json();
   if (j.ok && j.url) { window.location = j.url; }
+});
+document.getElementById('testPushBtn')?.addEventListener('click', async function() {
+  const r = await fetch('/api/push/test', { method: 'POST' });
+  const j = await r.json();
+  alert(j.ok ? `Test push sent to ${j.sent} device(s).` : 'Failed: ' + (j.error || 'unknown'));
 });
 document.getElementById('enablePushBtn')?.addEventListener('click', async function() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {

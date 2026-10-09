@@ -1459,6 +1459,33 @@ async def push_unsubscribe(request: Request):
     return JSONResponse({"ok": True})
 
 
+@app.post("/api/push/test")
+async def push_test(request: Request):
+    """Send a test push to the logged-in user (Brian 2026-10-09)."""
+    from . import push as push_mod
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return JSONResponse({"ok": False, "error": "login_required"}, status_code=401)
+    with db.get_conn() as conn:
+        subs = conn.execute(
+            "SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = %s",
+            (user["id"],),
+        ).fetchall()
+    if not subs:
+        return JSONResponse({"ok": False, "error": "no_subscriptions"})
+    sent = 0
+    for s in subs:
+        if push_mod.send_push(
+            {"endpoint": s["endpoint"], "keys": {"p256dh": s["p256dh"], "auth": s["auth"]}},
+            "BreakAlley Pro",
+            "Push alerts are working — you'll hear about live breaks instantly.",
+            "/my-breaks",
+        ):
+            sent += 1
+    return JSONResponse({"ok": True, "sent": sent, "total": len(subs)})
+
+
 # ---------------------------------------------------------------------------
 # BreakAlley Pro — Stripe subscriptions (Brian 2026-10-08)
 # ---------------------------------------------------------------------------
