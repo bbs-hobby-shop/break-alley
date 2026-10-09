@@ -896,6 +896,42 @@ CREATE TABLE IF NOT EXISTS whatnot_show_submissions (
 );
 CREATE INDEX IF NOT EXISTS idx_whatnot_submissions_status ON whatnot_show_submissions (status);
 
+-- BreakAlley Pro (Brian 2026-10-08): paid subscription columns on users.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='is_pro') THEN
+            ALTER TABLE users ADD COLUMN is_pro BOOLEAN NOT NULL DEFAULT FALSE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='stripe_customer_id') THEN
+            ALTER TABLE users ADD COLUMN stripe_customer_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='stripe_subscription_id') THEN
+            ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='pro_expires_at') THEN
+            ALTER TABLE users ADD COLUMN pro_expires_at TIMESTAMPTZ;
+        END IF;
+    END IF;
+END $$;
+
+-- Web Push subscriptions (Brian 2026-10-08): one row per browser/device.
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    endpoint   TEXT NOT NULL UNIQUE,
+    p256dh     TEXT NOT NULL,
+    auth       TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions (user_id);
+
+-- Tracks which live breaks already triggered push notifications.
+CREATE TABLE IF NOT EXISTS live_push_log (
+    break_id    INTEGER PRIMARY KEY REFERENCES breaks(id) ON DELETE CASCADE,
+    notified_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Roster table for Fanatics Live shops (schema.sql is the canonical
 -- definition; this keeps cron pollers working on older DBs). Polled via
 -- the public GraphQL API at fanatics.live/graphql (Brian 2026-10-07).

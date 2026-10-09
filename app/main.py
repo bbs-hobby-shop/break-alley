@@ -29,6 +29,16 @@ app = FastAPI(title="Box Break Finder")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
+@app.on_event("startup")
+def _ensure_schema():
+    """Run idempotent schema migrations on boot (new tables/columns)."""
+    try:
+        with db.get_conn() as conn:
+            db.ensure_schema(conn)
+    except Exception as e:
+        print(f"startup schema ensure failed: {e}")
+
+
 def _enrich(row: dict) -> dict:
     """Add display-ready fields: cleaned title, break number, date label."""
     title = row.get("title_raw") or ""
