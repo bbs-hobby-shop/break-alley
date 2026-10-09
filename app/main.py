@@ -740,6 +740,37 @@ def admin_pro_subscribers(request: Request, key: str | None = Query(default=None
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.get("/admin/push-debug")
+def admin_push_debug(request: Request, key: str | None = Query(default=None)):
+    """Push subscription diagnostics (Brian 2026-10-09). Which users exist
+    and which user_ids hold push subscriptions — for the 0-devices mystery."""
+    if not _admin_key_ok(key):
+        return JSONResponse({"error": "denied"}, status_code=403)
+    try:
+        with db.get_conn() as conn:
+            users = conn.execute(
+                "SELECT id, email, is_pro, created_at FROM users ORDER BY id"
+            ).fetchall()
+            subs = conn.execute(
+                "SELECT user_id, substr(endpoint, length(endpoint) - 19, 20) AS endpoint_tail, "
+                "created_at FROM push_subscriptions ORDER BY user_id"
+            ).fetchall()
+            return JSONResponse({
+                "users": [
+                    {"id": r["id"], "email": r["email"], "is_pro": bool(r["is_pro"]),
+                     "created_at": str(r["created_at"]) if r["created_at"] else None}
+                    for r in users
+                ],
+                "push_subscriptions": [
+                    {"user_id": r["user_id"], "endpoint_tail": r["endpoint_tail"],
+                     "created_at": str(r["created_at"]) if r["created_at"] else None}
+                    for r in subs
+                ],
+            })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.post("/admin/whatnot/{submission_id}/approve")
 def admin_whatnot_approve(request: Request, submission_id: int,
                           key: str = Form(default="")):
