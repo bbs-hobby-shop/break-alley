@@ -105,6 +105,23 @@ services:
           name: break-alley-db
           property: connectionString
 
+  # ---- DB-only eBay prune (Brian 2026-10-09) ----
+  # Removes ended auctions / sold-out BINs using only our own database —
+  # zero eBay API calls, so cleanup keeps working during 429 throttles and
+  # never depends on the eBay poller running. The "vanished" rule only
+  # applies when feed data is fresh (the script decides that itself).
+  - type: cron
+    name: break-alley-prune-ebay
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    schedule: "*/30 * * * *"
+    dockerCommand: python -m app.prune
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: break-alley-db
+          property: connectionString
+
   # ---- Daily system health check (Brian 2026-10-07) ----
   # 6 AM CDT (11 AM UTC): verifies pollers, data quality, site health,
   # link validity, prune working, security basics. Top-line standards.
