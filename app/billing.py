@@ -8,6 +8,8 @@ STRIPE_PRO_PRICE_ID.
 """
 import logging
 import os
+import time
+from datetime import datetime, timezone
 
 log = logging.getLogger("breakalley.billing")
 
@@ -122,19 +124,27 @@ def sync_subscription(conn, event) -> None:
         status = src.get("status", "")
         # Active/trialing = Pro. Anything else = not Pro.
         is_pro = status in ("active", "trialing")
-        # If scheduled to cancel at period end, keep Pro until then but record the date.
-        cancel_at_period_end = src.get("cancel_at_period_end", False)
+        # Scheduled cancellation: Stripe signals it EITHER via
+        # cancel_at_period_end=true OR via an explicit cancel_at timestamp
+        # with cancel_at_period_end=false (2026-10-09: the customer portal
+        # sent cancel_at=Nov 9 with the boolean false, and the old
+        # boolean-only check wrote pro_expires_at=NULL). Trust the timestamp:
+        # a future cancel_at on an active/trialing sub means Pro until then.
         cancel_at = src.get("cancel_at")  # Unix timestamp or None
         pro_expires_at = None
-        if cancel_at_period_end and cancel_at:
-            from datetime import datetime, timezone
-            pro_expires_at = datetime.fromtimestamp(cancel_at, tz=timezone.utc)
+        if cancel_at and status in ("active", "trialing"):
+            try:
+                cancel_dt = datetime.fromtimestamp(cancel_at, tz=timezone.utc)
+            except (TypeError, ValueError, OSError):
+                cancel_dt = None
+            if cancel_dt and cancel_dt.timestamp() > time.time():
+                pro_expires_at = cancel_dt
         if customer_id:
             cur = conn.execute(
                 "UPDATE users SET is_pro = %s, stripe_subscription_id = %s, "
                 "pro_expires_at = %s WHERE stripe_customer_id = %s",
                 (is_pro, src.get("id"), pro_expires_at, customer_id),
             )
-            log.info("billing: customer %s pro=%s (status %s, cancel_at_end=%s, rows=%s)",
-                     customer_id, is_pro, status, cancel_at_period_end,
+            log.info("billing: customer %s pro=%s (status %s, expires=%s, rows=%s)",
+                     customer_id, is_pro, status, pro_expires_at,
                      getattr(cur, "rowcount", "?"))
