@@ -7,3 +7,5 @@ python-dotenv>=1.0
 python-multipart>=0.0.9  # HTML form parsing (suggestion form, admin review)
 bcrypt>=4.0  # password hashing
 itsdangerous>=2.0  # signed session cookies
+pywebpush
+stripe>=7.0

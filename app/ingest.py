@@ -602,6 +602,14 @@ def main() -> int:
             print(f"purged {n_purged} junk breaks")
     except Exception as exc:
         print(f"junk purge failed (continuing): {exc}", file=sys.stderr)
+    # Pro push notifications (Brian 2026-10-08): alert Pro followers when
+    # a followed breaker goes live. Best-effort; never fails the run.
+    try:
+        from . import push
+        with db.get_conn() as conn:
+            push.check_and_notify_new_live(conn)
+    except Exception as exc:
+        print(f"push notify check failed (continuing): {exc}", file=sys.stderr)
     return result
 
 

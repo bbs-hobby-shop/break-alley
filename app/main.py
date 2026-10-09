@@ -14,11 +14,11 @@ from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 from fastapi import FastAPI, Form, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import auth, config, db, youtube
+from . import auth, config, db, push, youtube
 from .ingest import run_ebay, run_fanatics, run_twitch_roster, run_youtube, run_youtube_roster
 from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
 
@@ -1138,16 +1138,40 @@ def account(request: Request, notice: str | None = Query(default=None)):
         "email_updated": "Email address updated.",
         "password_updated": "Password updated.",
     }
+    is_pro = False
+    has_push = False
+    with db.get_conn() as conn:
+        row = conn.execute(
+            "SELECT is_pro FROM users WHERE id = %s", (user["id"],)
+        ).fetchone()
+        is_pro = bool(row and row["is_pro"])
+        if is_pro:
+            has_push = conn.execute(
+                "SELECT 1 FROM push_subscriptions WHERE user_id = %s LIMIT 1",
+                (user["id"],),
+            ).fetchone() is not None
     return templates.TemplateResponse(request, "account.html", {
         "user": user, "error": None,
         "notice": notices.get(notice or ""),
+        "is_pro": is_pro, "has_push": has_push,
     })
 
 
 def _account_error(request: Request, user: dict, msg: str):
     """Re-render the account settings page with an error."""
+    is_pro = False
+    has_push = False
+    try:
+        with db.get_conn() as conn:
+            row = conn.execute(
+                "SELECT is_pro FROM users WHERE id = %s", (user["id"],)
+            ).fetchone()
+            is_pro = bool(row and row["is_pro"])
+    except Exception:
+        pass
     return templates.TemplateResponse(request, "account.html", {
         "user": user, "error": msg, "notice": "",
+        "is_pro": is_pro, "has_push": has_push,
     })
 
 
@@ -1249,6 +1273,22 @@ def favorite_toggle(
                     db.log_event(conn, "breaker_unfollowed",
                                  user_id=user["id"], breaker=breaker)
                 else:
+                    # Pro gate (Brian 2026-10-08): free tier caps at 10 follows.
+                    row = conn.execute(
+                        "SELECT is_pro FROM users WHERE id = %s", (user["id"],)
+                    ).fetchone()
+                    if not (row and row["is_pro"]):
+                        n = conn.execute(
+                            "SELECT COUNT(*) AS c FROM user_favorites WHERE user_id = %s",
+                            (user["id"],),
+                        ).fetchone()["c"]
+                        if n >= 10:
+                            if "application/json" in request.headers.get("accept", ""):
+                                return JSONResponse(
+                                    {"ok": False, "error": "pro_required",
+                                     "message": "Free tier caps at 10 follows — go Pro for unlimited."},
+                                    status_code=403)
+                            return RedirectResponse("/pro", status_code=303)
                     db.add_favorite(conn, user["id"], breaker)
                     following = True
                     db.log_event(conn, "breaker_followed",
@@ -1299,3 +1339,158 @@ def saved_listing_toggle(
         return {"ok": True, "break_id": break_id, "saved": saved}
     return RedirectResponse(dest, status_code=303)
 
+
+
+# ---------------------------------------------------------------------------
+# Web Push notifications (BreakAlley Pro — Brian 2026-10-08)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/push/vapid-key")
+def push_vapid_key():
+    return JSONResponse({"publicKey": push.vapid_public_key()})
+
+
+@app.post("/api/push/subscribe")
+async def push_subscribe(request: Request):
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return JSONResponse({"ok": False, "error": "login_required"}, status_code=401)
+    # Gate: push notifications are a Pro feature.
+    with db.get_conn() as conn:
+        row = conn.execute(
+            "SELECT is_pro FROM users WHERE id = %s", (user["id"],)
+        ).fetchone()
+        if not row or not row["is_pro"]:
+            return JSONResponse({"ok": False, "error": "pro_required"}, status_code=403)
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "bad_request"}, status_code=400)
+    endpoint = (data.get("endpoint") or "").strip()
+    keys = data.get("keys") or {}
+    p256dh = (keys.get("p256dh") or "").strip()
+    auth_key = (keys.get("auth") or "").strip()
+    if not endpoint or not p256dh or not auth_key:
+        return JSONResponse({"ok": False, "error": "bad_request"}, status_code=400)
+    with db.get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (endpoint) DO UPDATE
+            SET user_id = EXCLUDED.user_id, p256dh = EXCLUDED.p256dh,
+                auth = EXCLUDED.auth, created_at = NOW()
+            """,
+            (user["id"], endpoint, p256dh, auth_key),
+        )
+    return JSONResponse({"ok": True})
+
+
+@app.post("/api/push/unsubscribe")
+async def push_unsubscribe(request: Request):
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return JSONResponse({"ok": False, "error": "login_required"}, status_code=401)
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    endpoint = (data.get("endpoint") or "").strip()
+    with db.get_conn() as conn:
+        if endpoint:
+            conn.execute(
+                "DELETE FROM push_subscriptions WHERE user_id = %s AND endpoint = %s",
+                (user["id"], endpoint),
+            )
+        else:
+            conn.execute(
+                "DELETE FROM push_subscriptions WHERE user_id = %s", (user["id"],)
+            )
+    return JSONResponse({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# BreakAlley Pro — Stripe subscriptions (Brian 2026-10-08)
+# ---------------------------------------------------------------------------
+
+@app.get("/pro", response_class=HTMLResponse)
+def pro_page(request: Request):
+    user = auth.get_current_user(request)
+    is_pro = False
+    if user:
+        with db.get_conn() as conn:
+            row = conn.execute(
+                "SELECT is_pro FROM users WHERE id = %s", (user["id"],)
+            ).fetchone()
+            is_pro = bool(row and row["is_pro"])
+    return templates.TemplateResponse(
+        "pro.html", {"request": request, "user": user, "is_pro": is_pro}
+    )
+
+
+@app.post("/api/stripe/checkout")
+def stripe_checkout(request: Request):
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return JSONResponse({"ok": False, "error": "login_required"}, status_code=401)
+    from . import billing
+
+    try:
+        url = billing.create_checkout_session(
+            user["id"], user["email"], str(request.base_url).rstrip("/")
+        )
+    except RuntimeError as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+    return JSONResponse({"ok": True, "url": url})
+
+
+@app.get("/pro/success", response_class=HTMLResponse)
+def pro_success(request: Request):
+    user = auth.get_current_user(request)
+    return templates.TemplateResponse(
+        "pro_success.html", {"request": request, "user": user}
+    )
+
+
+@app.post("/api/stripe/portal")
+def stripe_portal(request: Request):
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return JSONResponse({"ok": False, "error": "login_required"}, status_code=401)
+    from . import billing
+
+    with db.get_conn() as conn:
+        row = conn.execute(
+            "SELECT stripe_customer_id FROM users WHERE id = %s", (user["id"],)
+        ).fetchone()
+    if not row or not row["stripe_customer_id"]:
+        return JSONResponse({"ok": False, "error": "no_subscription"}, status_code=400)
+    try:
+        url = billing.create_portal_session(
+            row["stripe_customer_id"], str(request.base_url).rstrip("/")
+        )
+    except RuntimeError as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+    return JSONResponse({"ok": True, "url": url})
+
+
+@app.post("/api/stripe/webhook")
+async def stripe_webhook(request: Request):
+    from . import billing
+
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    try:
+        event = billing.verify_webhook(payload, sig)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": "bad_signature"}, status_code=400)
+    try:
+        with db.get_conn() as conn:
+            billing.sync_subscription(conn, event)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": "sync_failed"}, status_code=500)
+    return JSONResponse({"ok": True})

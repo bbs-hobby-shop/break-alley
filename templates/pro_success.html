@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>You're Pro — BreakAlley</title>
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<style>
+  :root { --bg: #0a0e1c; --card: #151c38; --line: #26305c; --text: #f2f4ff;
+    --muted: #8b93b8; --green: #00e676; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 1rem; text-align: center; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 2.5rem 2rem; max-width: 420px; }
+  h1 { margin: 0 0 .5rem; } h1 em { color: var(--green); font-style: normal; }
+  p { color: var(--muted); }
+  .btn { display: inline-block; margin: .5rem .25rem; padding: .85rem 1.5rem; border-radius: 10px;
+    font-weight: 800; text-decoration: none; }
+  .btn.primary { background: var(--green); color: #06130c; }
+  .btn.ghost { border: 1px solid var(--line); color: var(--text); }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>You're <em>Pro</em>.</h1>
+  <p>Enable push notifications to get alerted the instant your followed breakers go live.</p>
+  <button class="btn primary" id="enablePush">Enable notifications</button><br>
+  <a class="btn ghost" href="/">Back to breaks</a>
+</div>
+<script>
+document.getElementById('enablePush').addEventListener('click', async function() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('Push notifications are not supported on this browser.'); return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.register('/static/sw.js');
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { alert('Notifications blocked — enable them in your browser settings.'); return; }
+    const rk = await fetch('/api/push/vapid-key').then(r => r.json());
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(rk.publicKey)
+    });
+    const r = await fetch('/api/push/subscribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON())
+    });
+    const j = await r.json();
+    if (j.ok) { alert('Notifications enabled — you\'ll get pinged when your breakers go live.'); window.location = '/'; }
+    else if (j.error === 'pro_required') { alert('Pro subscription required.'); window.location = '/pro'; }
+    else { alert('Could not enable notifications — try again.'); }
+  } catch (e) { alert('Could not enable notifications — try again.'); }
+});
+function urlBase64ToUint8Array(b64) {
+  const p = '='.repeat((4 - b64.length % 4) % 4);
+  const b = (b64 + p).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(b); const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+</script>
+</body>
+</html>

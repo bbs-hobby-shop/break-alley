@@ -91,6 +91,7 @@
     <a href="/">Home</a>
     <a href="/my-breaks">My Breaks</a>
     <a href="/account" class="active">Account</a>
+    <a href="/pro">Pro</a>
   </nav>
 </header>
 <main>
@@ -99,6 +100,24 @@
 
   {% if notice %}<div class="banner ok">{{ notice }}</div>{% endif %}
   {% if error %}<div class="banner err">{{ error }}</div>{% endif %}
+
+  <div class="card">
+    <h2>BreakAlley Pro</h2>
+    {% if is_pro %}
+    <div class="kv"><span class="k">Status</span><span class="v" style="color: var(--green); font-weight: 800;">PRO ACTIVE</span></div>
+    <div style="margin-top: .75rem;">
+      {% if has_push %}
+      <div class="kv"><span class="k">Push alerts</span><span class="v">On ✓</span></div>
+      {% else %}
+      <button class="btn ghost" id="enablePushBtn" type="button">Enable push alerts</button>
+      {% endif %}
+    </div>
+    <button class="btn ghost" id="manageSubBtn" type="button" style="margin-top: .5rem;">Manage subscription</button>
+    {% else %}
+    <p style="color: var(--muted);">Get instant alerts when your breakers go live, plus unlimited follows and more.</p>
+    <a class="btn ghost" href="/pro">Go Pro — $4.99/mo</a>
+    {% endif %}
+  </div>
 
   <div class="card">
     <h2>Profile</h2>
@@ -162,5 +181,41 @@
     </details>
   </div>
 </main>
+<script>
+document.getElementById('manageSubBtn')?.addEventListener('click', async function() {
+  const r = await fetch('/api/stripe/portal', { method: 'POST' });
+  const j = await r.json();
+  if (j.ok && j.url) { window.location = j.url; }
+});
+document.getElementById('enablePushBtn')?.addEventListener('click', async function() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('Push notifications are not supported on this browser.'); return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.register('/static/sw.js');
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { alert('Notifications blocked — enable them in your browser settings.'); return; }
+    const rk = await fetch('/api/push/vapid-key').then(r => r.json());
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(rk.publicKey)
+    });
+    const r = await fetch('/api/push/subscribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON())
+    });
+    const j = await r.json();
+    if (j.ok) { location.reload(); }
+    else { alert('Could not enable notifications — try again.'); }
+  } catch (e) { alert('Could not enable notifications — try again.'); }
+});
+function urlBase64ToUint8Array(b64) {
+  const p = '='.repeat((4 - b64.length % 4) % 4);
+  const b = (b64 + p).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(b); const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+</script>
 </body>
 </html>

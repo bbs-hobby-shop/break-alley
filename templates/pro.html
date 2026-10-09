@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BreakAlley Pro — never miss a break</title>
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<style>
+  :root {
+    --bg: #0a0e1c; --bg2: #10162e; --card: #151c38; --line: #26305c;
+    --text: #f2f4ff; --muted: #8b93b8; --green: #00e676; --purple: #7c5cff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh; }
+  header { padding: 1.1rem 1rem .5rem; max-width: 640px; margin: 0 auto; }
+  .brandrow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-bottom: .75rem; }
+  .logo { grid-column: 2; font-weight: 900; font-size: 1.9rem; letter-spacing: .5px; display: flex; align-items: center; gap: .7rem;
+    color: var(--text); text-decoration: none; max-width: 100%; }
+  .logo img { width: 52px; height: 52px; border-radius: 12px; }
+  .logo .wordmark span { color: var(--green); }
+  .signout { grid-column: 3; justify-self: end; margin: 0; white-space: nowrap; }
+  .signout button { background: none; border: none; color: var(--muted); font-size: .85rem; cursor: pointer; }
+  nav.tabs { display: flex; gap: .25rem; border-bottom: 1px solid var(--line); margin-bottom: 1.5rem; }
+  nav.tabs a { flex: 1; text-align: center; padding: .7rem .25rem; color: var(--muted);
+    text-decoration: none; font-weight: 700; font-size: .95rem; }
+  nav.tabs a.active { color: var(--text); border-bottom: 2px solid var(--green); }
+  main { max-width: 640px; margin: 0 auto; padding: 0 1rem 3rem; }
+  .hero { text-align: center; padding: 2rem 0 1.5rem; }
+  .hero h1 { font-size: 2rem; margin: 0 0 .5rem; }
+  .hero h1 em { color: var(--green); font-style: normal; }
+  .hero p { color: var(--muted); margin: 0; font-size: 1.05rem; }
+  .price-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 2rem; text-align: center; margin: 1.5rem 0; }
+  .price { font-size: 3rem; font-weight: 900; }
+  .price small { font-size: 1rem; color: var(--muted); font-weight: 400; }
+  .features { list-style: none; padding: 0; margin: 1.5rem 0; text-align: left; }
+  .features li { padding: .7rem 0; border-bottom: 1px solid var(--line); font-size: 1.02rem; }
+  .features li:last-child { border-bottom: none; }
+  .features li b { color: var(--green); }
+  .btn { display: block; width: 100%; padding: 1rem; border-radius: 12px; border: none;
+    background: var(--green); color: #06130c; font-weight: 800; font-size: 1.1rem;
+    cursor: pointer; text-decoration: none; text-align: center; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.ghost { background: none; border: 1px solid var(--line); color: var(--text); margin-top: .75rem; }
+  .pro-badge { display: inline-block; background: var(--purple); color: #fff; font-weight: 800;
+    padding: .35rem .9rem; border-radius: 20px; font-size: .85rem; margin-bottom: 1rem; }
+  .fine { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 1rem; }
+  @media (max-width: 560px) { .logo { font-size: 1.4rem; } .logo img { width: 40px; height: 40px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brandrow">
+    <div></div>
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+    {% if user %}
+    <form method="post" action="/logout" class="signout"><button type="submit">Sign out</button></form>
+    {% endif %}
+  </div>
+  <nav class="tabs">
+    <a href="/">Home</a>
+    <a href="/my-breaks">My Breaks</a>
+    <a href="/account">Account</a>
+  </nav>
+</header>
+<main>
+  <div class="hero">
+    {% if is_pro %}<div class="pro-badge">PRO ACTIVE</div>{% endif %}
+    <h1>Never miss a <em>break</em> again.</h1>
+    <p>BreakAlley Pro alerts you the instant your breakers go live.</p>
+  </div>
+  <div class="price-card">
+    <div class="price">$4.99<small>/month</small></div>
+    <ul class="features">
+      <li><b>Instant push alerts</b> — notified the second a followed breaker goes live</li>
+      <li><b>Unlimited breaker follows</b> — free tier caps at 10</li>
+      <li><b>Saved search alerts</b> — get pinged when a matching break appears</li>
+      <li><b>Price tracking</b> — buy-in history and deal alerts</li>
+      <li><b>Calendar sync</b> — one-tap add for upcoming breaks</li>
+    </ul>
+    {% if is_pro %}
+      <button class="btn ghost" id="manageBtn">Manage subscription</button>
+    {% elif user %}
+      <button class="btn" id="upgradeBtn">Go Pro — $4.99/mo</button>
+    {% else %}
+      <a class="btn" href="/signup?next=/pro">Sign up to go Pro</a>
+    {% endif %}
+  </div>
+  <p class="fine">Cancel anytime. Free BreakAlley search stays free forever.</p>
+</main>
+<script>
+document.getElementById('upgradeBtn')?.addEventListener('click', async function() {
+  this.disabled = true; this.textContent = 'Loading…';
+  try {
+    const r = await fetch('/api/stripe/checkout', { method: 'POST' });
+    const j = await r.json();
+    if (j.ok && j.url) { window.location = j.url; }
+    else { alert('Checkout unavailable — please try again.'); this.disabled = false; this.textContent = 'Go Pro — $4.99/mo'; }
+  } catch (e) { alert('Checkout unavailable — please try again.'); this.disabled = false; this.textContent = 'Go Pro — $4.99/mo'; }
+});
+document.getElementById('manageBtn')?.addEventListener('click', async function() {
+  const r = await fetch('/api/stripe/portal', { method: 'POST' });
+  const j = await r.json();
+  if (j.ok && j.url) { window.location = j.url; }
+});
+</script>
+</body>
+</html>

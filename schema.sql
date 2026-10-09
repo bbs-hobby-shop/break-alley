@@ -380,3 +380,27 @@ UPDATE release_calendar SET
   key_hits = '1 autograph per box on average. Chases: Silver Signings, Dawn of Greatness, Genesis, Dual Rookie Autos, Gold Electricity parallels.',
   product_url = 'https://www.topps.com/pages/topps-inception-football'
 WHERE product_name = '2026 Topps Inception Football' AND manufacturer IS NULL;
+
+-- BreakAlley Pro (Brian 2026-10-08): paid subscription tier via Stripe.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_pro BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS pro_expires_at TIMESTAMPTZ;
+
+-- Web Push subscriptions (Brian 2026-10-08): one row per browser/device.
+-- Pro feature: instant alerts when followed breakers go live.
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    endpoint   TEXT NOT NULL UNIQUE,   -- push service URL (per browser)
+    p256dh     TEXT NOT NULL,          -- base64url client public key
+    auth       TEXT NOT NULL,          -- base64url auth secret
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions (user_id);
+
+-- Tracks which live breaks already triggered push notifications (avoid dupes).
+CREATE TABLE IF NOT EXISTS live_push_log (
+    break_id    INTEGER PRIMARY KEY REFERENCES breaks(id) ON DELETE CASCADE,
+    notified_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
