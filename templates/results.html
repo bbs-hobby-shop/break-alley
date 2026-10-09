@@ -448,7 +448,15 @@
       headers: { 'Accept': 'application/json' },
       credentials: 'same-origin'
     }).then(function(r) { return r.json(); }).then(function(j) {
-      if (!j || !j.ok) { revertState(); }
+      if (!j || !j.ok) {
+        revertState();
+        // Free-tier follow cap (Brian 2026-10-09): tell them why and
+        // send them to the Pro page instead of silently flipping back.
+        if (j && j.error === 'pro_required') {
+          alert(j.message || 'Free tier caps at 5 follows — go Pro for unlimited.');
+          window.location = '/pro';
+        }
+      }
     }).catch(function() { revertState(); });
   }
 

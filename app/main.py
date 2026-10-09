@@ -1371,22 +1371,29 @@ def favorite_toggle(
                                  user_id=user["id"], breaker=breaker)
                 else:
                     # Pro gate (Brian 2026-10-08): free tier caps at 5 follows.
-                    row = conn.execute(
-                        "SELECT is_pro FROM users WHERE id = %s", (user["id"],)
-                    ).fetchone()
-                    if not (row and row["is_pro"]):
-                        n = conn.execute(
-                            "SELECT COUNT(*) AS c FROM user_favorites WHERE user_id = %s",
-                            (user["id"],),
-                        ).fetchone()["c"]
-                        if n >= 5:
-                            if "application/json" in request.headers.get("accept", ""):
-                                return JSONResponse(
-                                    {"ok": False, "error": "pro_required",
-                                     "message": "Free tier caps at 5 follows — go Pro for unlimited."},
-                                    status_code=403)
-                            return RedirectResponse("/pro", status_code=303)
-                    db.add_favorite(conn, user["id"], breaker)
+                    # Enforced atomically in a single INSERT...WHERE so two
+                    # rapid taps can't both slip past a separate COUNT check.
+                    cur = conn.execute(
+                        """
+                        INSERT INTO user_favorites (user_id, breaker, channel_id)
+                        SELECT %(user_id)s, %(breaker)s, NULL
+                        WHERE (SELECT is_pro FROM users WHERE id = %(user_id)s)
+                           OR (SELECT COUNT(*) FROM user_favorites
+                               WHERE user_id = %(user_id)s) < 5
+                        ON CONFLICT (user_id, breaker) DO NOTHING
+                        """,
+                        {"user_id": user["id"],
+                         "breaker": breaker.strip()[:120]},
+                    )
+                    if cur.rowcount == 0:
+                        # Not already following (checked above), so the cap
+                        # blocked this follow.
+                        if "application/json" in request.headers.get("accept", ""):
+                            return JSONResponse(
+                                {"ok": False, "error": "pro_required",
+                                 "message": "Free tier caps at 5 follows — go Pro for unlimited."},
+                                status_code=403)
+                        return RedirectResponse("/pro", status_code=303)
                     following = True
                     db.log_event(conn, "breaker_followed",
                                  user_id=user["id"], breaker=breaker)
