@@ -105,6 +105,9 @@
     <h2>BreakAlley Pro</h2>
     {% if is_pro %}
     <div class="kv"><span class="k">Status</span><span class="v" style="color: var(--green); font-weight: 800;">PRO ACTIVE</span></div>
+    {% if pro_expires_at %}
+    <div class="kv"><span class="k">Cancels on</span><span class="v">{{ pro_expires_at.strftime('%b %d, %Y') }}</span></div>
+    {% endif %}
     <div style="margin-top: .75rem;">
       {% if has_push %}
       <div class="kv"><span class="k">Push alerts</span><span class="v">On ✓</span></div>

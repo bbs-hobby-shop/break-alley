@@ -1150,11 +1150,14 @@ def account(request: Request, notice: str | None = Query(default=None)):
     }
     is_pro = False
     has_push = False
+    pro_expires_at = None
     with db.get_conn() as conn:
         row = conn.execute(
-            "SELECT is_pro FROM users WHERE id = %s", (user["id"],)
+            "SELECT is_pro, pro_expires_at FROM users WHERE id = %s", (user["id"],)
         ).fetchone()
         is_pro = bool(row and row["is_pro"])
+        if row:
+            pro_expires_at = row["pro_expires_at"]
         if is_pro:
             has_push = conn.execute(
                 "SELECT 1 FROM push_subscriptions WHERE user_id = %s LIMIT 1",
@@ -1164,6 +1167,7 @@ def account(request: Request, notice: str | None = Query(default=None)):
         "user": user, "error": None,
         "notice": notices.get(notice or ""),
         "is_pro": is_pro, "has_push": has_push,
+        "pro_expires_at": pro_expires_at,
     })
 
 

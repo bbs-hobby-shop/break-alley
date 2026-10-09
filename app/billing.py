@@ -103,10 +103,18 @@ def sync_subscription(conn, event) -> None:
         status = obj.get("status", "")
         # Active/trialing = Pro. Anything else = not Pro.
         is_pro = status in ("active", "trialing")
+        # If scheduled to cancel at period end, keep Pro until then but record the date.
+        cancel_at_period_end = obj.get("cancel_at_period_end", False)
+        cancel_at = obj.get("cancel_at")  # Unix timestamp or None
+        pro_expires_at = None
+        if cancel_at_period_end and cancel_at:
+            from datetime import datetime, timezone
+            pro_expires_at = datetime.fromtimestamp(cancel_at, tz=timezone.utc)
         if customer_id:
             conn.execute(
-                "UPDATE users SET is_pro = %s, stripe_subscription_id = %s "
-                "WHERE stripe_customer_id = %s",
-                (is_pro, obj.get("id"), customer_id),
+                "UPDATE users SET is_pro = %s, stripe_subscription_id = %s, "
+                "pro_expires_at = %s WHERE stripe_customer_id = %s",
+                (is_pro, obj.get("id"), pro_expires_at, customer_id),
             )
-            log.info("billing: customer %s pro=%s (status %s)", customer_id, is_pro, status)
+            log.info("billing: customer %s pro=%s (status %s, cancel_at_end=%s)",
+                     customer_id, is_pro, status, cancel_at_period_end)
