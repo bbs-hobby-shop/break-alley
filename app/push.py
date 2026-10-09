@@ -87,7 +87,7 @@ def notify_breaker_live(conn, breaker_name: str, break_title: str, break_url: st
         (breaker_name,),
     ).fetchall()
     if not rows:
-        return
+        return 0
     dead = []
     for r in rows:
         result = send_push(
