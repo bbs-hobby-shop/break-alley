@@ -1028,6 +1028,24 @@ ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS box_config TEXT;
 ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS key_hits TEXT;
 ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS product_url TEXT;
+
+-- Starting-soon push reminders (Brian 2026-10-09): dedup log, one row per
+-- break/user pair already reminded.
+CREATE TABLE IF NOT EXISTS starting_soon_log (
+    break_id    INTEGER NOT NULL,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    notified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (break_id, user_id)
+);
+
+-- Per-type push notification preferences (Brian 2026-10-09).
+-- No row for a user = every notification type on.
+CREATE TABLE IF NOT EXISTS push_prefs (
+    user_id       INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    live_alerts   BOOLEAN NOT NULL DEFAULT TRUE,
+    starting_soon BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 """
 
 

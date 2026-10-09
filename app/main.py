@@ -1229,6 +1229,7 @@ def account(request: Request, notice: str | None = Query(default=None)):
     is_pro = False
     has_push = False
     pro_expires_at = None
+    push_prefs = {"live_alerts": True, "starting_soon": True}
     with db.get_conn() as conn:
         row = conn.execute(
             "SELECT is_pro, pro_expires_at FROM users WHERE id = %s", (user["id"],)
@@ -1241,11 +1242,14 @@ def account(request: Request, notice: str | None = Query(default=None)):
                 "SELECT 1 FROM push_subscriptions WHERE user_id = %s LIMIT 1",
                 (user["id"],),
             ).fetchone() is not None
+            from . import push as push_mod
+            push_prefs = push_mod.get_push_prefs(conn, user["id"])
     return templates.TemplateResponse(request, "account.html", {
         "user": user, "error": None,
         "notice": notices.get(notice or ""),
         "is_pro": is_pro, "has_push": has_push,
         "pro_expires_at": pro_expires_at,
+        "push_prefs": push_prefs,
     })
 
 
@@ -1264,6 +1268,7 @@ def _account_error(request: Request, user: dict, msg: str):
     return templates.TemplateResponse(request, "account.html", {
         "user": user, "error": msg, "notice": "",
         "is_pro": is_pro, "has_push": has_push,
+        "push_prefs": {"live_alerts": True, "starting_soon": True},
     })
 
 
@@ -1545,6 +1550,26 @@ async def push_test(request: Request):
         ):
             sent += 1
     return JSONResponse({"ok": True, "sent": sent, "total": len(subs)})
+
+
+@app.post("/api/push/prefs")
+async def push_prefs_update(request: Request):
+    """Save per-type push notification preferences (Brian 2026-10-09)."""
+    from . import push as push_mod
+    try:
+        user = _require_user(request)
+    except _LoginRequired:
+        return JSONResponse({"ok": False, "error": "login_required"}, status_code=401)
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    live_alerts = data.get("live_alerts", True)
+    starting_soon = data.get("starting_soon", True)
+    with db.get_conn() as conn:
+        push_mod.set_push_prefs(conn, user["id"], bool(live_alerts),
+                                bool(starting_soon))
+    return JSONResponse({"ok": True})
 
 
 # ---------------------------------------------------------------------------
