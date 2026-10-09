@@ -67,11 +67,12 @@ def send_push(subscription: dict, title: str, body: str, url: str = "/") -> str:
         return "failed"
 
 
-def notify_breaker_live(conn, breaker_name: str, break_title: str, break_url: str):
+def notify_breaker_live(conn, breaker_name: str, break_title: str, break_url: str) -> int:
     """Notify all Pro users following this breaker that they're live.
 
     Called from pollers when a breaker transitions to live. Best-effort;
     failures are logged, expired subscriptions are pruned.
+    Returns the number of devices successfully notified.
     """
     rows = conn.execute(
         """
@@ -102,7 +103,9 @@ def notify_breaker_live(conn, breaker_name: str, break_title: str, break_url: st
             conn.execute("DELETE FROM push_subscriptions WHERE id = %s", (sub_id,))
         except Exception:
             pass
-    log.info("push: notified %d devices for %s (%d dead pruned)", len(rows) - len(dead), breaker_name, len(dead))
+    sent = len(rows) - len(dead)
+    log.info("push: notified %d devices for %s (%d dead pruned)", sent, breaker_name, len(dead))
+    return sent
 
 
 def check_and_notify_new_live(conn):
@@ -122,11 +125,15 @@ def check_and_notify_new_live(conn):
     ).fetchall()
     for r in rows:
         try:
-            notify_breaker_live(conn, r["breaker"] or "A breaker", r["title_raw"], r["source_url"])
-            conn.execute(
-                "INSERT INTO live_push_log (break_id) VALUES (%s) ON CONFLICT DO NOTHING",
-                (r["id"],),
-            )
+            sent = notify_breaker_live(conn, r["breaker"] or "A breaker", r["title_raw"], r["source_url"])
+            # Only mark notified if at least one device was reached — a
+            # failed send retries on the next poller run instead of being
+            # silently swallowed (Brian 2026-10-09).
+            if sent > 0:
+                conn.execute(
+                    "INSERT INTO live_push_log (break_id) VALUES (%s) ON CONFLICT DO NOTHING",
+                    (r["id"],),
+                )
         except Exception as e:
             log.warning("push check failed for break %s: %s", r["id"], e)
     if rows:
@@ -252,6 +259,7 @@ def check_and_notify_starting_soon(conn, minutes_ahead: int = 30):
             (r["user_id"],),
         ).fetchall()
         dead = []
+        pair_sent = 0
         for s in subs:
             result = send_push(
                 {"endpoint": s["endpoint"], "p256dh": s["p256dh"],
@@ -262,6 +270,7 @@ def check_and_notify_starting_soon(conn, minutes_ahead: int = 30):
             )
             if result == "ok":
                 total_sent += 1
+                pair_sent += 1
             elif result == "expired":
                 dead.append(s["id"])
         for sub_id in dead:
@@ -271,14 +280,17 @@ def check_and_notify_starting_soon(conn, minutes_ahead: int = 30):
                 total_dead += 1
             except Exception:
                 pass
-        try:
-            conn.execute(
-                "INSERT INTO starting_soon_log (break_id, user_id) "
-                "VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                (r["break_id"], r["user_id"]),
-            )
-        except Exception:
-            pass
+        # Only dedup when at least one device was reached — a failed send
+        # retries next run instead of being silently swallowed.
+        if pair_sent > 0:
+            try:
+                conn.execute(
+                    "INSERT INTO starting_soon_log (break_id, user_id) "
+                    "VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                    (r["break_id"], r["user_id"]),
+                )
+            except Exception:
+                pass
     log.info("push: starting-soon reminders for %d break/user pairs "
              "(%d sent, %d dead pruned)", len(rows), total_sent, total_dead)
 
@@ -343,14 +355,17 @@ def check_and_notify_auction_ending(conn, minutes_ahead: int = 60):
         )
         total_sent += sent
         total_dead += dead
-        try:
-            conn.execute(
-                "INSERT INTO auction_ending_log (break_id, user_id) "
-                "VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                (r["break_id"], r["user_id"]),
-            )
-        except Exception:
-            pass
+        # Only dedup when at least one device was reached — a failed send
+        # retries next run instead of being silently swallowed.
+        if sent > 0:
+            try:
+                conn.execute(
+                    "INSERT INTO auction_ending_log (break_id, user_id) "
+                    "VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                    (r["break_id"], r["user_id"]),
+                )
+            except Exception:
+                pass
     log.info("push: auction-ending reminders for %d break/user pairs "
              "(%d sent, %d dead pruned)", len(rows), total_sent, total_dead)
 
@@ -435,13 +450,16 @@ def check_and_notify_new_breaks(conn):
             total_sent += sent
             total_dead += dead
             total_pairs += 1
-            try:
-                conn.execute(
-                    "INSERT INTO new_break_log (break_id, user_id) "
-                    "VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                    (c["id"], u["user_id"]),
-                )
-            except Exception:
-                pass
+            # Only dedup when at least one device was reached — a failed
+            # send retries next run instead of being silently swallowed.
+            if sent > 0:
+                try:
+                    conn.execute(
+                        "INSERT INTO new_break_log (break_id, user_id) "
+                        "VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                        (c["id"], u["user_id"]),
+                    )
+                except Exception:
+                    pass
     log.info("push: new-break alerts for %d pairs (%d sent, %d dead pruned)",
              total_pairs, total_sent, total_dead)
