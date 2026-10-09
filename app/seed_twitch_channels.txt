@@ -45,3 +45,5 @@ drewsbreaks
 bamfbreakers  # BAMF Breakers — Twitch Partner, US (added 2026-10-07, Brian approved)
 dearcindyphan  # PandaTCG — US, Twitch Partner, Sunday group breaks (added 2026-10-08, Brian approved)
 honeyholebreaks  # Honey Hole Breaks — SoCal, sports/entertainment group breaks + personal rips (added 2026-10-08, Brian approved)
+ripnshipgaming  # Brian approved 2026-10-08
+magictradersnl  # Brian approved 2026-10-08 (Whatnot simulcast — Twitch is simulcast only)
