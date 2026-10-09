@@ -1229,7 +1229,7 @@ def account(request: Request, notice: str | None = Query(default=None)):
     is_pro = False
     has_push = False
     pro_expires_at = None
-    push_prefs = {"live_alerts": True, "starting_soon": True}
+    push_prefs = {"live_alerts": True, "starting_soon": True, "auction_ending": True, "new_breaks": True}
     with db.get_conn() as conn:
         row = conn.execute(
             "SELECT is_pro, pro_expires_at FROM users WHERE id = %s", (user["id"],)
@@ -1268,7 +1268,7 @@ def _account_error(request: Request, user: dict, msg: str):
     return templates.TemplateResponse(request, "account.html", {
         "user": user, "error": msg, "notice": "",
         "is_pro": is_pro, "has_push": has_push,
-        "push_prefs": {"live_alerts": True, "starting_soon": True},
+        "push_prefs": {"live_alerts": True, "starting_soon": True, "auction_ending": True, "new_breaks": True},
     })
 
 
@@ -1566,9 +1566,12 @@ async def push_prefs_update(request: Request):
         data = {}
     live_alerts = data.get("live_alerts", True)
     starting_soon = data.get("starting_soon", True)
+    auction_ending = data.get("auction_ending", True)
+    new_breaks = data.get("new_breaks", True)
     with db.get_conn() as conn:
         push_mod.set_push_prefs(conn, user["id"], bool(live_alerts),
-                                bool(starting_soon))
+                                bool(starting_soon), bool(auction_ending),
+                                bool(new_breaks))
     return JSONResponse({"ok": True})
 
 

@@ -1046,6 +1046,32 @@ CREATE TABLE IF NOT EXISTS push_prefs (
     starting_soon BOOLEAN NOT NULL DEFAULT TRUE,
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE push_prefs ADD COLUMN IF NOT EXISTS auction_ending BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE push_prefs ADD COLUMN IF NOT EXISTS new_breaks BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- New-break detection (Brian 2026-10-09): pollers wipe/rewrite their slices,
+-- so "new" is tracked here by (source, source_url) identity — never wiped.
+-- First check run primes silently (no notifications for pre-existing breaks).
+CREATE TABLE IF NOT EXISTS break_first_seen (
+    source        TEXT NOT NULL,
+    source_url    TEXT NOT NULL,
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (source, source_url)
+);
+CREATE TABLE IF NOT EXISTS new_break_log (
+    break_id    INTEGER NOT NULL,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    notified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (break_id, user_id)
+);
+
+-- Auction-ending reminders dedup (Brian 2026-10-09).
+CREATE TABLE IF NOT EXISTS auction_ending_log (
+    break_id    INTEGER NOT NULL,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    notified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (break_id, user_id)
+);
 """
 
 

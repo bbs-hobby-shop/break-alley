@@ -119,6 +119,8 @@
         <div class="kv"><span class="k">Notify me when</span><span class="v" id="prefsSaved" style="color: var(--green); font-size: .78rem; font-weight: 700;"></span></div>
         <label class="pref"><input type="checkbox" id="prefLive"{% if push_prefs.live_alerts %} checked{% endif %}> <span>A breaker I follow goes live</span></label>
         <label class="pref"><input type="checkbox" id="prefSoon"{% if push_prefs.starting_soon %} checked{% endif %}> <span>A followed or saved break starts soon</span></label>
+        <label class="pref"><input type="checkbox" id="prefAuction"{% if push_prefs.auction_ending %} checked{% endif %}> <span>A saved or followed auction ends soon</span></label>
+        <label class="pref"><input type="checkbox" id="prefNew"{% if push_prefs.new_breaks %} checked{% endif %}> <span>A breaker I follow lists a new break</span></label>
       </div>
       <button class="btn ghost" id="testPushBtn" type="button" style="margin-top: .5rem;">Send test push</button>
       <button class="btn ghost" id="resetPushBtn" type="button" style="margin-top: .5rem;">Reset push (re-subscribe)</button>
@@ -217,13 +219,17 @@ async function savePushPrefs() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       live_alerts: document.getElementById('prefLive')?.checked ?? true,
-      starting_soon: document.getElementById('prefSoon')?.checked ?? true
+      starting_soon: document.getElementById('prefSoon')?.checked ?? true,
+      auction_ending: document.getElementById('prefAuction')?.checked ?? true,
+      new_breaks: document.getElementById('prefNew')?.checked ?? true
     }) });
   const el = document.getElementById('prefsSaved');
   if (el) { el.textContent = 'Saved ✓'; setTimeout(() => { el.textContent = ''; }, 2000); }
 }
 document.getElementById('prefLive')?.addEventListener('change', savePushPrefs);
 document.getElementById('prefSoon')?.addEventListener('change', savePushPrefs);
+document.getElementById('prefAuction')?.addEventListener('change', savePushPrefs);
+document.getElementById('prefNew')?.addEventListener('change', savePushPrefs);
 document.getElementById('enablePushBtn')?.addEventListener('click', async function() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     alert('Push notifications are not supported on this browser.'); return;
