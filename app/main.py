@@ -1491,16 +1491,20 @@ def stripe_portal(request: Request):
 @app.post("/api/stripe/webhook")
 async def stripe_webhook(request: Request):
     from . import billing
+    import logging
+    log = logging.getLogger("breakalley.webhook")
 
     payload = await request.body()
     sig = request.headers.get("stripe-signature", "")
     try:
         event = billing.verify_webhook(payload, sig)
     except Exception as e:
+        log.warning("webhook: bad signature: %s", e)
         return JSONResponse({"ok": False, "error": "bad_signature"}, status_code=400)
     try:
         with db.get_conn() as conn:
             billing.sync_subscription(conn, event)
     except Exception as e:
+        log.exception("webhook: sync failed")
         return JSONResponse({"ok": False, "error": "sync_failed"}, status_code=500)
     return JSONResponse({"ok": True})

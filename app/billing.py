@@ -70,8 +70,19 @@ def verify_webhook(payload: bytes, sig_header: str):
 
 def sync_subscription(conn, event) -> None:
     """Update users.is_pro from a Stripe subscription webhook event."""
+    # Stripe SDK returns an Event object; normalize to a plain dict.
+    if not isinstance(event, dict):
+        try:
+            event = dict(event)
+        except Exception:
+            event = {"type": event.get("type"), "data": event.get("data")}
     etype = event.get("type", "")
-    obj = event.get("data", {}).get("object", {}) or {}
+    data = event.get("data", {}) or {}
+    if not isinstance(data, dict):
+        data = dict(data)
+    obj = data.get("object", {}) or {}
+    if not isinstance(obj, dict):
+        obj = dict(obj)
 
     if etype == "checkout.session.completed":
         # Link the Stripe customer to our user.
