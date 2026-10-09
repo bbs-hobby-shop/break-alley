@@ -23,10 +23,15 @@ from .ingest import run_ebay, run_fanatics, run_twitch_roster, run_youtube, run_
 from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
 
 import logging
-# Brian 2026-10-09: our own loggers ("breakalley.*") default to WARNING via
-# the root logger, which hid the billing webhook's info lines during the
-# cancel-date investigation. Keep them visible.
-logging.getLogger("breakalley").setLevel(logging.INFO)
+# Brian 2026-10-09: our own loggers ("breakalley.*") had no handler and the
+# root logger defaults to WARNING, which hid the billing webhook's info
+# lines during the cancel-date investigation. Give them a stderr handler.
+_breakalley_log = logging.getLogger("breakalley")
+_breakalley_log.setLevel(logging.INFO)
+if not _breakalley_log.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(levelname)s: %(name)s: %(message)s"))
+    _breakalley_log.addHandler(_h)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
