@@ -1435,9 +1435,9 @@ def pro_page(request: Request):
                 "SELECT is_pro FROM users WHERE id = %s", (user["id"],)
             ).fetchone()
             is_pro = bool(row and row["is_pro"])
-    return templates.TemplateResponse(
-        "pro.html", {"request": request, "user": user, "is_pro": is_pro}
-    )
+    return templates.TemplateResponse(request, "pro.html", {
+        "user": user, "is_pro": is_pro,
+    })
 
 
 @app.post("/api/stripe/checkout")
@@ -1460,9 +1460,9 @@ def stripe_checkout(request: Request):
 @app.get("/pro/success", response_class=HTMLResponse)
 def pro_success(request: Request):
     user = auth.get_current_user(request)
-    return templates.TemplateResponse(
-        "pro_success.html", {"request": request, "user": user}
-    )
+    return templates.TemplateResponse(request, "pro_success.html", {
+        "user": user,
+    })
 
 
 @app.post("/api/stripe/portal")
