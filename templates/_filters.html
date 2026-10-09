@@ -1,0 +1,59 @@
+{# Shared search/filter form (Brian 2026-10-08): used by the homepage (action=/results)
+   and the results page (action=/results, for refining). Expects: q, format, max_price,
+   source, region, live, auctions, sort, formats, format_labels #}
+<form class="filters" method="get" action="/results">
+  <input type="hidden" name="sort" value="{{ sort }}">
+  <div class="searchrow">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search breaks, products, or breakers…" autocomplete="off" enterkeyhint="search">
+    <span class="search-icon">🔍</span>
+  </div>
+  <div class="filtergrid">
+    <div class="cselect" data-name="format" data-label="Any format">
+      <input type="hidden" name="format" value="{{ format }}">
+      <button type="button" class="cselect-btn" aria-label="Break format">
+        <span class="cselect-value">{{ format_labels[format] if format else 'Any format' }}</span>
+        <span class="cselect-chev">⌄</span>
+      </button>
+    </div>
+    <div class="cfield">
+      <input type="number" name="max_price" value="{{ max_price }}" min="0" step="0.01" placeholder="Max price" aria-label="Max price" inputmode="decimal">
+    </div>
+    <div class="cselect" data-name="source" data-label="All platforms">
+      <input type="hidden" name="source" value="{{ source }}">
+      <button type="button" class="cselect-btn" aria-label="Platform">
+        <span class="cselect-value">{{ {'ebay':'eBay','youtube':'YouTube','twitch':'Twitch','fanatics':'Fanatics Live','whatnot':'Whatnot'}[source] if source else 'All platforms' }}</span>
+        <span class="cselect-chev">⌄</span>
+      </button>
+    </div>
+    <div class="cselect" data-name="region" data-label="All regions">
+      <input type="hidden" name="region" value="{{ region }}">
+      <button type="button" class="cselect-btn" aria-label="Breaker region">
+        <span class="cselect-value">{{ {'us':'US only','intl':'International'}[region] if region else 'All regions' }}</span>
+        <span class="cselect-chev">⌄</span>
+      </button>
+    </div>
+  </div>
+  <!-- option data for custom dropdowns (rendered by JS into the sheet) -->
+  <template id="cselect-opts-format">
+    <button type="button" data-value="">Any format</button>
+    {% for f in formats %}<button type="button" data-value="{{ f }}">{{ format_labels[f] }}</button>{% endfor %}
+  </template>
+  <template id="cselect-opts-source">
+    <button type="button" data-value="">All platforms</button>
+    <button type="button" data-value="ebay">eBay</button>
+    <button type="button" data-value="youtube">YouTube</button>
+    <button type="button" data-value="twitch">Twitch</button>
+    <button type="button" data-value="fanatics">Fanatics Live</button>
+    <button type="button" data-value="whatnot">Whatnot</button>
+  </template>
+  <template id="cselect-opts-region">
+    <button type="button" data-value="">All regions</button>
+    <button type="button" data-value="us">US only</button>
+    <button type="button" data-value="intl">International</button>
+  </template>
+  <div class="toggle-row">
+    <label class="live-toggle"><input type="checkbox" name="live" value="1" {% if live %}checked{% endif %}> Live only</label>
+    <label class="live-toggle"><input type="checkbox" name="auctions" value="1" {% if auctions %}checked{% endif %}> 🔨 Auctions only</label>
+  </div>
+  <button type="submit" class="find-btn">Find breaks</button>
+</form>

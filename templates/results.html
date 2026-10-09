@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Break results — BreakAlley</title>
+<meta name="description" content="BreakAlley is the Google Flights of box breaks: every live and upcoming sports card box break across YouTube, Twitch, and eBay in one searchable place.">
+<meta property="og:title" content="BreakAlley — every break, every platform, one place">
+<meta property="og:description" content="Find your next box break: live and upcoming sports card breaks across YouTube, Twitch, and eBay.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://breakalley.com/">
+<meta property="og:image" content="https://breakalley.com/static/logo-full.webp">
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="manifest" href="/static/site.webmanifest">
+<meta name="theme-color" content="#0a0e1c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BreakAlley">
+{% if refresh_running %}<meta http-equiv="refresh" content="45">{% endif %}
+<style>
+  :root {
+    --bg: #0a0e1c;
+    --bg2: #10162e;
+    --card: #151c38;
+    --card2: #1a2242;
+    --line: #26305c;
+    --text: #f2f4ff;
+    --muted: #8b93b8;
+    --green: #00e676;
+    --green-dim: rgba(0, 230, 118, .12);
+    --purple: #7c5cff;
+    --red: #ff3b5c;
+    --orange: #ff9f1c;
+  }
+  * { box-sizing: border-box; }
+  * { -webkit-tap-highlight-color: transparent; }
+  html { touch-action: manipulation; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; color: var(--text); background: var(--bg);
+    background-image: radial-gradient(900px 400px at 15% -5%, rgba(124,92,255,.14), transparent),
+                      radial-gradient(800px 380px at 90% 0%, rgba(0,230,118,.08), transparent);
+    min-height: 100vh;
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: #0a0e1c; border-bottom: 1px solid var(--line);
+    padding: 1rem 1.5rem .85rem;
+  }
+  .brandrow { position: relative; display: flex; justify-content: center; align-items: center;
+    margin-bottom: .75rem; }
+  .logo { font-weight: 900; font-size: 1.9rem; letter-spacing: .5px; display: flex; align-items: center; gap: .7rem;
+    color: var(--text); text-decoration: none; }
+  .logo img { width: 52px; height: 52px; border-radius: 12px; }
+  .logo .wordmark span { color: var(--green); }
+  .signout { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; }
+  .signout button { background: none; border: 0; color: var(--muted); font-size: .8rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; padding: .3rem 0; }
+  .signout button:hover { color: var(--text); }
+  nav.tabs { display: flex; justify-content: center; gap: .5rem; }
+  nav.tabs a { flex: 1; max-width: 220px; text-align: center; padding: .65rem .5rem; border-radius: 10px;
+    color: var(--muted); font-size: .95rem; font-weight: 800; text-decoration: none; white-space: nowrap;
+    background: var(--card); border: 1px solid var(--line); }
+  nav.tabs a:hover { color: var(--text); border-color: var(--green); }
+  nav.tabs a.active { color: var(--green); border-color: var(--green); background: rgba(0,230,118,.07); }
+  .auth-link { color: var(--muted); font-size: .88rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
+  .auth-link:hover { color: var(--text); }
+  .auth-link.cta { background: var(--green); color: #04120a; border-radius: 20px; padding: .35rem .9rem; }
+  .auth-form { display: inline; margin: 0; }
+  .auth-form button { background: none; border: 0; color: var(--muted); font-size: .88rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; }
+  .auth-form button:hover { color: var(--text); }
+  .fav-btn { background: none; border: 0; cursor: pointer; font-size: 1rem; line-height: 1;
+    color: var(--muted); padding: .2rem; }
+  .fav-btn.faved { color: var(--orange); }
+  .fav-form { display: inline; }
+  .card-wrap { position: relative; min-width: 0;
+    /* Perf (Brian 2026-10-07): skip rendering off-screen cards. With 1,500+
+       results, a full-page reflow (e.g. iOS keyboard opening on input focus)
+       was taking seconds. The browser now only lays out visible cards. */
+    content-visibility: auto; contain-intrinsic-size: auto 380px; }
+  .card-wrap .fav-form { position: absolute; right: .9rem; bottom: .65rem; margin: 0; }
+  .card-wrap .fav-login { position: absolute; right: .9rem; bottom: .65rem; text-decoration: none; }
+  /* Breaker follow button (Brian 2026-10-07): separate from the listing star */
+  .follow-form { display: inline; }
+  .follow-btn { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 999px; color: #fff; cursor: pointer; font-size: 1.3rem;
+    font-weight: 700; line-height: 1; padding: 0; margin: 0;
+    width: 2.5rem; height: 2.5rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; }
+  .follow-btn.following { color: var(--green); border-color: var(--green); }
+  .tag.breaker-tag { font-size: .95rem; font-weight: 700; color: #fff;
+    padding: .55rem 1.1rem; display: inline-flex; align-items: center;
+    justify-content: center; line-height: 1.2; }
+  a.tag.breaker-tag { text-decoration: none; cursor: pointer; }
+  a.tag.breaker-tag:hover { background: rgba(255,255,255,.14); }
+  .breaker-link { cursor: pointer; }
+  .breaker-link:hover { background: rgba(255,255,255,.14); }
+  /* Breaker name + follow button stay glued as one unit (Brian 2026-10-07):
+     the group never splits across lines, items are vertically centered. */
+  .breaker-group { display: inline-flex; align-items: center; gap: .35rem;
+    white-space: nowrap; }
+  .breaker-group .follow-form { display: inline-flex !important; }
+  /* Listing save star (Brian 2026-10-07): bigger tap target */
+  .fav-btn { font-size: 1.6rem; min-width: 48px; min-height: 48px;
+    display: inline-flex; align-items: center; justify-content: center; }
+  .hero { max-width: 1080px; margin: 0 auto; padding: 2.2rem 1.5rem 0; }
+  .hero h2 { margin: 0 0 .4rem; font-size: clamp(.9rem, 3.9vw, 2rem); font-weight: 900; letter-spacing: -.5px; white-space: nowrap; }
+  .hero h2 em { font-style: normal; color: var(--green); }
+  .hero p { margin: 0 0 1.4rem; color: var(--muted); }
+  /* Breaker page hero (Brian 2026-10-07) */
+  .breaker-hero { max-width: 1080px; margin: 0 auto 1.2rem; padding: 1.5rem 1.5rem 0; }
+  .breaker-hero .back { color: var(--muted); text-decoration: none; font-size: .85rem; }
+  .breaker-hero .back:hover { color: var(--text); }
+  .breaker-hero-row { display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; margin-top: .5rem; flex-wrap: wrap; }
+  .breaker-hero h2 { margin: 0 0 .5rem; font-size: 1.7rem; font-weight: 900; letter-spacing: -.3px; }
+  .breaker-stats { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .bstat { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem;
+    font-weight: 700; color: var(--muted); background: rgba(255,255,255,.06);
+    border-radius: 20px; padding: .35rem .85rem; }
+  .bstat.live { color: #fff; background: var(--red); }
+  .bstat.live i { width: 8px; height: 8px; border-radius: 50%; background: #fff;
+    animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  .hero-follow { margin: 0; }
+  .hero-follow-btn { width: auto; height: auto; border-radius: 999px;
+    padding: .7rem 1.4rem; font-size: 1rem; }
+  /* Release calendar (Idea 2026-10-07): upcoming card drops buyers can see */
+  .releases { max-width: 1080px; margin: 1.2rem auto 0; padding: 0 1.5rem; }
+  .releases-inner { background: linear-gradient(135deg, rgba(0,230,118,.08), rgba(0,230,118,.02));
+    border: 1px solid rgba(0,230,118,.25); border-radius: 14px; padding: .9rem 1.2rem; }
+  .releases h3 { margin: 0 0 .5rem; font-size: .8rem; font-weight: 800; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--green); }
+  .releases ul { list-style: none; margin: 0; padding: 0; display: flex;
+    flex-direction: column; gap: .45rem; }
+  .releases li { font-size: .88rem; color: var(--text); display: flex;
+    align-items: baseline; gap: .6rem; }
+  .releases li .rdate { color: var(--green); font-weight: 800;
+    font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 3.2rem; }
+  .releases li .rprods { color: var(--text); display: flex; flex-direction: column; gap: .15rem; }
+  .releases li .rprod { display: block; }
+  .filters { margin: 0; }
+  .searchrow { margin-bottom: .6rem; }
+  .searchrow input {
+    width: 100%; padding: .9rem 1.1rem; font-size: 1.05rem; color: var(--text);
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; outline: none;
+    font-family: inherit; box-sizing: border-box;
+  }
+  .searchrow input:focus { border-color: var(--green); }
+  .filtergrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; align-items: center; margin-bottom: .6rem; }
+  .filtergrid .cselect-btn, .filtergrid .cfield input {
+    background: var(--card); color: var(--text); border: 1px solid var(--line); width: 100%;
+    border-radius: 10px; padding: .55rem .8rem; font-size: .9rem; font-family: inherit;
+    box-sizing: border-box;
+  }
+  /* Custom dropdowns (Brian 2026-10-07): native <select> was slow to open on
+     iOS, so filters use instant JS-driven bottom sheets instead. */
+  .cselect { position: relative; }
+  .cselect-btn { width: 100%; min-height: 48px; display: flex; align-items: center;
+    justify-content: space-between; gap: .5rem; background: var(--card);
+    color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+    padding: .55rem .8rem; font-size: .9rem; font-family: inherit; cursor: pointer;
+    box-sizing: border-box; }
+  .cselect-btn:active { background: rgba(255,255,255,.08); }
+  .cselect-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cselect-chev { color: var(--muted); font-size: 1.1rem; line-height: 1; }
+  .cselect.has-value .cselect-value { color: var(--green); font-weight: 700; }
+  .cfield { position: relative; }
+  .cfield input { width: 100%; min-height: 48px; background: var(--card); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: .55rem .8rem;
+    font-size: .9rem; font-family: inherit; box-sizing: border-box; }
+  .cfield input::placeholder { color: var(--muted); }
+  .cfield input:focus { outline: none; border-color: var(--green); }
+  .searchrow { display: flex; gap: .5rem; align-items: stretch; margin-bottom: .6rem; position: relative; }
+  .searchrow input { flex: 1; min-width: 0; background: var(--card); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: .8rem 2.8rem .8rem 1rem;
+    font-size: 1rem; font-family: inherit; box-sizing: border-box; min-height: 48px; }
+  .searchrow input::placeholder { color: var(--muted); }
+  .searchrow input:focus { outline: none; border-color: var(--green); }
+  .search-icon { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+    font-size: 1.2rem; pointer-events: none; opacity: .6; }
+  /* Bottom sheet */
+  .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50;
+    opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+  .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 51; background: #141a2e;
+    border-radius: 18px 18px 0 0; padding: .6rem .6rem calc(.8rem + env(safe-area-inset-bottom));
+    transform: translateY(105%); transition: transform .22s ease; max-height: 70vh;
+    overflow-y: auto; }
+  .sheet.open { transform: translateY(0); }
+  .sheet-grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line);
+    margin: .2rem auto .6rem; }
+  .sheet button[data-value] { display: block; width: 100%; text-align: left; background: none;
+    border: none; color: var(--text); font-size: 1.05rem; font-family: inherit;
+    padding: .9rem 1rem; border-radius: 10px; cursor: pointer; }
+  .sheet button[data-value]:active { background: rgba(255,255,255,.08); }
+  .sheet button[data-value].sel { color: var(--green); font-weight: 800; }
+  .live-toggle { display: flex; align-items: center; justify-content: center; gap: .5rem; font-size: .95rem; font-weight: 700; color: var(--muted); margin: 0; cursor: pointer; }
+  .live-toggle input { width: 1.1rem; height: 1.1rem; accent-color: var(--green); cursor: pointer; }
+  .toggle-row { display: flex; gap: 1.5rem; justify-content: center; margin: .4rem 0 .8rem; }
+  .hero p.newbie-link { text-align: center; margin: 1rem 0 .2rem; font-size: .85rem; }
+  .newbie-link a { color: var(--muted); text-decoration: none; }
+  .newbie-link a:hover { color: var(--green); }
+  .find-btn {
+    width: 100%; padding: .95rem; font-size: 1.05rem; font-weight: 800; color: #04120a;
+    background: var(--green); border: 0; border-radius: 12px; cursor: pointer; font-family: inherit;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .find-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,230,118,.35); }
+  .find-btn:active { transform: translateY(0); }
+  .section-label { font-size: .8rem; font-weight: 800; letter-spacing: 1.5px; color: var(--muted); margin: 1.4rem 0 .8rem; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
+  .res-count { text-transform: none; letter-spacing: 0; font-weight: 600; }
+  /* Load more (Brian 2026-10-07): 60 results per page so phones stay fast */
+  .load-more-wrap { max-width: 1080px; margin: 1.2rem auto; padding: 0 1.5rem; text-align: center; }
+  .load-more-btn { background: var(--card2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 12px; padding: .9rem 2rem; font-size: 1rem; font-weight: 700;
+    font-family: inherit; cursor: pointer; width: 100%; max-width: 420px; }
+  .load-more-btn:active { transform: scale(.98); }
+  .load-more-btn:disabled { opacity: .5; cursor: default; }
+  .sort-wrap { display: flex; align-items: center; gap: .5rem; text-transform: none; letter-spacing: 0; }
+  .sort-wrap label { font-size: .75rem; font-weight: 700; color: var(--muted); }
+  .sort-select { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .45rem .7rem; font-size: .85rem; font-weight: 600; font-family: inherit; cursor: pointer; }
+  .sort-cselect .cselect-btn { min-height: 0; width: auto; }
+  .refreshbar { display: flex; align-items: center; gap: .8rem; margin: 0 0 .4rem; flex-wrap: wrap; }
+  .refreshbar form { margin: 0; }
+  .refresh-btn { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .45rem 1rem; font-weight: 700; cursor: pointer; font-size: .85rem; }
+  .refresh-btn:hover:not(:disabled) { border-color: var(--green); color: var(--green); }
+  .refresh-btn:disabled { opacity: .65; cursor: wait; }
+  .updated { color: var(--muted); font-size: .82rem; }
+  .grid { display: grid; gap: .8rem; }
+  .card {
+    display: flex; gap: 1rem; align-items: center; text-decoration: none; color: inherit;
+    background: linear-gradient(180deg, var(--card2), var(--card));
+    border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.25rem;
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  .card:hover { transform: translateY(-2px); border-color: var(--green); }
+  .card.is-live { border-left: 4px solid var(--red); }
+  .thumb {
+    width: 64px; height: 64px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--purple), #3b2d8f);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 2.6rem; color: #fff;
+  }
+  .thumb-img {
+    object-fit: cover; padding: 0;
+    background: var(--card2);
+  }
+  .card.is-live .thumb { background: linear-gradient(135deg, var(--green), #007a3d); }
+  .meta { flex: 1; min-width: 0; padding-right: 2.75rem; /* clear the absolute save star (Brian 2026-10-08) */ }
+  .title { font-weight: 800; margin: 0 0 .4rem; font-size: 1.18rem; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.2px; }
+  .tags { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .72rem; min-width: 0; }
+  .tag { background: rgba(255,255,255,.07); border-radius: 20px; padding: .18rem .65rem; color: var(--muted); font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tag.live { background: var(--red); color: #fff; font-weight: 800; flex: 0 0 auto; }
+  .tag.date { background: rgba(0,230,118,.14); color: var(--green); font-weight: 800; flex: 0 0 auto; }
+  .tag.slots-low { background: rgba(255,159,28,.15); color: var(--orange); font-weight: 800; flex: 0 0 auto; }
+  .tag.auction { background: rgba(156,39,176,.18); color: #ce93d8; font-weight: 800; flex: 0 0 auto; }
+  .tag.auction-timer { background: rgba(255,159,28,.15); color: var(--orange); font-weight: 800; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+  .right { text-align: right; flex-shrink: 0; }
+  .price { font-size: 1.45rem; font-weight: 900; color: var(--green); }
+  .per { font-size: .72rem; color: var(--muted); }
+  .empty, .error { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 2.5rem; text-align: center; color: var(--muted); }
+  .error { border-color: var(--red); color: #ff8ba0; }
+  .suggest { max-width: 1080px; margin: 2.5rem auto 0; padding: 0 1.5rem; }
+  .suggest h3 { margin: 0 0 .3rem; font-size: 1.15rem; font-weight: 900; }
+  .suggest p { color: var(--muted); font-size: .9rem; margin: 0 0 .9rem; }
+  .suggest .thanks { color: var(--green); font-weight: 700; }
+  .suggest form { display: flex; gap: .6rem; flex-wrap: wrap; }
+  .suggest input[type=text] { background: var(--card); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: .7rem 1rem; font-size: .95rem; }
+  .suggest input[name=channel] { flex: 2; min-width: 220px; }
+  .suggest input[name=note] { flex: 3; min-width: 220px; }
+  .suggest input:focus { border-color: var(--green); outline: none; }
+  .suggest .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .suggest button { padding: 0 1.6rem; font-size: .95rem; font-weight: 800; color: #04120a;
+    background: var(--green); border: 0; border-radius: 10px; cursor: pointer; min-height: 48px; }
+  @media (max-width: 640px) {
+    header.top { padding: .8rem 1rem .7rem; }
+    .logo { font-size: 1.5rem; }
+    .logo img { width: 42px; height: 42px; }
+    nav.tabs a { font-size: .88rem; padding: .6rem .25rem; }
+    .hero { padding: 1.4rem 1rem 0; }
+    .hero p { font-size: .92rem; margin-bottom: 1rem; }
+    .pills { padding: .9rem 0 .2rem; }
+    .pills a { padding: .55rem 1rem; }
+    main { padding: 0 1rem; }
+    .searchrow input { font-size: 16px; padding: .8rem 1rem; }
+    .filtergrid { grid-template-columns: 1fr 1fr; }
+    .filtergrid .cselect-btn, .filtergrid .cfield input {
+      font-size: 16px; padding: .7rem .8rem; width: 100%; min-height: 48px;
+    }
+    .section-label { margin: 1.1rem 0 .7rem; }
+    .grid { gap: .65rem; }
+    .card { padding: .85rem; gap: .75rem; align-items: flex-start; border-radius: 14px; }
+    .card:active { border-color: var(--green); }
+    .thumb { width: 48px; height: 48px; font-size: 2rem; border-radius: 10px; }
+    .title {
+      font-size: 1.12rem; line-height: 1.32; white-space: normal;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .tags { font-size: .68rem; gap: .3rem; }
+    .price { font-size: 1.1rem; }
+    .per { font-size: .65rem; }
+    .empty, .error { padding: 1.8rem 1.2rem; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brandrow">
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+    {% if user %}
+    <form method="post" action="/logout" class="signout"><button type="submit">Sign out</button></form>
+    {% endif %}
+  </div>
+  <nav class="tabs">
+    <a href="/" class="active">Home</a>
+    {% if user %}
+    <a href="/my-breaks">My Breaks</a>
+    <a href="/account">Account</a>
+    {% else %}
+    <a href="/login">Sign in</a>
+    <a href="/signup">Sign up</a>
+    {% endif %}
+  </nav>
+</header>
+
+<div class="hero">
+  <h2>Break results</h2>
+  <p><a href="/" style="color:var(--green);">← New search</a></p>
+  {% include "_filters.html" %}
+  <p class="newbie-link"><a href="/guide">New to box breaks? Here's how it works →</a></p>
+</div>
+
+<main>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  {% if breaker_page %}
+  {% set live_count = results|selectattr('is_live')|list|length %}
+  {% set upcoming_count = results|length - live_count %}
+  {% set is_following = breaker_page in favorites %}
+  <div class="breaker-hero">
+    <a class="back" href="/" onclick="if (history.length > 1) { history.back(); return false; }">← Back</a>
+    <div class="breaker-hero-row">
+      <div>
+        <h2>{{ breaker_page }}</h2>
+        <div class="breaker-stats">
+          {% if live_count %}<span class="bstat live"><i></i>{{ live_count }} live now</span>{% endif %}
+          {% if upcoming_count %}<span class="bstat">{{ upcoming_count }} upcoming</span>{% endif %}
+          {% if not results|length %}<span class="bstat">No current breaks</span>{% endif %}
+        </div>
+      </div>
+      {% if user %}
+      <form class="follow-form hero-follow" method="post" action="/favorites/toggle">
+        <input type="hidden" name="breaker" value="{{ breaker_page }}">
+        <input type="hidden" name="next" value="/breaker/{{ breaker_page|urlencode }}">
+        <button class="follow-btn hero-follow-btn {% if is_following %}following{% endif %}" type="submit">{% if is_following %}✓ Following{% else %}+ Follow{% endif %}</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% if not breaker_page %}
+  <div class="section-label">
+    <span>Breaks <span class="res-count"><span id="shownCount">{{ results|length }}</span> of {{ total_results }} shown</span></span>
+    <form method="get" action="/results" class="sort-wrap">
+      <input type="hidden" name="q" value="{{ q }}">
+      <input type="hidden" name="format" value="{{ format }}">
+      <input type="hidden" name="max_price" value="{{ max_price }}">
+      <input type="hidden" name="source" value="{{ source }}">
+      <input type="hidden" name="region" value="{{ region }}">
+      {% if live %}<input type="hidden" name="live" value="1">{% endif %}
+      {% if auctions %}<input type="hidden" name="auctions" value="1">{% endif %}
+      <label>Sort by</label>
+      <div class="cselect sort-cselect" data-name="sortsel" data-label="Recommended" data-autosubmit="1">
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <button type="button" class="cselect-btn sort-select" aria-label="Sort results">
+          <span class="cselect-value">{{ {'soonest':'Starting soonest','ending':'Auction: ending soonest','live':'Live first','price_low':'Price: low to high','price_high':'Price: high to low','newest':'Newest listed'}[sort] if sort else 'Recommended' }}</span>
+          <span class="cselect-chev">⌄</span>
+        </button>
+      </div>
+    </form>
+    <template id="cselect-opts-sortsel">
+      <button type="button" data-value="">Recommended</button>
+      <button type="button" data-value="soonest">Starting soonest</button>
+      <button type="button" data-value="ending">Auction: ending soonest</button>
+      <button type="button" data-value="live">Live first</button>
+      <button type="button" data-value="price_low">Price: low to high</button>
+      <button type="button" data-value="price_high">Price: high to low</button>
+      <button type="button" data-value="newest">Newest listed</button>
+    </template>
+  </div>
+  {% endif %}
+  {% if not breaker_page %}
+  <div class="refreshbar">
+    <form method="post" action="/refresh">
+      <input type="hidden" name="q" value="{{ q }}">
+      <input type="hidden" name="format" value="{{ format }}">
+      <input type="hidden" name="source" value="{{ source }}">
+      <input type="hidden" name="max_price" value="{{ max_price }}">
+      <input type="hidden" name="region" value="{{ region }}">
+      {% if live %}<input type="hidden" name="live" value="1">{% endif %}
+      {% if auctions %}<input type="hidden" name="auctions" value="1">{% endif %}
+      {% if refresh_running %}
+      <button type="submit" class="refresh-btn" disabled>⟳ Refreshing…</button>
+      {% else %}
+      <button type="submit" class="refresh-btn">⟳ Refresh</button>
+      {% endif %}
+    </form>
+    <span class="updated">Updated {{ updated_ago }}</span>
+    {% if refresh_running %}<span class="updated">— checking for new breaks, this page will update automatically…</span>{% endif %}
+  </div>
+  {% endif %}
+  <div class="grid">
+    {% if results %}
+      {% for b in results %}
+      {% include "_card.html" %}
+      {% endfor %}
+    {% elif not error %}
+      <div class="empty">No breaks found. Try widening your search — or run the ingester to pull fresh listings.</div>
+    {% endif %}
+  </div>
+  {% if has_more %}
+  <div class="load-more-wrap">
+    <button type="button" class="load-more-btn" id="loadMoreBtn"
+            data-offset="{{ page_size }}" data-total="{{ total_results }}">
+      Show more breaks (<span id="remainingCount">{{ total_results - page_size }}</span> remaining)
+    </button>
+  </div>
+  {% endif %}
+</main>
+<script>
+// Instant save/follow toggles (Brian 2026-10-07): optimistic UI via AJAX —
+// the button flips immediately, the server syncs in the background, and the
+// page never reloads (no scroll jump, no 2-3 second wait).
+(function() {
+  function ajaxToggle(form, btn, applyState, revertState) {
+    applyState();  // instant visual flip
+    var data = new FormData(form);
+    fetch(form.action, {
+      method: 'POST',
+      body: new URLSearchParams(data),
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin'
+    }).then(function(r) { return r.json(); }).then(function(j) {
+      if (!j || !j.ok) { revertState(); }
+    }).catch(function() { revertState(); });
+  }
+
+  // Event delegation (Brian 2026-10-07): handles cards added via Load more.
+  document.addEventListener('submit', function(e) {
+    var form = e.target.closest ? e.target.closest('.follow-form, .fav-form') : null;
+    if (!form) return;
+    e.preventDefault();
+    var btn = form.querySelector('.follow-btn, .fav-btn');
+    if (!btn) return;
+    if (form.classList.contains('follow-form')) {
+      var isHero = btn.classList.contains('hero-follow-btn');
+      var wasFollowing = btn.classList.contains('following');
+      ajaxToggle(form, btn,
+        function() {
+          wasFollowing = btn.classList.contains('following');
+          btn.classList.toggle('following', !wasFollowing);
+          btn.textContent = isHero
+            ? (wasFollowing ? '+ Follow' : '✓ Following')
+            : (wasFollowing ? '+' : '✓');
+        },
+        function() {
+          btn.classList.toggle('following', wasFollowing);
+          btn.textContent = isHero
+            ? (wasFollowing ? '✓ Following' : '+ Follow')
+            : (wasFollowing ? '✓' : '+');
+        });
+    } else {
+      var wasSaved = btn.classList.contains('faved');
+      ajaxToggle(form, btn,
+        function() {
+          wasSaved = btn.classList.contains('faved');
+          btn.classList.toggle('faved', !wasSaved);
+        },
+        function() { btn.classList.toggle('faved', wasSaved); });
+    }
+  });
+
+  // Breaker name taps -> breaker page (Brian 2026-10-07). Uses a span with a
+  // click handler (not a nested <a>) because the card itself is a link.
+  document.addEventListener('click', function(e) {
+    var el = e.target.closest ? e.target.closest('.breaker-link[data-breaker]') : null;
+    if (!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.location.href = '/breaker/' + encodeURIComponent(el.getAttribute('data-breaker'));
+  });
+  document.addEventListener('keydown', function(e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList &&
+        e.target.classList.contains('breaker-link')) {
+      e.preventDefault();
+      window.location.href = '/breaker/' + encodeURIComponent(e.target.getAttribute('data-breaker'));
+    }
+  });
+  // Custom dropdowns (Brian 2026-10-07): instant bottom sheets replacing
+  // native <select> (which was slow to open on iOS).
+  (function() {
+    // Build the shared sheet once
+    var backdrop = document.createElement('div');
+    backdrop.className = 'sheet-backdrop';
+    var sheet = document.createElement('div');
+    sheet.className = 'sheet';
+    sheet.innerHTML = '<div class="sheet-grab"></div><div class="sheet-opts"></div>';
+    document.body.appendChild(backdrop);
+    document.body.appendChild(sheet);
+    var optsBox = sheet.querySelector('.sheet-opts');
+    var active = null;
+
+    function close() {
+      backdrop.classList.remove('open');
+      sheet.classList.remove('open');
+      active = null;
+    }
+    backdrop.addEventListener('click', close);
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') close();
+    });
+
+    document.querySelectorAll('.cselect').forEach(function(sel) {
+      var name = sel.getAttribute('data-name');
+      var hidden = sel.querySelector('input[type=hidden]');
+      var btn = sel.querySelector('.cselect-btn');
+      var label = sel.querySelector('.cselect-value');
+      var tpl = document.getElementById('cselect-opts-' + name);
+
+      function sync() {
+        sel.classList.toggle('has-value', !!hidden.value);
+      }
+      sync();
+
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Populate sheet from the template
+        optsBox.innerHTML = '';
+        var frag = tpl.content.cloneNode(true);
+        optsBox.appendChild(frag);
+        var opts = optsBox.querySelectorAll('button[data-value]');
+        opts.forEach(function(o) {
+          o.classList.toggle('sel', o.getAttribute('data-value') === hidden.value);
+          o.addEventListener('click', function() {
+            hidden.value = o.getAttribute('data-value');
+            label.textContent = o.textContent;
+            sync();
+            close();
+            // Sort dropdown auto-submits like the old native select did
+            if (sel.getAttribute('data-autosubmit')) {
+              var form = sel.closest('form');
+              if (form) form.submit();
+            }
+          });
+        });
+        active = sel;
+        backdrop.classList.add('open');
+        sheet.classList.add('open');
+      });
+    });
+  })();
+  // Load more pagination (Brian 2026-10-07): 60 cards per page so the page
+  // stays fast on phones. Fetches the next batch as HTML and appends it.
+  (function() {
+    var btn = document.getElementById('loadMoreBtn');
+    if (!btn) return;
+    var grid = document.querySelector('.grid');
+    var shownCount = document.getElementById('shownCount');
+    var remainingCount = document.getElementById('remainingCount');
+    var loading = false;
+    btn.addEventListener('click', function() {
+      if (loading) return;
+      loading = true;
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      var offset = parseInt(btn.getAttribute('data-offset'), 10) || 0;
+      var total = parseInt(btn.getAttribute('data-total'), 10) || 0;
+      // Preserve current filters in the request
+      var params = new URLSearchParams(window.location.search);
+      params.set('offset', offset);
+      fetch('/more?' + params.toString(), { credentials: 'same-origin' })
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+          var tmp = document.createElement('div');
+          tmp.innerHTML = html;
+          var cards = tmp.querySelectorAll('.card-wrap');
+          cards.forEach(function(c) { grid.appendChild(c); });
+          // Register any new auction countdowns
+          if (window.__registerAuctionTimers) window.__registerAuctionTimers(grid);
+          var newOffset = offset + cards.length;
+          btn.setAttribute('data-offset', newOffset);
+          var shown = Math.min(newOffset, total);
+          if (shownCount) shownCount.textContent = shown;
+          var remaining = total - shown;
+          if (remainingCount) remainingCount.textContent = remaining;
+          if (cards.length === 0 || remaining <= 0) {
+            btn.closest('.load-more-wrap').style.display = 'none';
+          } else {
+            btn.disabled = false;
+            btn.innerHTML = 'Show more breaks (<span id="remainingCount">' + remaining + '</span> remaining)';
+            remainingCount = document.getElementById('remainingCount');
+          }
+          loading = false;
+        })
+        .catch(function() {
+          btn.disabled = false;
+          btn.textContent = 'Try again';
+          loading = false;
+        });
+    });
+  })();
+})();
+</script>
+<script>
+// Auction countdown timers (Brian 2026-10-07): live ticking countdown on eBay auction cards.
+// When a countdown expires, the card is removed from the page immediately
+// (Brian 2026-10-07: ended listings must disappear ASAP, not linger as "Ended").
+// Perf (2026-10-07): end dates are parsed once at startup and the DOM is only
+// touched when the displayed text actually changes — the old version re-parsed
+// every date and rewrote every timer each second, keeping the main thread busy
+// (this made the filter dropdowns slow to open on iOS).
+(function() {
+  function pad(n) { return String(n).padStart(2, '0'); }
+  // Parse once, cache: [{el, ends, last}]
+  var timers = [];
+  function registerTimers(root) {
+    (root || document).querySelectorAll('.auction-timer[data-ends]').forEach(function(el) {
+      if (el.__timerRegistered) return;
+      el.__timerRegistered = true;
+      var ends = new Date(el.getAttribute('data-ends')).getTime();
+      timers.push({ el: el, ends: ends, last: '' });
+    });
+    // Restart the interval if new timers arrived after it stopped
+    if (timers.length && !window.__auctionTick) {
+      tick();
+      window.__auctionTick = setInterval(tick, 1000);
+    }
+  }
+  // Exposed for Load more (Brian 2026-10-07)
+  window.__registerAuctionTimers = registerTimers;
+  registerTimers(document);
+  function tick() {
+    var now = Date.now();
+    for (var i = 0; i < timers.length; i++) {
+      var t = timers[i];
+      if (isNaN(t.ends)) { continue; }
+      var diff = t.ends - now;
+      if (diff <= 0) {
+        var card = t.el.closest('.card-wrap');
+        if (card) { card.style.display = 'none'; }
+        timers.splice(i, 1); i--;
+        continue;
+      }
+      var d = Math.floor(diff / 86400000),
+          h = Math.floor(diff % 86400000 / 3600000),
+          m = Math.floor(diff % 3600000 / 60000),
+          s = Math.floor(diff % 60000 / 1000);
+      var txt = d > 0
+        ? '⏳ ' + d + 'd ' + pad(h) + 'h ' + pad(m) + 'm'
+        : '⏳ ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+      if (txt !== t.last) { t.el.textContent = txt; t.last = txt; }
+    }
+    if (!timers.length && window.__auctionTick) {
+      clearInterval(window.__auctionTick); window.__auctionTick = null;
+    }
+  }
+  tick();
+  if (timers.length) { window.__auctionTick = setInterval(tick, 1000); }
+})();
+</script>
+</body>
+</html>

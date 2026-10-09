@@ -18,7 +18,7 @@
             {# only LIVE / AUCTION / countdown / start-time tags show on cards. #}
             {% if b.breaker %}<span class="breaker-group"><span class="tag breaker-tag breaker-link" data-breaker="{{ b.breaker }}" role="link" tabindex="0" title="See all {{ b.breaker }} breaks">{{ b.breaker }}</span>{% if user %}<form class="follow-form" method="post" action="/favorites/toggle" style="display:inline-flex">
               <input type="hidden" name="breaker" value="{{ b.breaker }}">
-              <input type="hidden" name="next" value="/?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
+              <input type="hidden" name="next" value="/results?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
               <button class="follow-btn {% if b.breaker in favorites %}following{% endif %}" type="submit" title="{% if b.breaker in favorites %}Unfollow {{ b.breaker }}{% else %}Follow {{ b.breaker }}{% endif %}">{% if b.breaker in favorites %}✓{% else %}+{% endif %}</button>
             </form>{% endif %}</span>{% endif %}
             {% if b.group_count and b.group_count > 1 %}
@@ -37,7 +37,7 @@
       {% if user %}
         <form class="fav-form" method="post" action="/saved-listings/toggle">
           <input type="hidden" name="break_id" value="{{ b.id }}">
-          <input type="hidden" name="next" value="/?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
+          <input type="hidden" name="next" value="/results?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
           <button class="fav-btn {% if b.id in saved_ids %}faved{% endif %}" type="submit" title="{% if b.id in saved_ids %}Unsave this break{% else %}Save this break{% endif %}">★</button>
         </form>
         {% else %}

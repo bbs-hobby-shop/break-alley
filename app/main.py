@@ -59,6 +59,37 @@ def _enrich(row: dict) -> dict:
 
 
 @app.get("/", response_class=HTMLResponse)
+def home(
+    request: Request,
+    suggested: str | None = Query(default=None),
+):
+    """Brian 2026-10-08: clean landing page — search form, releases, and
+    suggestion boxes, but NO break cards. Results live on /results."""
+    user = auth.get_current_user(request)
+    try:
+        with db.get_conn() as conn:
+            try:
+                upcoming_releases = db.list_upcoming_releases(conn)
+            except Exception:
+                upcoming_releases = []
+        error = None
+    except Exception as exc:
+        error = f"Database unavailable: {exc}"
+        upcoming_releases = []
+    return templates.TemplateResponse(request, "home.html", {
+        "error": error,
+        "suggested": suggested or "",
+        "user": user,
+        "refresh_running": _public_refresh_running(),
+        "upcoming_releases": upcoming_releases,
+        "q": "", "format": "", "max_price": "", "source": "",
+        "live": False, "region": "", "sort": "", "auctions": False,
+        "formats": ["pyt", "random", "personal", "case_break", "box_break"],
+        "format_labels": FORMAT_LABELS,
+    })
+
+
+@app.get("/results", response_class=HTMLResponse)
 def search(
     request: Request,
     q: str | None = Query(default=None),
@@ -135,7 +166,7 @@ def search(
         results, error = [], f"Database unavailable: {exc}"
         updated_ago = "—"
         upcoming_releases = []
-    return templates.TemplateResponse(request, "search.html", {
+    return templates.TemplateResponse(request, "results.html", {
         "results": results, "error": error,
         "total_results": total_results, "has_more": has_more,
         "page_size": PAGE_SIZE,
