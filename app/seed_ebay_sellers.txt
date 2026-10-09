@@ -97,3 +97,8 @@ renegadecollectibles
 mojobreak  # Mojobreak Sports Cards — NHL Series 1 case breaks on eBay Live (Brian approved 2026-10-09, weekly discovery)
 freshwaxbreaks  # $1-start team-break auctions, multi-sport (Brian approved 2026-10-09, weekly discovery)
 mint_memorabilia  # Bowman Chrome PYT mixers + $20K bounty (Brian approved 2026-10-09, weekly discovery)
+cardvaultbreaks  # CardVault — nightly eBay Live $1-start break auctions, 99.8% (11.2K) (Brian approved 2026-10-09, weekly discovery)
+48breaks  # eBay Live random-team NFL breaks + team slots, ~99.5% (Brian approved 2026-10-09, weekly discovery)
+hobbyshopbreaks  # per-team PYT slot listings + Live mixers, Top-Rated Seller, 99.6%+ (Brian approved 2026-10-09, weekly discovery)
+apebreaks  # eBay Live break shows, 99.9% (11.3K) (Brian approved 2026-10-09, weekly discovery)
+card-shop-live  # PYT + case-break Live shows, 100% (114.6K) (Brian approved 2026-10-09, weekly discovery)
