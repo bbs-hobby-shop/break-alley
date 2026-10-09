@@ -1283,7 +1283,7 @@ def favorite_toggle(
                     db.log_event(conn, "breaker_unfollowed",
                                  user_id=user["id"], breaker=breaker)
                 else:
-                    # Pro gate (Brian 2026-10-08): free tier caps at 10 follows.
+                    # Pro gate (Brian 2026-10-08): free tier caps at 5 follows.
                     row = conn.execute(
                         "SELECT is_pro FROM users WHERE id = %s", (user["id"],)
                     ).fetchone()
@@ -1292,11 +1292,11 @@ def favorite_toggle(
                             "SELECT COUNT(*) AS c FROM user_favorites WHERE user_id = %s",
                             (user["id"],),
                         ).fetchone()["c"]
-                        if n >= 10:
+                        if n >= 5:
                             if "application/json" in request.headers.get("accept", ""):
                                 return JSONResponse(
                                     {"ok": False, "error": "pro_required",
-                                     "message": "Free tier caps at 10 follows — go Pro for unlimited."},
+                                     "message": "Free tier caps at 5 follows — go Pro for unlimited."},
                                     status_code=403)
                             return RedirectResponse("/pro", status_code=303)
                     db.add_favorite(conn, user["id"], breaker)
