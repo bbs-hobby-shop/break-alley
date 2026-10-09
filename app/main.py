@@ -557,6 +557,108 @@ def admin_reject(
 
 
 @app.post("/admin/breaks/{break_id}/delete")
+# Whatnot show submissions: sellers submit -> Brian reviews -> breaks feed
+# ---------------------------------------------------------------------------
+
+@app.get("/submit-show", response_class=HTMLResponse)
+def submit_show_form(request: Request):
+    """Public form for Whatnot sellers to submit upcoming shows (Brian 2026-10-08)."""
+    user = auth.get_current_user(request)
+    return templates.TemplateResponse(request, "submit_show.html", {
+        "request": request, "user": user, "submitted": False,
+    })
+
+
+@app.post("/submit-show")
+def submit_show(
+    request: Request,
+    seller_username: str = Form(default=""),
+    show_title: str = Form(default=""),
+    show_url: str = Form(default=""),
+    starts_at: str = Form(default=""),
+    format: str = Form(default="box_break"),
+    description: str = Form(default=""),
+    consent: str = Form(default=""),
+    website: str = Form(default=""),  # honeypot
+):
+    if website.strip():
+        return RedirectResponse("/submit-show?submitted=1", status_code=303)
+    seller_username = seller_username.strip().lstrip("@")
+    show_title = show_title.strip()
+    show_url = show_url.strip()
+    if not (seller_username and show_title and show_url and starts_at and consent):
+        return RedirectResponse("/submit-show?submitted=0", status_code=303)
+    # show_url must be a whatnot.com link
+    if "whatnot.com" not in show_url.lower():
+        return RedirectResponse("/submit-show?submitted=0", status_code=303)
+    try:
+        import datetime
+        # datetime-local gives "YYYY-MM-DDTHH:MM"; treat as UTC if no tz
+        dt = datetime.datetime.fromisoformat(starts_at)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+    except ValueError:
+        return RedirectResponse("/submit-show?submitted=0", status_code=303)
+    valid_formats = {"pyt", "random", "personal", "case_break", "box_break"}
+    fmt = format if format in valid_formats else "box_break"
+    try:
+        with db.get_conn() as conn:
+            db.add_whatnot_submission(conn, seller_username, show_title,
+                                      show_url, dt, fmt, description)
+    except Exception:
+        return RedirectResponse("/submit-show?submitted=0", status_code=303)
+    return RedirectResponse("/submit-show?submitted=1", status_code=303)
+
+
+@app.get("/admin/whatnot", response_class=HTMLResponse)
+def admin_whatnot(request: Request, key: str | None = Query(default=None)):
+    """Brian's review queue for Whatnot show submissions."""
+    if not _admin_key_ok(key):
+        return templates.TemplateResponse(request, "admin_whatnot.html", {
+            "denied": True, "pending": [], "reviewed": [], "key": key or "",
+        })
+    try:
+        with db.get_conn() as conn:
+            pending = db.list_whatnot_submissions(conn, status="pending")
+            reviewed = [r for r in db.list_whatnot_submissions(conn)[:50]
+                        if r["status"] != "pending"]
+    except Exception as exc:
+        return templates.TemplateResponse(request, "admin_whatnot.html", {
+            "denied": False, "error": f"Database unavailable: {exc}",
+            "pending": [], "reviewed": [], "key": key or "",
+        })
+    return templates.TemplateResponse(request, "admin_whatnot.html", {
+        "denied": False, "pending": pending, "reviewed": reviewed,
+        "key": key or "",
+    })
+
+
+@app.post("/admin/whatnot/{submission_id}/approve")
+def admin_whatnot_approve(request: Request, submission_id: int,
+                          key: str = Form(default="")):
+    if not _admin_key_ok(key):
+        return RedirectResponse("/admin/whatnot", status_code=303)
+    try:
+        with db.get_conn() as conn:
+            db.review_whatnot_submission(conn, submission_id, approved=True)
+    except Exception:
+        pass
+    return RedirectResponse(f"/admin/whatnot?key={key}", status_code=303)
+
+
+@app.post("/admin/whatnot/{submission_id}/reject")
+def admin_whatnot_reject(request: Request, submission_id: int,
+                         key: str = Form(default="")):
+    if not _admin_key_ok(key):
+        return RedirectResponse("/admin/whatnot", status_code=303)
+    try:
+        with db.get_conn() as conn:
+            db.review_whatnot_submission(conn, submission_id, approved=False)
+    except Exception:
+        pass
+    return RedirectResponse(f"/admin/whatnot?key={key}", status_code=303)
+
+
 def admin_delete_break(
     request: Request, break_id: int,
     key: str = Form(default=""),

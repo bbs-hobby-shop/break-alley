@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TABLE IF NOT EXISTS breaks (
     id              SERIAL PRIMARY KEY,
-    source          TEXT NOT NULL CHECK (source IN ('ebay', 'youtube', 'twitch', 'fanatics')),
+    source          TEXT NOT NULL CHECK (source IN ('ebay', 'youtube', 'twitch', 'fanatics', 'whatnot')),
     source_url      TEXT NOT NULL,
     breaker         TEXT,                       -- eBay seller ID / YouTube channel name
     product_raw     TEXT,                       -- product text as seen in the wild
@@ -240,3 +240,22 @@ BEGIN
             CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown'));
     END IF;
 END $$;
+
+-- Whatnot show submissions (Brian 2026-10-08): sellers voluntarily submit
+-- their upcoming Whatnot shows; Brian approves them in /admin/whatnot and
+-- they go live in the breaks table with source='whatnot'.
+CREATE TABLE IF NOT EXISTS whatnot_show_submissions (
+    id              SERIAL PRIMARY KEY,
+    seller_username TEXT NOT NULL,
+    show_title      TEXT NOT NULL,
+    show_url        TEXT NOT NULL,
+    starts_at       TIMESTAMPTZ NOT NULL,
+    format          TEXT CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown')),
+    description     TEXT,
+    consent         BOOLEAN NOT NULL DEFAULT FALSE,
+    status          TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reviewed_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_whatnot_submissions_status ON whatnot_show_submissions (status);

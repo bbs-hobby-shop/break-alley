@@ -400,6 +400,75 @@ def add_breaker_suggestion(conn, input_text: str, note: str | None = None) -> in
     return cur.fetchone()["id"]
 
 
+def add_whatnot_submission(conn, seller_username: str, show_title: str,
+                           show_url: str, starts_at, format: str | None = None,
+                           description: str | None = None) -> int:
+    """Queue a Whatnot seller's show submission for Brian's review (Brian 2026-10-08).
+    Returns the new id. Consent is recorded as TRUE — the form requires the checkbox."""
+    cur = conn.execute(
+        """INSERT INTO whatnot_show_submissions
+           (seller_username, show_title, show_url, starts_at, format, description, consent)
+           VALUES (%(seller)s, %(title)s, %(url)s, %(starts)s, %(format)s, %(desc)s, TRUE)
+           RETURNING id""",
+        {"seller": seller_username.strip()[:100],
+         "title": show_title.strip()[:300],
+         "url": show_url.strip()[:500],
+         "starts": starts_at,
+         "format": format or "box_break",
+         "desc": (description or "").strip()[:1000] or None},
+    )
+    return cur.fetchone()["id"]
+
+
+def list_whatnot_submissions(conn, status: str | None = None) -> list[dict]:
+    """Newest-first Whatnot show submissions, optionally filtered by status."""
+    if status:
+        rows = conn.execute(
+            """SELECT * FROM whatnot_show_submissions WHERE status = %(status)s
+               ORDER BY created_at DESC""",
+            {"status": status},
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM whatnot_show_submissions ORDER BY created_at DESC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def review_whatnot_submission(conn, submission_id: int, approved: bool) -> dict | None:
+    """Approve or reject a Whatnot show submission. On approval, inserts the
+    show into breaks with source='whatnot' (idempotent on show_url).
+    Returns the submission dict."""
+    subs = conn.execute(
+        "SELECT * FROM whatnot_show_submissions WHERE id = %(sid)s",
+        {"sid": submission_id},
+    ).fetchone()
+    if not subs:
+        return None
+    sub = dict(subs)
+    if approved and sub["status"] == "pending":
+        # Publish to the breaks feed (Brian 2026-10-08).
+        conn.execute(
+            """INSERT INTO breaks
+               (source, source_url, breaker, title_raw, starts_at, format,
+                is_live, country)
+               VALUES ('whatnot', %(url)s, %(breaker)s, %(title)s, %(starts)s,
+                       %(format)s, FALSE, 'US')
+               ON CONFLICT (source, source_url) DO NOTHING""",
+            {"url": sub["show_url"], "breaker": sub["seller_username"],
+             "title": sub["show_title"], "starts": sub["starts_at"],
+             "format": sub["format"] or "box_break"},
+        )
+    conn.execute(
+        """UPDATE whatnot_show_submissions
+           SET status = %(status)s, reviewed_at = NOW()
+           WHERE id = %(sid)s""",
+        {"status": "approved" if approved else "rejected", "sid": submission_id},
+    )
+    sub["status"] = "approved" if approved else "rejected"
+    return sub
+
+
 def list_breaker_suggestions(conn, status: str | None = None) -> list[dict]:
     """Newest-first suggestions, optionally filtered by status."""
     if status:
@@ -743,7 +812,7 @@ BEGIN
             ALTER TABLE breaks DROP CONSTRAINT breaks_source_check;
         END IF;
         ALTER TABLE breaks ADD CONSTRAINT breaks_source_check
-            CHECK (source IN ('ebay', 'youtube', 'twitch', 'fanatics'));
+            CHECK (source IN ('ebay', 'youtube', 'twitch', 'fanatics', 'whatnot'));
         IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'breaks_format_check') THEN
             ALTER TABLE breaks DROP CONSTRAINT breaks_format_check;
         END IF;
@@ -777,6 +846,24 @@ CREATE TABLE IF NOT EXISTS twitch_channels (
     active          BOOLEAN NOT NULL DEFAULT TRUE
 );
 CREATE INDEX IF NOT EXISTS idx_twitch_channels_active ON twitch_channels (active);
+
+-- Whatnot show submissions (Brian 2026-10-08): in migrations too so the
+-- table exists even if schema.sql hasn't run yet on a given database.
+CREATE TABLE IF NOT EXISTS whatnot_show_submissions (
+    id              SERIAL PRIMARY KEY,
+    seller_username TEXT NOT NULL,
+    show_title      TEXT NOT NULL,
+    show_url        TEXT NOT NULL,
+    starts_at       TIMESTAMPTZ NOT NULL,
+    format          TEXT CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown')),
+    description     TEXT,
+    consent         BOOLEAN NOT NULL DEFAULT FALSE,
+    status          TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reviewed_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_whatnot_submissions_status ON whatnot_show_submissions (status);
 
 -- Roster table for Fanatics Live shops (schema.sql is the canonical
 -- definition; this keeps cron pollers working on older DBs). Polled via
@@ -910,6 +997,11 @@ FROM (
              AND auction_ends_at <= NOW())
     AND NOT (COALESCE(is_auction, FALSE) = FALSE
              AND COALESCE(slots_remaining, -1) = 0)
+    -- Hide Whatnot shows long after they started (Brian 2026-10-08):
+    -- submitted shows have no poller to clean them up, so they fade from
+    -- results 6h after start (covers show duration + buffer).
+    AND NOT (source = 'whatnot' AND starts_at IS NOT NULL
+             AND starts_at < NOW() - INTERVAL '6 hours')
 ) ranked
 WHERE rn = 1
 """

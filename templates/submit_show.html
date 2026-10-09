@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Submit your Whatnot show — BreakAlley</title>
+<meta name="description" content="Whatnot sellers: submit your upcoming box break shows to BreakAlley and reach more buyers.">
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<meta name="theme-color" content="#0a0e1c">
+<style>
+  :root {
+    --bg: #0a0e1c; --bg2: #10162e; --card: #151c38; --card2: #1a2242;
+    --line: #26305c; --text: #f2f4ff; --muted: #8b93b8;
+    --green: #00e676; --purple: #7c5cff; --red: #ff3b5c;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { touch-action: manipulation; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; color: var(--text); background: var(--bg);
+    background-image: radial-gradient(900px 400px at 15% -5%, rgba(124,92,255,.14), transparent),
+                      radial-gradient(800px 380px at 90% 0%, rgba(0,230,118,.08), transparent);
+    min-height: 100vh;
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: #0a0e1c; border-bottom: 1px solid var(--line);
+    padding: 1rem 1.5rem .85rem;
+  }
+  .brandrow { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: .75rem; }
+  .logo { font-weight: 900; font-size: 1.9rem; letter-spacing: .5px; display: flex; align-items: center; gap: .7rem;
+    color: var(--text); text-decoration: none; }
+  .logo img { width: 52px; height: 52px; border-radius: 12px; }
+  .logo .wordmark span { color: var(--green); }
+  .signout { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; }
+  .signout button { background: none; border: 0; color: var(--muted); font-size: .8rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; padding: .3rem 0; }
+  nav.tabs { display: flex; justify-content: center; gap: .5rem; }
+  nav.tabs a { flex: 1; max-width: 220px; text-align: center; padding: .65rem .5rem; border-radius: 10px;
+    color: var(--muted); text-decoration: none; font-weight: 700; border: 1px solid transparent; }
+  main { max-width: 640px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .5rem; }
+  .lede { color: var(--muted); line-height: 1.55; margin: 0 0 1.8rem; }
+  .notice { border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1.5rem; font-weight: 600; }
+  .notice.ok { background: rgba(0,230,118,.1); border: 1px solid var(--green); color: var(--green); }
+  .notice.err { background: rgba(255,59,92,.1); border: 1px solid var(--red); color: var(--red); }
+  form.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 1.5rem; }
+  label.field { display: block; margin-bottom: 1.1rem; }
+  label.field > span { display: block; font-weight: 700; margin-bottom: .4rem; font-size: .95rem; }
+  label.field > small { display: block; color: var(--muted); font-weight: 400; margin-top: .3rem; font-size: .83rem; }
+  input[type=text], input[type=url], input[type=datetime-local], select, textarea {
+    width: 100%; background: var(--bg2); border: 1px solid var(--line); border-radius: 10px;
+    color: var(--text); padding: .75rem .9rem; font-size: 1rem; font-family: inherit;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--green); }
+  .hp { position: absolute; left: -9999px; }
+  label.consent { display: flex; gap: .7rem; align-items: flex-start; margin: 1.2rem 0 1.5rem;
+    cursor: pointer; font-size: .93rem; line-height: 1.5; color: var(--muted); }
+  label.consent input { width: 1.2rem; height: 1.2rem; margin-top: .15rem; accent-color: var(--green); flex-shrink: 0; }
+  button.submit { width: 100%; background: var(--green); color: #06130c; border: 0; border-radius: 12px;
+    padding: .95rem; font-size: 1.05rem; font-weight: 800; cursor: pointer; font-family: inherit; }
+  @media (max-width: 560px) { nav.tabs a { font-size: .88rem; padding: .6rem .25rem; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brandrow">
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+    {% if user %}
+    <form method="post" action="/logout" class="signout"><button type="submit">Sign out</button></form>
+    {% endif %}
+  </div>
+  <nav class="tabs">
+    <a href="/">Home</a>
+    {% if user %}
+    <a href="/my-breaks">My Breaks</a>
+    <a href="/account">Account</a>
+    {% else %}
+    <a href="/login">Sign in</a>
+    <a href="/signup">Sign up</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  <h1>Submit your Whatnot show</h1>
+  <p class="lede">Run box breaks on Whatnot? List your upcoming shows on BreakAlley and put them in front of buyers already looking for breaks. Submissions are reviewed before they go live — usually within a day.</p>
+
+  {% if request.query_params.get('submitted') == '1' %}
+  <div class="notice ok">Thanks! Your show is in the review queue. We'll list it once approved.</div>
+  {% elif request.query_params.get('submitted') == '0' %}
+  <div class="notice err">Something was missing — please fill in every required field and try again.</div>
+  {% endif %}
+
+  <form class="card" method="post" action="/submit-show">
+    <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off">
+    <label class="field">
+      <span>Whatnot username *</span>
+      <input type="text" name="seller_username" placeholder="your Whatnot username" required>
+    </label>
+    <label class="field">
+      <span>Show title *</span>
+      <input type="text" name="show_title" placeholder="e.g. Bowman Chrome Sapphire PYT — 10 cases" required>
+      <small>Make it descriptive: product, format, and anything that sells the break.</small>
+    </label>
+    <label class="field">
+      <span>Show link *</span>
+      <input type="url" name="show_url" placeholder="https://www.whatnot.com/live/…" required>
+      <small>The public link to your show on whatnot.com — buyers tap through to watch and buy in.</small>
+    </label>
+    <label class="field">
+      <span>Start date &amp; time *</span>
+      <input type="datetime-local" name="starts_at" required>
+    </label>
+    <label class="field">
+      <span>Format</span>
+      <select name="format">
+        <option value="pyt">Pick Your Team</option>
+        <option value="random">Random Team</option>
+        <option value="personal">Personal</option>
+        <option value="case_break">Case Break</option>
+        <option value="box_break" selected>Box Break</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Details <small style="display:inline">(optional)</small></span>
+      <textarea name="description" placeholder="Anything buyers should know: pricing, how slots work, shipping…"></textarea>
+    </label>
+    <label class="consent">
+      <input type="checkbox" name="consent" value="1" required>
+      <span>I confirm I'm the seller (or authorized by the seller) and I give BreakAlley permission to list this show with a link to my Whatnot page. *</span>
+    </label>
+    <button class="submit" type="submit">Submit show</button>
+  </form>
+</main>
+</body>
+</html>

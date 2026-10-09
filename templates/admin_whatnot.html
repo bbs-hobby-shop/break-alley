@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whatnot review — BreakAlley admin</title>
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<style>
+  body { font-family: system-ui, sans-serif; background: #0a0e1c; color: #f2f4ff;
+    max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+  h1 { font-size: 1.4rem; }
+  a { color: #00e676; }
+  .nav { margin-bottom: 1.5rem; color: #8b93b8; }
+  .sub { background: #151c38; border: 1px solid #26305c; border-radius: 12px;
+    padding: 1.1rem 1.3rem; margin-bottom: 1rem; }
+  .sub h3 { margin: 0 0 .4rem; font-size: 1.05rem; }
+  .sub .meta { color: #8b93b8; font-size: .85rem; margin-bottom: .6rem; }
+  .sub .desc { color: #c6cbe4; font-size: .92rem; margin-bottom: .8rem; line-height: 1.5; }
+  .row { display: flex; gap: .6rem; }
+  .row form { display: inline; }
+  button { border: 0; border-radius: 8px; padding: .55rem 1.1rem; font-weight: 700;
+    cursor: pointer; font-family: inherit; font-size: .9rem; }
+  .approve { background: #00e676; color: #06130c; }
+  .reject { background: transparent; border: 1px solid #ff3b5c; color: #ff3b5c; }
+  .badge { display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 6px;
+    padding: .15rem .5rem; margin-left: .5rem; vertical-align: middle; }
+  .badge.approved { background: rgba(0,230,118,.15); color: #00e676; }
+  .badge.rejected { background: rgba(255,59,92,.15); color: #ff3b5c; }
+  .empty { color: #8b93b8; padding: 2rem 0; text-align: center; }
+  .err { color: #ff3b5c; }
+  .denied input { background: #10162e; border: 1px solid #26305c; color: #f2f4ff;
+    padding: .6rem .8rem; border-radius: 8px; font-size: 1rem; }
+</style>
+</head>
+<body>
+<div class="nav"><a href="/admin/suggestions?key={{ key }}">← breaker suggestions</a> &nbsp;·&nbsp; <a href="/">home</a></div>
+<h1>Whatnot show submissions</h1>
+{% if denied %}
+<div class="denied">
+  <p>Enter the admin key to review Whatnot submissions.</p>
+  <form method="get" action="/admin/whatnot">
+    <input type="password" name="key" placeholder="Admin key">
+    <button class="approve" type="submit">View</button>
+  </form>
+</div>
+{% elif error %}
+<p class="err">{{ error }}</p>
+{% else %}
+<h2>Pending ({{ pending|length }})</h2>
+{% if pending %}
+  {% for s in pending %}
+  <div class="sub">
+    <h3>{{ s.show_title }}</h3>
+    <div class="meta">@{{ s.seller_username }} · {{ s.starts_at }} · {{ s.format|replace('_', ' ') }} · submitted {{ s.created_at }}</div>
+    <div class="meta"><a href="{{ s.show_url }}" target="_blank" rel="noopener">{{ s.show_url }}</a></div>
+    {% if s.description %}<div class="desc">{{ s.description }}</div>{% endif %}
+    <div class="row">
+      <form method="post" action="/admin/whatnot/{{ s.id }}/approve">
+        <input type="hidden" name="key" value="{{ key }}">
+        <button class="approve" type="submit">Approve → goes live</button>
+      </form>
+      <form method="post" action="/admin/whatnot/{{ s.id }}/reject">
+        <input type="hidden" name="key" value="{{ key }}">
+        <button class="reject" type="submit">Reject</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="empty">Nothing pending. 🎉</div>
+{% endif %}
+<h2>Reviewed</h2>
+{% if reviewed %}
+  {% for s in reviewed %}
+  <div class="sub">
+    <h3>{{ s.show_title }}<span class="badge {{ s.status }}">{{ s.status }}</span></h3>
+    <div class="meta">@{{ s.seller_username }} · {{ s.starts_at }} · reviewed {{ s.reviewed_at }}</div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="empty">No reviewed submissions yet.</div>
+{% endif %}
+{% endif %}
+</body>
+</html>

@@ -353,7 +353,7 @@
       <div class="cselect" data-name="source" data-label="All platforms">
         <input type="hidden" name="source" value="{{ source }}">
         <button type="button" class="cselect-btn" aria-label="Platform">
-          <span class="cselect-value">{{ {'ebay':'eBay','youtube':'YouTube','twitch':'Twitch','fanatics':'Fanatics Live'}[source] if source else 'All platforms' }}</span>
+          <span class="cselect-value">{{ {'ebay':'eBay','youtube':'YouTube','twitch':'Twitch','fanatics':'Fanatics Live','whatnot':'Whatnot'}[source] if source else 'All platforms' }}</span>
           <span class="cselect-chev">⌄</span>
         </button>
       </div>
@@ -376,6 +376,7 @@
       <button type="button" data-value="youtube">YouTube</button>
       <button type="button" data-value="twitch">Twitch</button>
       <button type="button" data-value="fanatics">Fanatics Live</button>
+      <button type="button" data-value="whatnot">Whatnot</button>
     </template>
     <template id="cselect-opts-region">
       <button type="button" data-value="">All regions</button>
