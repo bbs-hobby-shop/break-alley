@@ -112,9 +112,16 @@ def notify_breaker_live(conn, breaker_name: str, break_title: str, break_url: st
     return sent
 
 
+# One live alert per breaker per live session (Brian 2026-10-09): a breaker
+# with five live listings sends ONE "{breaker} is LIVE", not five.
+LIVE_BREAKER_COOLDOWN_HOURS = 6
+
+
 def check_and_notify_new_live(conn):
     """Find live breaks not yet notified, push to Pro followers, mark notified.
 
+    One notification per breaker per live session — a breaker with five live
+    listings sends ONE "{breaker} is LIVE", not five (Brian 2026-10-09).
     Called after poller runs. Safe to run repeatedly; uses live_push_log
     to avoid duplicate notifications for the same break.
     """
@@ -124,23 +131,48 @@ def check_and_notify_new_live(conn):
         FROM breaks b
         LEFT JOIN live_push_log l ON l.break_id = b.id
         WHERE b.is_live = TRUE AND l.break_id IS NULL
-        LIMIT 50
+        LIMIT 200
         """
     ).fetchall()
+    # Group by breaker: one notification per breaker, not per listing.
+    by_breaker = {}
     for r in rows:
+        by_breaker.setdefault(r["breaker"] or "A breaker", []).append(r)
+    for breaker, blist in by_breaker.items():
         try:
-            sent = notify_breaker_live(conn, r["breaker"] or "A breaker", r["title_raw"], r["source_url"],
-                                     tag=f"live-{r['id']}")
+            # Cooldown: if we already alerted for this breaker recently it's
+            # the same live session — log the new break ids silently so they
+            # don't retrigger, but don't push again.
+            recent = conn.execute(
+                """
+                SELECT 1 FROM live_push_log l
+                JOIN breaks b ON b.id = l.break_id
+                WHERE b.breaker = %s
+                  AND l.notified_at > NOW() - (%s * INTERVAL '1 hour')
+                LIMIT 1
+                """,
+                (breaker, LIVE_BREAKER_COOLDOWN_HOURS),
+            ).fetchone()
+            if not recent:
+                first = blist[0]
+                sent = notify_breaker_live(
+                    conn, breaker, first["title_raw"], first["source_url"],
+                    tag=f"live-{breaker}",
+                )
+            else:
+                sent = 1  # cooldown active: log silently, no push
             # Only mark notified if at least one device was reached — a
             # failed send retries on the next poller run instead of being
             # silently swallowed (Brian 2026-10-09).
             if sent > 0:
-                conn.execute(
-                    "INSERT INTO live_push_log (break_id) VALUES (%s) ON CONFLICT DO NOTHING",
-                    (r["id"],),
-                )
+                for br in blist:
+                    conn.execute(
+                        "INSERT INTO live_push_log (break_id) VALUES (%s) "
+                        "ON CONFLICT DO NOTHING",
+                        (br["id"],),
+                    )
         except Exception as e:
-            log.warning("push check failed for break %s: %s", r["id"], e)
+            log.warning("push check failed for breaker %s: %s", breaker, e)
     if rows:
         log.info("push: checked %d newly-live breaks", len(rows))
 
@@ -217,15 +249,20 @@ def _send_to_user(conn, user_id: int, title: str, body: str, url: str, tag: str 
 def check_and_notify_starting_soon(conn, minutes_ahead: int = 30):
     """Remind Pro users when a followed/saved break starts within minutes_ahead.
 
-    Called after poller runs alongside the live check. One reminder per
-    break/user pair (starting_soon_log). Respects the starting_soon pref.
+    Saved breaks notify per break; followed-only breakers collapse to one
+    notification per breaker (Brian 2026-10-09). Called after poller runs
+    alongside the live check. One reminder per break/user pair
+    (starting_soon_log). Respects the starting_soon pref.
     Best-effort; never raises.
     """
     try:
         rows = conn.execute(
             """
             SELECT DISTINCT b.id AS break_id, b.breaker, b.title_raw,
-                   b.source_url, b.starts_at, u.id AS user_id
+                   b.source_url, b.starts_at, u.id AS user_id,
+                   EXISTS (SELECT 1 FROM saved_listings s
+                           WHERE s.user_id = u.id AND s.break_id = b.id
+                          ) AS is_saved
             FROM breaks b
             JOIN users u ON u.is_pro = TRUE
             JOIN push_subscriptions ps ON ps.user_id = u.id
@@ -253,50 +290,66 @@ def check_and_notify_starting_soon(conn, minutes_ahead: int = 30):
         return
     now = datetime.now(timezone.utc)
     total_sent, total_dead = 0, 0
-    for r in rows:
+
+    def mins_left(r):
         try:
-            mins_left = max(1, int((r["starts_at"] - now).total_seconds() // 60))
+            return max(1, int((r["starts_at"] - now).total_seconds() // 60))
         except Exception:
-            mins_left = minutes_ahead
-        subs = conn.execute(
-            "SELECT id, endpoint, p256dh, auth FROM push_subscriptions "
-            "WHERE user_id = %s",
-            (r["user_id"],),
-        ).fetchall()
-        dead = []
-        pair_sent = 0
-        for s in subs:
-            result = send_push(
-                {"endpoint": s["endpoint"], "p256dh": s["p256dh"],
-                 "auth": s["auth"]},
-                title=f"{r['breaker'] or 'A breaker'} starts in {mins_left} min",
-                body=r["title_raw"] or "",
-                url=r["source_url"] or "/",
-                tag=f"soon-{r['id']}",
-            )
-            if result == "ok":
-                total_sent += 1
-                pair_sent += 1
-            elif result == "expired":
-                dead.append(s["id"])
-        for sub_id in dead:
-            try:
-                conn.execute("DELETE FROM push_subscriptions WHERE id = %s",
-                             (sub_id,))
-                total_dead += 1
-            except Exception:
-                pass
+            return minutes_ahead
+
+    def log_pair(break_id, user_id):
         # Only dedup when at least one device was reached — a failed send
         # retries next run instead of being silently swallowed.
-        if pair_sent > 0:
-            try:
-                conn.execute(
-                    "INSERT INTO starting_soon_log (break_id, user_id) "
-                    "VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                    (r["break_id"], r["user_id"]),
-                )
-            except Exception:
-                pass
+        try:
+            conn.execute(
+                "INSERT INTO starting_soon_log (break_id, user_id) "
+                "VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (break_id, user_id),
+            )
+        except Exception:
+            pass
+
+    # Saved breaks: specific per-break notification (the exception to
+    # by-breaker grouping). Followed-only: one per breaker.
+    grouped = {}
+    for r in rows:
+        if r["is_saved"]:
+            m = mins_left(r)
+            sent, dead = _send_to_user(
+                conn, r["user_id"],
+                title=f"{r['breaker'] or 'A breaker'} starts in {m} min",
+                body=r["title_raw"] or "",
+                url=r["source_url"] or "/",
+                tag=f"soon-{r['break_id']}",
+            )
+            total_sent += sent
+            total_dead += dead
+            if sent > 0:
+                log_pair(r["break_id"], r["user_id"])
+        else:
+            grouped.setdefault(
+                (r["user_id"], r["breaker"] or "A breaker"), []).append(r)
+    for (user_id, breaker), blist in grouped.items():
+        blist.sort(key=mins_left)
+        m = mins_left(blist[0])
+        n = len(blist)
+        title = (f"{breaker} starts in {m} min" if n == 1
+                 else f"{breaker} has {n} breaks starting soon")
+        body = blist[0]["title_raw"] or ""
+        if n > 1:
+            body += f" (soonest in {m} min)"
+        sent, dead = _send_to_user(
+            conn, user_id,
+            title=title,
+            body=body,
+            url=blist[0]["source_url"] or "/",
+            tag=f"soon-{breaker}",
+        )
+        total_sent += sent
+        total_dead += dead
+        if sent > 0:
+            for br in blist:
+                log_pair(br["break_id"], br["user_id"])
     log.info("push: starting-soon reminders for %d break/user pairs "
              "(%d sent, %d dead pruned)", len(rows), total_sent, total_dead)
 
@@ -308,16 +361,21 @@ def check_and_notify_starting_soon(conn, minutes_ahead: int = 30):
 def check_and_notify_auction_ending(conn, minutes_ahead: int = 60):
     """Remind Pro users when a saved/followed eBay auction ends soon.
 
-    DB-only (auction_ends_at is already in our database) — works during
-    429 throttles. One reminder per break/user pair (auction_ending_log).
-    Respects the auction_ending pref. Best-effort; never raises.
+    Saved auctions notify per auction; followed-only breakers collapse to one
+    notification per breaker (Brian 2026-10-09). DB-only (auction_ends_at is
+    already in our database) — works during 429 throttles. One reminder per
+    break/user pair (auction_ending_log). Respects the auction_ending pref.
+    Best-effort; never raises.
     """
     try:
         rows = conn.execute(
             """
             SELECT DISTINCT b.id AS break_id, b.breaker, b.title_raw,
                    b.source_url, b.auction_ends_at, b.current_bid,
-                   u.id AS user_id
+                   u.id AS user_id,
+                   EXISTS (SELECT 1 FROM saved_listings s
+                           WHERE s.user_id = u.id AND s.break_id = b.id
+                          ) AS is_saved
             FROM breaks b
             JOIN users u ON u.is_pro = TRUE
             JOIN push_subscriptions ps ON ps.user_id = u.id
@@ -345,34 +403,71 @@ def check_and_notify_auction_ending(conn, minutes_ahead: int = 60):
         return
     now = datetime.now(timezone.utc)
     total_sent, total_dead = 0, 0
-    for r in rows:
+
+    def mins_left(r):
         try:
-            mins_left = max(1, int((r["auction_ends_at"] - now).total_seconds() // 60))
+            return max(1, int((r["auction_ends_at"] - now).total_seconds() // 60))
         except Exception:
-            mins_left = minutes_ahead
+            return minutes_ahead
+
+    def bid_body(r):
         bid = r["current_bid"]
-        body = (r["title_raw"] or "") + (
+        return (r["title_raw"] or "") + (
             f" — current bid ${float(bid):,.2f}" if bid else " — no bids yet")
+
+    def log_pair(break_id, user_id):
+        # Only dedup when at least one device was reached — a failed send
+        # retries next run instead of being silently swallowed.
+        try:
+            conn.execute(
+                "INSERT INTO auction_ending_log (break_id, user_id) "
+                "VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (break_id, user_id),
+            )
+        except Exception:
+            pass
+
+    # Saved auctions: specific per-auction notification (the exception to
+    # by-breaker grouping). Followed-only: one per breaker.
+    grouped = {}
+    for r in rows:
+        if r["is_saved"]:
+            m = mins_left(r)
+            sent, dead = _send_to_user(
+                conn, r["user_id"],
+                title=f"{r['breaker'] or 'A breaker'} auction ends in {m} min",
+                body=bid_body(r),
+                url=r["source_url"] or "/",
+                tag=f"auction-{r['break_id']}",
+            )
+            total_sent += sent
+            total_dead += dead
+            if sent > 0:
+                log_pair(r["break_id"], r["user_id"])
+        else:
+            grouped.setdefault(
+                (r["user_id"], r["breaker"] or "A breaker"), []).append(r)
+    for (user_id, breaker), blist in grouped.items():
+        blist.sort(key=mins_left)
+        m = mins_left(blist[0])
+        n = len(blist)
+        title = (f"{breaker} auction ends in {m} min" if n == 1
+                 else f"{breaker} has {n} auctions ending soon")
+        body = bid_body(blist[0])
+        if n > 1:
+            body += f" (soonest in {m} min)"
         sent, dead = _send_to_user(
-            conn, r["user_id"],
-            title=f"{r['breaker'] or 'A breaker'} auction ends in {mins_left} min",
+            conn, user_id,
+            title=title,
             body=body,
-            url=r["source_url"] or "/",
-            tag=f"auction-{r['id']}",
+            url=blist[0]["source_url"] or "/",
+            tag=f"auction-{breaker}",
         )
         total_sent += sent
         total_dead += dead
-        # Only dedup when at least one device was reached — a failed send
-        # retries next run instead of being silently swallowed.
         if sent > 0:
-            try:
-                conn.execute(
-                    "INSERT INTO auction_ending_log (break_id, user_id) "
-                    "VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                    (r["break_id"], r["user_id"]),
-                )
-            except Exception:
-                pass
+            for br in blist:
+                log_pair(br["break_id"], br["user_id"])
     log.info("push: auction-ending reminders for %d break/user pairs "
              "(%d sent, %d dead pruned)", len(rows), total_sent, total_dead)
 
@@ -426,10 +521,16 @@ def check_and_notify_new_breaks(conn):
         return
     if not new_ids:
         return
-    total_sent, total_dead, total_pairs = 0, 0, 0
+    # Group by breaker: one notification per breaker per run ("X has 3 new
+    # breaks"), not one per listing (Brian 2026-10-09).
+    by_breaker = {}
     for c in cands:
         if c["id"] not in new_ids or not c["breaker"]:
             continue
+        by_breaker.setdefault(c["breaker"], []).append(c)
+    total_sent, total_dead, total_pairs = 0, 0, 0
+    for breaker, blist in by_breaker.items():
+        ids = [c["id"] for c in blist]
         try:
             users = conn.execute(
                 """
@@ -438,22 +539,36 @@ def check_and_notify_new_breaks(conn):
                 JOIN push_subscriptions ps ON ps.user_id = u.id
                 JOIN user_favorites uf ON uf.user_id = u.id AND uf.breaker = %s
                 LEFT JOIN push_prefs pp ON pp.user_id = u.id
-                LEFT JOIN new_break_log l
-                       ON l.break_id = %s AND l.user_id = u.id
-                WHERE u.is_pro = TRUE AND l.break_id IS NULL
+                WHERE u.is_pro = TRUE
                   AND (pp.new_breaks IS NULL OR pp.new_breaks = TRUE)
                 """,
-                (c["breaker"], c["id"]),
+                (breaker,),
             ).fetchall()
         except Exception:
             continue
         for u in users:
+            try:
+                logged = {r[0] for r in conn.execute(
+                    "SELECT break_id FROM new_break_log "
+                    "WHERE user_id = %s AND break_id = ANY(%s)",
+                    (u["user_id"], ids)).fetchall()}
+            except Exception:
+                continue
+            fresh = [c for c in blist if c["id"] not in logged]
+            if not fresh:
+                continue
+            n = len(fresh)
+            title = (f"{breaker} has a new break" if n == 1
+                     else f"{breaker} has {n} new breaks")
+            body = fresh[0]["title_raw"] or ""
+            if n > 1:
+                body += f" (+{n - 1} more)"
             sent, dead = _send_to_user(
                 conn, u["user_id"],
-                title=f"{c['breaker']} has a new break",
-                body=c["title_raw"] or "",
-                url=c["source_url"] or "/",
-                tag=f"newbreak-{c['id']}",
+                title=title,
+                body=body,
+                url=fresh[0]["source_url"] or "/",
+                tag=f"newbreak-{breaker}",
             )
             total_sent += sent
             total_dead += dead
@@ -462,11 +577,12 @@ def check_and_notify_new_breaks(conn):
             # send retries next run instead of being silently swallowed.
             if sent > 0:
                 try:
-                    conn.execute(
-                        "INSERT INTO new_break_log (break_id, user_id) "
-                        "VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                        (c["id"], u["user_id"]),
-                    )
+                    for c in fresh:
+                        conn.execute(
+                            "INSERT INTO new_break_log (break_id, user_id) "
+                            "VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                            (c["id"], u["user_id"]),
+                        )
                 except Exception:
                     pass
     log.info("push: new-break alerts for %d pairs (%d sent, %d dead pruned)",
