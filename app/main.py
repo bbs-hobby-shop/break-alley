@@ -1530,7 +1530,7 @@ async def push_test(request: Request):
     sent = 0
     for s in subs:
         if push_mod.send_push(
-            {"endpoint": s["endpoint"], "keys": {"p256dh": s["p256dh"], "auth": s["auth"]}},
+            {"endpoint": s["endpoint"], "p256dh": s["p256dh"], "auth": s["auth"]},
             "BreakAlley Pro",
             "Push alerts are working — you'll hear about live breaks instantly.",
             "/my-breaks",
