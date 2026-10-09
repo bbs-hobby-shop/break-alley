@@ -23,12 +23,18 @@ def vapid_public_key() -> str:
     return _vapid()["public"]
 
 
-def send_push(subscription: dict, title: str, body: str, url: str = "/") -> bool:
-    """Send one push notification. Returns True on success."""
+def send_push(subscription: dict, title: str, body: str, url: str = "/") -> str:
+    """Send one push notification.
+
+    Returns "ok" on success, "expired" when the push service says the
+    subscription is gone (404/410 — safe to delete), or "failed" for any
+    transient error (network blip, push-server hiccup — KEEP the
+    subscription; deleting it here is what kept forcing re-enables).
+    """
     v = _vapid()
     if not v["private"] or not v["public"]:
         log.warning("push: VAPID keys not configured, skipping")
-        return False
+        return "failed"
     try:
         from pywebpush import webpush, WebPushException
 
@@ -41,11 +47,24 @@ def send_push(subscription: dict, title: str, body: str, url: str = "/") -> bool
             vapid_private_key=v["private"],
             vapid_claims={"sub": v["subject"]},
         )
-        return True
+        return "ok"
     except Exception as e:
-        # 410 Gone / 404 = subscription expired, caller should delete it
-        log.info("push failed for %s: %s", subscription.get("endpoint", "?")[:40], e)
-        return False
+        # Only 410 Gone / 404 mean the subscription is dead. Everything else
+        # (timeouts, 429s, 5xx) is transient — the subscription stays.
+        try:
+            from pywebpush import WebPushException
+
+            if isinstance(e, WebPushException):
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                if status in (404, 410):
+                    log.info("push expired for %s (HTTP %s)",
+                             subscription.get("endpoint", "?")[:40], status)
+                    return "expired"
+        except Exception:
+            pass
+        log.info("push failed (transient) for %s: %s",
+                 subscription.get("endpoint", "?")[:40], e)
+        return "failed"
 
 
 def notify_breaker_live(conn, breaker_name: str, break_title: str, break_url: str):
@@ -70,13 +89,13 @@ def notify_breaker_live(conn, breaker_name: str, break_title: str, break_url: st
         return
     dead = []
     for r in rows:
-        ok = send_push(
+        result = send_push(
             {"endpoint": r["endpoint"], "p256dh": r["p256dh"], "auth": r["auth"]},
             title=f"{breaker_name} is LIVE",
             body=break_title,
             url=break_url,
         )
-        if not ok:
+        if result == "expired":
             dead.append(r["id"])
     for sub_id in dead:
         try:
@@ -163,12 +182,13 @@ def _send_to_user(conn, user_id: int, title: str, body: str, url: str) -> tuple[
     ).fetchall()
     sent, dead = 0, []
     for s in subs:
-        if send_push(
+        result = send_push(
             {"endpoint": s["endpoint"], "p256dh": s["p256dh"], "auth": s["auth"]},
             title=title, body=body, url=url or "/",
-        ):
+        )
+        if result == "ok":
             sent += 1
-        else:
+        elif result == "expired":
             dead.append(s["id"])
     for sub_id in dead:
         try:
@@ -233,16 +253,16 @@ def check_and_notify_starting_soon(conn, minutes_ahead: int = 30):
         ).fetchall()
         dead = []
         for s in subs:
-            ok = send_push(
+            result = send_push(
                 {"endpoint": s["endpoint"], "p256dh": s["p256dh"],
                  "auth": s["auth"]},
                 title=f"{r['breaker'] or 'A breaker'} starts in {mins_left} min",
                 body=r["title_raw"] or "",
                 url=r["source_url"] or "/",
             )
-            if ok:
+            if result == "ok":
                 total_sent += 1
-            else:
+            elif result == "expired":
                 dead.append(s["id"])
         for sub_id in dead:
             try:
