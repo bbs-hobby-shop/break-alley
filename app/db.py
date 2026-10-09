@@ -912,6 +912,9 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='pro_expires_at') THEN
             ALTER TABLE users ADD COLUMN pro_expires_at TIMESTAMPTZ;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='pro_started_at') THEN
+            ALTER TABLE users ADD COLUMN pro_started_at TIMESTAMPTZ;
+        END IF;
     END IF;
 END $$;
 

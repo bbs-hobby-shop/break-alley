@@ -90,7 +90,7 @@ def sync_subscription(conn, event) -> None:
                 """
                 UPDATE users SET stripe_customer_id = %s,
                     stripe_subscription_id = %s, is_pro = TRUE,
-                    pro_expires_at = NULL
+                    pro_expires_at = NULL, pro_started_at = NOW()
                 WHERE id = %s
                 """,
                 (customer_id, subscription_id, int(user_id)),

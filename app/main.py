@@ -693,6 +693,40 @@ def admin_whatnot(request: Request, key: str | None = Query(default=None)):
     })
 
 
+@app.get("/admin/pro-subscribers")
+def admin_pro_subscribers(request: Request, key: str | None = Query(default=None),
+                          since: str | None = Query(default=None)):
+    """JSON list of Pro subscribers (Brian 2026-10-09). For the subscription watcher."""
+    if not _admin_key_ok(key):
+        return JSONResponse({"error": "denied"}, status_code=403)
+    try:
+        with db.get_conn() as conn:
+            if since:
+                rows = conn.execute(
+                    "SELECT id, email, stripe_customer_id, stripe_subscription_id, "
+                    "pro_started_at, pro_expires_at FROM users "
+                    "WHERE is_pro = TRUE AND pro_started_at >= %s::timestamptz "
+                    "ORDER BY pro_started_at DESC",
+                    (since,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT id, email, stripe_customer_id, stripe_subscription_id, "
+                    "pro_started_at, pro_expires_at FROM users WHERE is_pro = TRUE "
+                    "ORDER BY pro_started_at DESC NULLS LAST LIMIT 50",
+                ).fetchall()
+            return JSONResponse({"subscribers": [
+                {"id": r["id"], "email": r["email"],
+                 "stripe_customer_id": r["stripe_customer_id"],
+                 "stripe_subscription_id": r["stripe_subscription_id"],
+                 "pro_started_at": str(r["pro_started_at"]) if r["pro_started_at"] else None,
+                 "pro_expires_at": str(r["pro_expires_at"]) if r["pro_expires_at"] else None}
+                for r in rows
+            ]})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.post("/admin/whatnot/{submission_id}/approve")
 def admin_whatnot_approve(request: Request, submission_id: int,
                           key: str = Form(default="")):
