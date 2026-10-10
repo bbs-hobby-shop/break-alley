@@ -89,9 +89,11 @@
   <div class="detail">
     <h1>{{ b.display_title }}</h1>
     <div class="tags">
-      {% if b.is_live %}<span class="tag live">● LIVE NOW</span>{% endif %}
+      {# Brian 2026-10-09: auction pages never show the live tag — same rule as cards. #}
+      {% set show_live = b.is_live and not b.is_auction %}
+      {% if show_live %}<span class="tag live">● LIVE NOW</span>{% endif %}
       {% if b.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
-      {% if b.date_label and not b.is_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
+      {% if b.date_label and not show_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
       {% if b.break_no %}<span class="tag">{{ b.break_no }}</span>{% endif %}
       <span class="tag">{{ b.source|title }}</span>
       {% if b.format and b.format != 'unknown' %}<span class="tag">{{ format_labels.get(b.format, b.format) }}</span>{% endif %}
