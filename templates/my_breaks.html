@@ -132,7 +132,7 @@
     {% if live_by_breaker %}
       {% for g in live_by_breaker %}
       {% set live_n = g.breaks|selectattr('is_live')|list|length %}
-      <details class="bgroup" {% if live_n %}open{% endif %}>
+      <details class="bgroup">
         <summary>
           <span class="bname">{{ g.breaker }}</span>
           {% if live_n %}<span class="tag live">● {{ live_n }} live</span>{% endif %}
@@ -165,7 +165,7 @@
     {% if saved_by_breaker %}
       {% for g in saved_by_breaker %}
       {% set live_n = g.breaks|selectattr('is_live')|list|length %}
-      <details class="bgroup" {% if live_n %}open{% endif %}>
+      <details class="bgroup">
         <summary>
           <span class="bname">{{ g.breaker }}</span>
           {% if live_n %}<span class="tag live">● {{ live_n }} live</span>{% endif %}
