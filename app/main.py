@@ -56,6 +56,20 @@ def _enrich(row: dict) -> dict:
     row["display_title"] = display_title(title)
     row["break_no"] = extract_break_number(title)
     row["date_label"] = date_label(row.get("starts_at"))
+    # Brian 2026-10-09: on auction cards a past break time ("Today · 9:00 AM"
+    # for a morning show) clashes with the auction countdown — hide it. The
+    # countdown is the listing's clock. Future break times still show.
+    if row.get("is_auction") and row.get("starts_at"):
+        try:
+            sa = row["starts_at"]
+            if isinstance(sa, str):
+                sa = datetime.fromisoformat(sa.replace("Z", "+00:00"))
+            if sa.tzinfo is None:
+                sa = sa.replace(tzinfo=timezone.utc)
+            if sa < datetime.now(timezone.utc):
+                row["date_label"] = None
+        except Exception:
+            pass
     # Thumbnail: real image where available, format icon fallback (Brian 2026-10-06)
     thumb = row.get("thumbnail_url")
     if not thumb and row.get("source") == "youtube":

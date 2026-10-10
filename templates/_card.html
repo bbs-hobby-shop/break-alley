@@ -11,30 +11,32 @@
         {% endif %}
         <div class="meta">
           <p class="title">{{ b.display_title }}</p>
-          <div class="tags">
-            {% if show_live %}<span class="tag live">● LIVE</span>{% endif %}
-            {% if b.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
-            {% if b.is_auction and b.auction_ends_at %}<span class="tag auction-timer" data-ends="{{ b.auction_ends_at }}">⏳ --</span>{% endif %}
-            {% if b.date_label and not show_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
-            {% if not b.date_label and b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
-            {# Brian 2026-10-07: break number, platform, and format tags removed — #}
-            {# only LIVE / AUCTION / countdown / start-time tags show on cards. #}
-            {% if b.breaker %}<span class="breaker-group"><span class="tag breaker-tag breaker-link" data-breaker="{{ b.breaker }}" role="link" tabindex="0" title="See all {{ b.breaker }} breaks">{{ b.breaker }}</span>{% if user %}<form class="follow-form" method="post" action="/favorites/toggle" style="display:inline-flex">
-              <input type="hidden" name="breaker" value="{{ b.breaker }}">
-              <input type="hidden" name="next" value="/results?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
-              <button class="follow-btn {% if b.breaker in favorites %}following{% endif %}" type="submit" title="{% if b.breaker in favorites %}Unfollow {{ b.breaker }}{% else %}Follow {{ b.breaker }}{% endif %}">{% if b.breaker in favorites %}✓{% else %}+{% endif %}</button>
-            </form>{% endif %}</span>{% endif %}
-            {% if b.group_count and b.group_count > 1 %}
-              <span class="tag">{{ b.group_count }} teams</span>
-            {% endif %}
-            {% if b.slots_remaining is not none %}
-              <span class="tag {% if b.slots_remaining <= 5 %}slots-low{% endif %}">{{ b.slots_remaining }} slots left</span>
-            {% endif %}
-          </div>
         </div>
         <div class="right">
           {% if b.is_auction and b.current_bid %}<div class="price">${{ b.current_bid }}</div><div class="per">current bid</div>
           {% elif b.price %}<div class="price">${{ b.price }}</div><div class="per">per slot</div>{% endif %}
+        </div>
+        {# Brian 2026-10-09: tags get the full card width on their own row so #}
+        {# they sit side by side instead of stacking in the narrow meta column. #}
+        <div class="tags">
+          {% if show_live %}<span class="tag live">● LIVE</span>{% endif %}
+          {% if b.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
+          {% if b.is_auction and b.auction_ends_at %}<span class="tag auction-timer" data-ends="{{ b.auction_ends_at }}">⏳ --</span>{% endif %}
+          {% if b.date_label and not show_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
+          {% if not b.date_label and b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
+          {# Brian 2026-10-07: break number, platform, and format tags removed — #}
+          {# only LIVE / AUCTION / countdown / start-time tags show on cards. #}
+          {% if b.breaker %}<span class="breaker-group"><span class="tag breaker-tag breaker-link" data-breaker="{{ b.breaker }}" role="link" tabindex="0" title="See all {{ b.breaker }} breaks">{{ b.breaker }}</span>{% if user %}<form class="follow-form" method="post" action="/favorites/toggle" style="display:inline-flex">
+            <input type="hidden" name="breaker" value="{{ b.breaker }}">
+            <input type="hidden" name="next" value="/results?q={{ q|urlencode }}&format={{ format }}&source={{ source }}&max_price={{ max_price }}{% if live %}&live=1{% endif %}">
+            <button class="follow-btn {% if b.breaker in favorites %}following{% endif %}" type="submit" title="{% if b.breaker in favorites %}Unfollow {{ b.breaker }}{% else %}Follow {{ b.breaker }}{% endif %}">{% if b.breaker in favorites %}✓{% else %}+{% endif %}</button>
+          </form>{% endif %}</span>{% endif %}
+          {% if b.group_count and b.group_count > 1 %}
+            <span class="tag">{{ b.group_count }} teams</span>
+          {% endif %}
+          {% if b.slots_remaining is not none %}
+            <span class="tag {% if b.slots_remaining <= 5 %}slots-low{% endif %}">{{ b.slots_remaining }} slots left</span>
+          {% endif %}
         </div>
       </a>
       {% if user %}

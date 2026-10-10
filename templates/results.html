@@ -232,11 +232,14 @@
   .updated { color: var(--muted); font-size: .82rem; }
   .grid { display: grid; gap: .8rem; }
   .card {
-    display: flex; gap: 1rem; align-items: center; text-decoration: none; color: inherit;
+    display: flex; gap: 1rem; row-gap: .55rem; flex-wrap: wrap; align-items: center; text-decoration: none; color: inherit;
     background: linear-gradient(180deg, var(--card2), var(--card));
     border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.25rem;
     transition: transform .12s ease, border-color .12s ease;
   }
+  /* Brian 2026-10-09: tags get the full card width on their own row so they
+     sit side by side instead of stacking in the narrow meta column. */
+  .card > .tags { flex: 1 1 100%; }
   .card:hover { transform: translateY(-2px); border-color: var(--green); }
   .card.is-live { border-left: 4px solid var(--red); }
   .thumb {
