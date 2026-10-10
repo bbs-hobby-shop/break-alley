@@ -19,19 +19,16 @@
           {% if b.is_auction and b.current_bid %}<div class="price">${{ b.current_bid }}</div><div class="per">current bid</div>
           {% elif b.price %}<div class="price">${{ b.price }}</div><div class="per">per slot</div>{% endif %}
         </div>
-        {# Brian 2026-10-09: time/status tags on their own row, side by side. #}
+        {# Brian 2026-10-09: time/status tags on their own row, side by side.
+           Tag order: live, platform, auction, auction countdown, start time,
+           format, then team count / slots left. #}
         <div class="tags">
           {% if show_live %}<span class="tag live">● LIVE</span>{% endif %}
+          {% if b.source and source_labels and source_labels.get(b.source) %}<span class="tag platform-tag">{{ source_labels[b.source] }}</span>{% endif %}
           {% if b.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
           {% if b.is_auction and b.auction_ends_at %}<span class="tag auction-timer" data-ends="{{ b.auction_ends_at }}">⏳ --</span>{% endif %}
           {% if b.date_label and not show_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
           {% if not b.date_label and b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
-          {# Brian 2026-10-07: break number, platform, and format tags removed — #}
-          {# only LIVE / AUCTION / countdown / start-time tags show on cards. #}
-          {# Brian 2026-10-09: platform + format tags added back per his request. #}
-          {# Platform tags wear company logo colors (Brian 2026-10-09); all #}
-          {# format tags share one contrasting teal. #}
-          {% if b.source and source_labels and source_labels.get(b.source) %}<span class="tag platform-tag platform-{{ b.source }}">{{ source_labels[b.source] }}</span>{% endif %}
           {% if b.format and format_labels and format_labels.get(b.format) %}<span class="tag format-tag">{{ format_labels[b.format] }}</span>{% endif %}
           {% if b.group_count and b.group_count > 1 %}
             <span class="tag">{{ b.group_count }} teams</span>

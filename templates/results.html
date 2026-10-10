@@ -254,22 +254,18 @@
      same regardless of name length. */
   .card > .tags { flex: 1 1 100%; }
   .card > .breaker-row { flex: 1 1 100%; display: flex; }
-  /* Brian 2026-10-09: format icon badge pinned to the card's top-right
-     corner (the thumbnail is the sport ball now). */
+  /* Brian 2026-10-09: format icon badge sits left of the save star
+     (was top-right corner — covered the auction price). */
   .card { position: relative; }
-  .format-badge { position: absolute; top: -12px; right: -12px; z-index: 2;
+  .format-badge { position: absolute; right: 4.4rem; bottom: .65rem; z-index: 2;
     width: 2.8rem; height: 2.8rem; border-radius: 50%;
     background: var(--card2); border: 1px solid var(--line);
     display: flex; align-items: center; justify-content: center;
     font-size: 1.6rem; }
-  /* Brian 2026-10-09: platform tags wear company logo colors so customers
-     recognize them at a glance; all format tags share one contrasting teal. */
-  .tag.platform-tag { color: #fff; font-weight: 700; border: 0; }
-  .tag.platform-ebay { background: #0064D2; }
-  .tag.platform-youtube { background: #FF0000; }
-  .tag.platform-twitch { background: #9146FF; }
-  .tag.platform-fanatics { background: #09203F; }
-  .tag.platform-whatnot { background: #FFDD00; color: #1a1a1a; }
+  /* Brian 2026-10-09: all platform tags share one blue pill with white font;
+     all format tags share one contrasting teal. */
+  .tag.platform-tag { background: #0064D2; color: #fff; font-weight: 700;
+    border: 0; }
   .tag.format-tag { background: rgba(45,212,191,.16); color: #2DD4BF;
     font-weight: 700; border: 1px solid rgba(45,212,191,.35); }
   .card:hover { transform: translateY(-2px); border-color: var(--green); }
