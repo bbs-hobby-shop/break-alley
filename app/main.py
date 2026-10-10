@@ -22,6 +22,15 @@ from . import auth, config, db, push, youtube
 from .ingest import run_ebay, run_fanatics, run_twitch_roster, run_youtube, run_youtube_roster
 from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
 
+# Brian 2026-10-09: platform tag on listing cards.
+SOURCE_LABELS = {
+    "ebay": "eBay",
+    "youtube": "YouTube",
+    "twitch": "Twitch",
+    "fanatics": "Fanatics Live",
+    "whatnot": "Whatnot",
+}
+
 import logging
 # Brian 2026-10-09: our own loggers ("breakalley.*") had no handler and the
 # root logger defaults to WARNING, which hid the billing webhook's info
@@ -215,6 +224,7 @@ def search(
         "upcoming_releases": upcoming_releases,
         "formats": ["pyt", "random", "personal", "case_break", "box_break"],
         "format_labels": FORMAT_LABELS,
+        "source_labels": SOURCE_LABELS,
     })
 
 
@@ -278,6 +288,7 @@ def breaker_page(request: Request, breaker_name: str):
         "breaker_page": breaker,
         "formats": ["pyt", "random", "personal", "case_break", "box_break"],
         "format_labels": FORMAT_LABELS,
+        "source_labels": SOURCE_LABELS,
     })
 
 

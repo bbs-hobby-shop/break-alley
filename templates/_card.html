@@ -25,6 +25,9 @@
           {% if not b.date_label and b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
           {# Brian 2026-10-07: break number, platform, and format tags removed — #}
           {# only LIVE / AUCTION / countdown / start-time tags show on cards. #}
+          {# Brian 2026-10-09: platform + format tags added back per his request. #}
+          {% if b.source and source_labels and source_labels.get(b.source) %}<span class="tag">{{ source_labels[b.source] }}</span>{% endif %}
+          {% if b.format and format_labels and format_labels.get(b.format) %}<span class="tag">{{ format_labels[b.format] }}</span>{% endif %}
           {% if b.group_count and b.group_count > 1 %}
             <span class="tag">{{ b.group_count }} teams</span>
           {% endif %}
