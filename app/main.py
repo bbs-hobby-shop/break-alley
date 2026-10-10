@@ -21,7 +21,7 @@ from fastapi.templating import Jinja2Templates
 from . import auth, config, db, push, youtube
 from .ingest import run_ebay, run_fanatics, run_twitch_roster, run_youtube, run_youtube_roster
 from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
-from .normalizer import SPORT_LABELS, SPORT_ICONS, SPORTS, SPORT_IMAGES, detect_sports
+from .normalizer import SPORT_LABELS, SPORT_ICONS, SPORTS, SPORT_IMAGES, detect_sports, detect_formats
 
 # Brian 2026-10-09: platform tag on listing cards.
 SOURCE_LABELS = {
@@ -172,6 +172,15 @@ def _enrich(row: dict) -> dict:
         row["sport_img"] = multi_sport_thumb(sports) or SPORT_IMAGES.get(primary)
     else:
         row["sport_img"] = SPORT_IMAGES.get(primary)
+    # Format tags (Brian 2026-10-09): one tag per matched format, like sports.
+    # formats comes from the DB array; rows predating the column fall back
+    # to live detection, then to the stored primary format.
+    formats = row.get("formats") or detect_formats(title)
+    if not formats:
+        fmt = (row.get("format") or "").lower()
+        if fmt and fmt in FORMAT_LABELS:
+            formats = [fmt]
+    row["formats_list"] = formats
     row["sport_icon"] = SPORT_ICONS.get(sport, "🏟️")
     return row
 

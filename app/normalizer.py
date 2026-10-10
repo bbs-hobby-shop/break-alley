@@ -322,6 +322,20 @@ def detect_sport(title: str) -> str:
     return hits[0] if hits else "other"
 
 
+def detect_formats(title: str) -> list[str]:
+    """All formats matching the title, in FORMAT_PATTERNS order.
+
+    Brian 2026-10-09: "PYT + Personals" gets both tags. box_break is the
+    generic catch-all — it's dropped when a more specific format matched
+    ("PYT Box Break" is just PYT, not two tags).
+    """
+    hits = [key for key, pats in FORMAT_PATTERNS
+            if any(re.search(p, title or "", re.IGNORECASE) for p in pats)]
+    if len(hits) > 1 and "box_break" in hits:
+        hits.remove("box_break")
+    return hits
+
+
 def detect_format(title: str) -> str:
     """Specific format detected in the title, or 'unknown'.
 

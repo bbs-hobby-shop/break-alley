@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS breaks (
     product_normalized TEXT,                    -- canonical product name (nullable until matched)
     sport           TEXT CHECK (sport IN ('football','basketball','baseball','soccer','hockey','tcg','racing','wrestling','golf','tennis','other')),
     sports          TEXT[],   -- all matched sports (Brian 2026-10-09); card shows one tag per sport
+    formats         TEXT[],   -- all matched formats (Brian 2026-10-09); card shows one tag per format
     format          TEXT CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown')),
     price           NUMERIC(10,2),
     currency        TEXT DEFAULT 'USD',
