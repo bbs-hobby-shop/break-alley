@@ -155,11 +155,17 @@ def _enrich(row: dict) -> dict:
     # Brian 2026-10-09: the card thumbnail is the sport's custom art
     # (generated images, not generic emoji). "other" keeps the emoji fallback.
     sport = (row.get("sport") or "").lower()
-    # Brian 2026-10-09: multi-sport listings get a composite thumbnail of
-    # the matched sports (baseball + football + racing -> all three arts).
-    if sport == "multi":
-        composite = multi_sport_thumb(detect_sports(title))
-        row["sport_img"] = composite or SPORT_IMAGES.get(sport)
+    # Brian 2026-10-09: no multi category — the card shows one tag per
+    # matched sport. sports comes from the DB array; rows predating the
+    # column fall back to live detection.
+    sports = row.get("sports") or detect_sports(title)
+    if not sports and sport and sport != "other":
+        sports = [sport]
+    row["sports_list"] = sports
+    # Thumbnail: composite art when 2+ sports match, else the sport's art.
+    # ("other" keeps the emoji fallback.)
+    if len(sports) > 1:
+        row["sport_img"] = multi_sport_thumb(sports) or SPORT_IMAGES.get(sport)
     else:
         row["sport_img"] = SPORT_IMAGES.get(sport)
     row["sport_icon"] = SPORT_ICONS.get(sport, "🏟️")

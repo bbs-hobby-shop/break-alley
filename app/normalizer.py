@@ -53,7 +53,6 @@ SPORT_LABELS = {
     "wrestling": "Wrestling",
     "golf": "Golf",
     "tennis": "Tennis",
-    "multi": "Multi-Sport",
     "other": "Other",
 }
 SPORT_ICONS = {
@@ -67,7 +66,6 @@ SPORT_ICONS = {
     "wrestling": "🤼",
     "golf": "⛳",
     "tennis": "🎾",
-    "multi": "🏟️",
     "other": "🏟️",
 }
 # Cool custom thumbnail per sport (Brian 2026-10-09) — generated art, not
@@ -83,11 +81,10 @@ SPORT_IMAGES = {
     "wrestling": "/static/sport-wrestling.webp",
     "golf": "/static/sport-golf.webp",
     "tennis": "/static/sport-tennis.webp",
-    "multi": "/static/sport-multi.webp",
 }
 # Filter dropdown order.
 SPORTS = ["football", "baseball", "basketball", "hockey", "soccer", "tcg",
-          "racing", "wrestling", "golf", "tennis", "multi", "other"]
+          "racing", "wrestling", "golf", "tennis", "other"]
 
 # Five buyer-facing categories. Specific formats are checked first; anything
 # else a real break is still a box break, so the generic bucket catches it.
@@ -279,9 +276,8 @@ def detect_sports(title: str) -> list[str]:
     """All sports matching the title, in SPORTS display order.
 
     The curated product table counts as a match (its explicit sport comes
-    first), plus any additional keyword sports. Used for multi-sport
-    thumbnails (Brian 2026-10-09): a listing matching baseball + football
-    + racing gets a composite of those three arts.
+    first), plus any additional keyword sports. The full list drives the
+    per-sport tags on cards (Brian 2026-10-09).
     """
     hits: list[str] = []
     canonical = normalize_product(title or "")
@@ -295,14 +291,14 @@ def detect_sports(title: str) -> list[str]:
 
 
 def detect_sport(title: str) -> str:
-    # Brian 2026-10-09: a title matching 2+ sports is a multi-sport mixer —
-    # never "other".
+    """Primary sport for a title — the first match in SPORTS order.
+
+    Brian 2026-10-09: no more "multi" category. A title matching 2+ sports
+    stores the primary sport here; the full list lives in detect_sports()
+    (sports array column) and the card shows one tag per sport.
+    """
     hits = detect_sports(title)
-    if len(hits) >= 2:
-        return "multi"
-    if hits:
-        return hits[0]
-    return "other"
+    return hits[0] if hits else "other"
 
 
 def detect_format(title: str) -> str:

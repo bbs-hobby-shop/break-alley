@@ -23,14 +23,14 @@ def get_conn():
 UPSERT_BREAK_SQL = """
 INSERT INTO breaks (
     source, source_url, breaker, product_raw, product_normalized,
-    sport, format, price, currency, starts_at, is_live,
+    sport, sports, format, price, currency, starts_at, is_live,
     slots_total, slots_remaining, thumbnail_url, title_raw,
     affiliate_url, expires_at, channel_id, country, group_key,
     video_url, video_platform, break_time_text, video_links,
     is_auction, auction_ends_at, current_bid
 ) VALUES (
     %(source)s, %(source_url)s, %(breaker)s, %(product_raw)s, %(product_normalized)s,
-    %(sport)s, %(format)s, %(price)s, %(currency)s, %(starts_at)s, %(is_live)s,
+    %(sport)s, %(sports)s, %(format)s, %(price)s, %(currency)s, %(starts_at)s, %(is_live)s,
     %(slots_total)s, %(slots_remaining)s, %(thumbnail_url)s, %(title_raw)s,
     %(affiliate_url)s, %(expires_at)s, %(channel_id)s, %(country)s, %(group_key)s,
     %(video_url)s, %(video_platform)s, %(break_time_text)s, %(video_links)s,
@@ -41,6 +41,7 @@ ON CONFLICT (source, source_url) DO UPDATE SET
     product_raw = EXCLUDED.product_raw,
     product_normalized = EXCLUDED.product_normalized,
     sport = EXCLUDED.sport,
+    sports = EXCLUDED.sports,
     format = EXCLUDED.format,
     price = EXCLUDED.price,
     currency = EXCLUDED.currency,
@@ -88,6 +89,11 @@ def upsert_break(conn, row: dict) -> None:
     row.setdefault("is_auction", False)
     row.setdefault("auction_ends_at", None)
     row.setdefault("current_bid", None)
+    # Brian 2026-10-09: every row carries its full sports list (card shows
+    # one tag per sport). Derived from the title so pollers don't change.
+    if not row.get("sports"):
+        from .normalizer import detect_sports
+        row["sports"] = detect_sports(row.get("title_raw") or "") or None
     # video_links is a list of dicts; psycopg2 needs it as JSON string
     if row["video_links"] is not None and not isinstance(row["video_links"], str):
         import json as _json
@@ -798,7 +804,7 @@ def breaks_for_breakers(conn, breakers: list[str], limit: int = 100) -> list[dic
         return []
     return [dict(r) for r in conn.execute(
         """SELECT id, source, source_url, breaker, product_raw, product_normalized,
-                  sport, format, price, currency, starts_at, is_live,
+                  sport, sports, format, price, currency, starts_at, is_live,
                   slots_total, slots_remaining, thumbnail_url, title_raw,
                   is_auction, auction_ends_at, current_bid, break_time_text
            FROM breaks
@@ -850,14 +856,18 @@ BEGIN
         ALTER TABLE breaks ADD CONSTRAINT breaks_format_check
             CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown'));
     END IF;
-    -- Sport expansion (Brian 2026-10-09): racing, wrestling, golf, tennis,
-    -- tcg, multi join the allowed sports. Rebuild the check constraint.
+    -- Sport tags (Brian 2026-10-09): no more "multi" category — each listing
+    -- carries its sports array, and the filter matches any of them.
+    -- Rebuild the check constraint without 'multi'.
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'breaks') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='breaks' AND column_name='sports') THEN
+            ALTER TABLE breaks ADD COLUMN sports TEXT[];
+        END IF;
         IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'breaks_sport_check') THEN
             ALTER TABLE breaks DROP CONSTRAINT breaks_sport_check;
         END IF;
         ALTER TABLE breaks ADD CONSTRAINT breaks_sport_check
-            CHECK (sport IN ('football','basketball','baseball','soccer','hockey','tcg','racing','wrestling','golf','tennis','multi','other'));
+            CHECK (sport IN ('football','basketball','baseball','soccer','hockey','tcg','racing','wrestling','golf','tennis','other'));
     END IF;
     -- eBay auction support (Brian 2026-10-07): auction listings with countdown
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'breaks') THEN
@@ -1093,7 +1103,7 @@ SEARCH_BASE = """
 -- applies after dedup. (The old Python-side grouping after LIMIT 1000 let
 -- eBay's 4k rows crowd out other platforms in the All view.)
 SELECT id, source, source_url, breaker, product_raw, product_normalized,
-       sport, format, price, currency, starts_at, is_live,
+       sport, sports, format, price, currency, starts_at, is_live,
        slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
        country, group_key, video_url, video_platform, break_time_text, video_links,
        is_auction, auction_ends_at, current_bid, group_count
@@ -1110,7 +1120,12 @@ FROM (
   WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
          OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
          OR COALESCE(breaker, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
-    AND (CAST(%(sport)s AS TEXT) IS NULL OR sport = %(sport)s)
+    AND (CAST(%(sport)s AS TEXT) IS NULL
+         -- Brian 2026-10-09: no multi category; a sport filter matches any
+         -- listing tagged with that sport. sports IS NULL = row predates
+         -- the array column, fall back to the primary sport.
+         OR CAST(%(sport)s AS TEXT) = ANY(sports)
+         OR (sports IS NULL AND sport = %(sport)s))
     AND (CAST(%(format)s AS TEXT) IS NULL OR format = %(format)s)
     AND (CAST(%(max_price)s AS NUMERIC) IS NULL OR price IS NULL OR price <= %(max_price)s)
     AND (CAST(%(source)s AS TEXT) IS NULL OR source = %(source)s)
@@ -1235,34 +1250,48 @@ def purge_junk_breaks(conn) -> int:
 
 
 def backfill_sports(conn) -> int:
-    """Re-detect the sport for listings stuck at NULL/'other' (Brian 2026-10-09:
-    every break gets a real sport). Also re-checks 'multi' rows: the multi
-    detector was over-firing on brand words that span sports (Bowman), so
-    false multis get corrected to their real sport. Uses the latest
-    detect_sport keywords. Idempotent: only touches rows that still need a
-    sport. Returns the number of rows whose sport changed."""
-    from .normalizer import detect_sport
+    """Backfill the sports array + primary sport (Brian 2026-10-09).
+
+    - Rows with sports IS NULL get their array from detect_sports(title).
+    - Rows still labeled 'multi' (old category, now removed) get converted:
+      sport = primary sport, sports = full list.
+    - Rows stuck at NULL/'other' sport get re-detected with the latest
+      keywords.
+    Idempotent. Returns the number of rows touched."""
+    from .normalizer import detect_sport, detect_sports
+    try:
+        has_sports = conn.execute(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name='breaks' AND column_name='sports'"
+        ).fetchone() is not None
+    except Exception:
+        has_sports = False
     rows = conn.execute(
-        "SELECT id, title_raw, sport FROM breaks "
-        "WHERE sport IS NULL OR sport IN ('other', 'multi')"
+        "SELECT id, title_raw, sport"
+        + (", sports" if has_sports else "")
+        + " FROM breaks WHERE sport IS NULL OR sport IN ('other', 'multi')"
+        + (" OR sports IS NULL" if has_sports else "")
     ).fetchall()
-    updates = []
-    for r in rows:
-        new_sport = detect_sport(r["title_raw"] or "")
-        if new_sport and new_sport != (r["sport"] or None):
-            updates.append((new_sport, r["id"]))
-    if not updates:
-        return 0
-    # Batch by sport to keep it to a handful of UPDATEs.
-    by_sport: dict[str, list] = {}
-    for sport, bid in updates:
-        by_sport.setdefault(sport, []).append(bid)
     n = 0
-    for sport, ids in by_sport.items():
-        n += conn.execute(
-            "UPDATE breaks SET sport = %(sport)s WHERE id = ANY(%(ids)s)",
-            {"sport": sport, "ids": ids},
-        ).rowcount
+    for r in rows:
+        title = r["title_raw"] or ""
+        sports = detect_sports(title) or None
+        primary = detect_sport(title)
+        if has_sports:
+            cur_sports = r["sports"]
+            if cur_sports != sports or (r["sport"] or None) != primary:
+                conn.execute(
+                    "UPDATE breaks SET sport = %(sport)s, sports = %(sports)s "
+                    "WHERE id = %(id)s",
+                    {"sport": primary, "sports": sports, "id": r["id"]},
+                )
+                n += 1
+        elif (r["sport"] or None) != primary:
+            conn.execute(
+                "UPDATE breaks SET sport = %(sport)s WHERE id = %(id)s",
+                {"sport": primary, "id": r["id"]},
+            )
+            n += 1
     return n
 
 
