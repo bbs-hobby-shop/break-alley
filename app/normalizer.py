@@ -15,20 +15,30 @@ CENTRAL = ZoneInfo("America/Chicago")
 SPORT_KEYWORDS = {
     # Only unambiguous sport words here. Brand words (panini, topps, bowman,
     # upper deck) span multiple sports and are handled via the product table.
-    "football": [r"\bfootball\b", r"\bnfl\b"],
-    "basketball": [r"\bbasketball\b", r"\bnba\b"],
-    "baseball": [r"\bbaseball\b", r"\bmlb\b"],
-    "soccer": [r"\bsoccer\b", r"\bpremier league\b", r"\bepl\b", r"\bfifa\b"],
+    "football": [r"\bfootball\b", r"\bnfl\b", r"\bcollege football\b", r"\bcfb\b"],
+    "basketball": [r"\bbasketball\b", r"\bnba\b", r"\bwnba\b"],
+    "baseball": [r"\bbaseball\b", r"\bmlb\b", r"allen\s*&\s*ginter\b",
+               r"\bbowman\b", r"\bdiamond kings\b", r"\btopps heritage\b"],
+    "soccer": [r"\bsoccer\b", r"\bpremier league\b", r"\bepl\b", r"\bfifa\b",
+               r"\bmls\b", r"\bchampions league\b", r"\bworld cup\b", r"\bla liga\b"],
     "hockey": [r"\bhockey\b", r"\bnhl\b"],
     # Brian 2026-10-09: TCG breaks (Pokemon etc.) are real box breaks too —
     # they get their own sport so buyers can filter for them.
     "tcg": [r"\bpok[eé]mon\b", r"\btcg\b", r"\bmagic\b.{0,15}\bgathering\b",
-            r"\bmtg\b", r"\byu-?gi-?oh\b", r"\blorcana\b", r"\bone piece\b.{0,10}\bcard\b"],
+            r"\bmtg\b", r"\byu-?gi-?oh\b", r"\blorcana\b", r"\bone piece\b.{0,10}\bcard\b",
+            r"\bdigimon\b", r"\bweiss schwarz\b"],
+    # Brian 2026-10-09: racing, wrestling/combat, golf, tennis all get their
+    # own sport + thumbnail — no break settles for "other".
+    "racing": [r"\bnascar\b", r"\bf1\b", r"\bformula\s?1\b", r"\bindycar\b",
+               r"\bmotogp\b", r"\bracing\b"],
+    "wrestling": [r"\bwwe\b", r"\baew\b", r"\bwrestling\b", r"\bwrestlemania\b",
+                  r"\bufc\b", r"\bmma\b", r"\bboxing\b"],
+    "golf": [r"\bgolf\b", r"\bpga\b", r"\bliv golf\b"],
+    "tennis": [r"\btennis\b", r"\batp\b", r"\bwta\b"],
 }
 
-# Brian 2026-10-09: buyer-facing sport names + ball icons. The ball is the
-# card thumbnail now (replacing listing photos per Brian's call); the format
-# icon moved to a badge in the card's top-right corner.
+# Brian 2026-10-09: buyer-facing sport names + thumbnails. Every break gets a
+# real sport — "other" is only the last-resort fallback, never the default.
 SPORT_LABELS = {
     "football": "Football",
     "baseball": "Baseball",
@@ -36,6 +46,11 @@ SPORT_LABELS = {
     "hockey": "Hockey",
     "soccer": "Soccer",
     "tcg": "TCG",
+    "racing": "Racing",
+    "wrestling": "Wrestling",
+    "golf": "Golf",
+    "tennis": "Tennis",
+    "multi": "Multi-Sport",
     "other": "Other",
 }
 SPORT_ICONS = {
@@ -45,10 +60,31 @@ SPORT_ICONS = {
     "hockey": "🏒",
     "soccer": "⚽",
     "tcg": "🃏",
+    "racing": "🏎️",
+    "wrestling": "🤼",
+    "golf": "⛳",
+    "tennis": "🎾",
+    "multi": "🏟️",
     "other": "🏟️",
 }
+# Cool custom thumbnail per sport (Brian 2026-10-09) — generated art, not
+# generic emoji. "other" keeps the emoji fallback.
+SPORT_IMAGES = {
+    "football": "/static/sport-football.webp",
+    "baseball": "/static/sport-baseball.webp",
+    "basketball": "/static/sport-basketball.webp",
+    "hockey": "/static/sport-hockey.webp",
+    "soccer": "/static/sport-soccer.webp",
+    "tcg": "/static/sport-tcg.webp",
+    "racing": "/static/sport-racing.webp",
+    "wrestling": "/static/sport-wrestling.webp",
+    "golf": "/static/sport-golf.webp",
+    "tennis": "/static/sport-tennis.webp",
+    "multi": "/static/sport-multi.webp",
+}
 # Filter dropdown order.
-SPORTS = ["football", "baseball", "basketball", "hockey", "soccer", "tcg", "other"]
+SPORTS = ["football", "baseball", "basketball", "hockey", "soccer", "tcg",
+          "racing", "wrestling", "golf", "tennis", "multi", "other"]
 
 # Five buyer-facing categories. Specific formats are checked first; anything
 # else a real break is still a box break, so the generic bucket catches it.
@@ -236,7 +272,15 @@ def detect_sport(title: str) -> str:
     canonical = normalize_product(title)
     if canonical:
         return PRODUCTS[canonical]["sport"]
-    return _first_match(title, SPORT_KEYWORDS) or "other"
+    # Brian 2026-10-09: a title matching 2+ sports is a multi-sport mixer —
+    # never "other".
+    hits = [key for key, pats in SPORT_KEYWORDS.items()
+            if any(re.search(p, title, re.IGNORECASE) for p in pats)]
+    if len(hits) >= 2:
+        return "multi"
+    if hits:
+        return hits[0]
+    return "other"
 
 
 def detect_format(title: str) -> str:

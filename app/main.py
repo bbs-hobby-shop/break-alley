@@ -21,7 +21,7 @@ from fastapi.templating import Jinja2Templates
 from . import auth, config, db, push, youtube
 from .ingest import run_ebay, run_fanatics, run_twitch_roster, run_youtube, run_youtube_roster
 from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
-from .normalizer import SPORT_LABELS, SPORT_ICONS, SPORTS
+from .normalizer import SPORT_LABELS, SPORT_ICONS, SPORTS, SPORT_IMAGES
 
 # Brian 2026-10-09: platform tag on listing cards.
 SOURCE_LABELS = {
@@ -100,9 +100,11 @@ def _enrich(row: dict) -> dict:
         "box_break": "🃏",
     }
     row["format_icon"] = icons.get(fmt, "🃏")
-    # Brian 2026-10-09: the card thumbnail is the sport ball now (replacing
-    # listing photos per his call); the format icon moved to a corner badge.
-    row["sport_icon"] = SPORT_ICONS.get((row.get("sport") or "").lower(), "🏟️")
+    # Brian 2026-10-09: the card thumbnail is the sport's custom art
+    # (generated images, not generic emoji). "other" keeps the emoji fallback.
+    sport = (row.get("sport") or "").lower()
+    row["sport_img"] = SPORT_IMAGES.get(sport)
+    row["sport_icon"] = SPORT_ICONS.get(sport, "🏟️")
     return row
 
 

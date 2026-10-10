@@ -602,6 +602,16 @@ def main() -> int:
             print(f"purged {n_purged} junk breaks")
     except Exception as exc:
         print(f"junk purge failed (continuing): {exc}", file=sys.stderr)
+    # Sport backfill (Brian 2026-10-09): every listing gets a real sport.
+    # Re-detects rows stuck at NULL/'other' with the latest keywords.
+    # Idempotent: only touches rows that still need a sport.
+    try:
+        with db.get_conn() as conn:
+            n_sports = db.backfill_sports(conn)
+            if n_sports:
+                print(f"sport backfill: {n_sports} rows re-detected")
+    except Exception as exc:
+        print(f"sport backfill failed (continuing): {exc}", file=sys.stderr)
     # Pro push notifications (Brian 2026-10-08): alert Pro followers when
     # a followed breaker goes live. Starting-soon reminders (Brian 2026-10-09),
     # auction-ending reminders + new-break alerts (Brian 2026-10-09).

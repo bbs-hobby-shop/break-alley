@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS breaks (
     breaker         TEXT,                       -- eBay seller ID / YouTube channel name
     product_raw     TEXT,                       -- product text as seen in the wild
     product_normalized TEXT,                    -- canonical product name (nullable until matched)
-    sport           TEXT CHECK (sport IN ('football','basketball','baseball','soccer','hockey','other')),
+    sport           TEXT CHECK (sport IN ('football','basketball','baseball','soccer','hockey','tcg','racing','wrestling','golf','tennis','multi','other')),
     format          TEXT CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown')),
     price           NUMERIC(10,2),
     currency        TEXT DEFAULT 'USD',

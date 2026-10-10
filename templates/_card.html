@@ -3,11 +3,10 @@
       {# countdown is the listing's state; the live tag only confuses it. #}
       {% set show_live = b.is_live and not b.is_auction %}
       <a class="card {% if show_live %}is-live{% endif %}" href="/break/{{ b.id }}">
-        {# Brian 2026-10-09: the thumbnail is the sport ball now (replaces all
-           listing photos per his call). TCG gets the Pikachu head image.
-           The format icon moved to a badge pinned to the card's top-right. #}
-        {% if b.sport == 'tcg' %}
-        <img class="thumb thumb-img" src="/static/sport-tcg.webp" alt="TCG break">
+        {# Brian 2026-10-09: the thumbnail is the sport's custom art.
+           The format icon moved to a badge left of the save star. #}
+        {% if b.sport_img %}
+        <img class="thumb thumb-img" src="{{ b.sport_img }}" alt="{{ b.sport }} break">
         {% else %}
         <div class="thumb sport-thumb">{{ b.sport_icon }}</div>
         {% endif %}

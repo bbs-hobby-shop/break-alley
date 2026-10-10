@@ -850,6 +850,15 @@ BEGIN
         ALTER TABLE breaks ADD CONSTRAINT breaks_format_check
             CHECK (format IN ('pyt','random','division','hit_draft','personal','case_break','group_break','team_break','player_break','box_break','unknown'));
     END IF;
+    -- Sport expansion (Brian 2026-10-09): racing, wrestling, golf, tennis,
+    -- tcg, multi join the allowed sports. Rebuild the check constraint.
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'breaks') THEN
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'breaks_sport_check') THEN
+            ALTER TABLE breaks DROP CONSTRAINT breaks_sport_check;
+        END IF;
+        ALTER TABLE breaks ADD CONSTRAINT breaks_sport_check
+            CHECK (sport IN ('football','basketball','baseball','soccer','hockey','tcg','racing','wrestling','golf','tennis','multi','other'));
+    END IF;
     -- eBay auction support (Brian 2026-10-07): auction listings with countdown
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'breaks') THEN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='breaks' AND column_name='is_auction') THEN
@@ -1223,6 +1232,37 @@ def purge_junk_breaks(conn) -> int:
         "DELETE FROM breaks WHERE id = ANY(%(ids)s)",
         {"ids": junk_ids},
     ).rowcount
+
+
+def backfill_sports(conn) -> int:
+    """Re-detect the sport for listings stuck at NULL/'other' (Brian 2026-10-09:
+    every break gets a real sport). Uses the latest detect_sport keywords, so
+    rows ingested before racing/wrestling/golf/tennis/tcg existed get fixed.
+    Idempotent: only touches rows that still need a sport. Returns the number
+    of rows whose sport changed."""
+    from .normalizer import detect_sport
+    rows = conn.execute(
+        "SELECT id, title_raw, sport FROM breaks "
+        "WHERE sport IS NULL OR sport = 'other'"
+    ).fetchall()
+    updates = []
+    for r in rows:
+        new_sport = detect_sport(r["title_raw"] or "")
+        if new_sport and new_sport != (r["sport"] or None):
+            updates.append((new_sport, r["id"]))
+    if not updates:
+        return 0
+    # Batch by sport to keep it to a handful of UPDATEs.
+    by_sport: dict[str, list] = {}
+    for sport, bid in updates:
+        by_sport.setdefault(sport, []).append(bid)
+    n = 0
+    for sport, ids in by_sport.items():
+        n += conn.execute(
+            "UPDATE breaks SET sport = %(sport)s WHERE id = ANY(%(ids)s)",
+            {"sport": sport, "ids": ids},
+        ).rowcount
+    return n
 
 
 def prune_ended_ebay(conn, skip_vanished: bool = False) -> dict:
