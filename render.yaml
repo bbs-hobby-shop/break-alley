@@ -56,6 +56,8 @@ services:
         sync: false
       - key: EBAY_CERT_ID
         sync: false
+      - key: EBAY_CAMPID
+        sync: false
 
   - type: cron
     name: break-alley-poll-youtube-roster
