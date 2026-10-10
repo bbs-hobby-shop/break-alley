@@ -365,12 +365,14 @@
   </nav>
 </header>
 
+{% if not breaker_page %}
 <div class="hero">
   <h2>Break results</h2>
   <p><a href="/" style="color:var(--green);">← New search</a></p>
   {% include "_filters.html" %}
   <p class="newbie-link"><a href="/guide">New to box breaks? Here's how it works →</a></p>
 </div>
+{% endif %}
 
 <main>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
