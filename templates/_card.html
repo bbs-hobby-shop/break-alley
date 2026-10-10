@@ -4,9 +4,13 @@
       {% set show_live = b.is_live and not b.is_auction %}
       <a class="card {% if show_live %}is-live{% endif %}" href="/break/{{ b.id }}">
         {# Brian 2026-10-09: the thumbnail is the sport ball now (replaces all
-           listing photos per his call). The format icon moved to a badge
-           pinned to the card's top-right corner. #}
+           listing photos per his call). TCG gets the Pikachu head image.
+           The format icon moved to a badge pinned to the card's top-right. #}
+        {% if b.sport == 'tcg' %}
+        <img class="thumb thumb-img" src="/static/sport-tcg.webp" alt="TCG break">
+        {% else %}
         <div class="thumb sport-thumb">{{ b.sport_icon }}</div>
+        {% endif %}
         <span class="format-badge" title="{{ format_labels.get(b.format, '') if format_labels else '' }}">{{ b.format_icon }}</span>
         <div class="meta">
           <p class="title">{{ b.display_title }}</p>
@@ -25,8 +29,10 @@
           {# Brian 2026-10-07: break number, platform, and format tags removed — #}
           {# only LIVE / AUCTION / countdown / start-time tags show on cards. #}
           {# Brian 2026-10-09: platform + format tags added back per his request. #}
-          {% if b.source and source_labels and source_labels.get(b.source) %}<span class="tag">{{ source_labels[b.source] }}</span>{% endif %}
-          {% if b.format and format_labels and format_labels.get(b.format) %}<span class="tag">{{ format_labels[b.format] }}</span>{% endif %}
+          {# Platform tags wear company logo colors (Brian 2026-10-09); all #}
+          {# format tags share one contrasting teal. #}
+          {% if b.source and source_labels and source_labels.get(b.source) %}<span class="tag platform-tag platform-{{ b.source }}">{{ source_labels[b.source] }}</span>{% endif %}
+          {% if b.format and format_labels and format_labels.get(b.format) %}<span class="tag format-tag">{{ format_labels[b.format] }}</span>{% endif %}
           {% if b.group_count and b.group_count > 1 %}
             <span class="tag">{{ b.group_count }} teams</span>
           {% endif %}
