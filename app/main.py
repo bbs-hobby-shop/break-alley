@@ -884,6 +884,63 @@ def admin_whatnot(request: Request, key: str | None = Query(default=None)):
     })
 
 
+@app.get("/admin/feedback-json")
+def admin_feedback_json(request: Request, key: str | None = Query(default=None),
+                        since: str | None = Query(default=None)):
+    """JSON list of site feedback (Brian 2026-10-09). For the feedback watcher."""
+    if not _admin_key_ok(key):
+        return JSONResponse({"error": "denied"}, status_code=403)
+    try:
+        with db.get_conn() as conn:
+            if since:
+                rows = conn.execute(
+                    "SELECT id, name, email, message, created_at FROM feedback "
+                    "WHERE created_at >= %s::timestamptz ORDER BY created_at DESC",
+                    (since,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT id, name, email, message, created_at FROM feedback "
+                    "ORDER BY created_at DESC LIMIT 50"
+                ).fetchall()
+            return JSONResponse({"feedback": [
+                {"id": r["id"], "name": r["name"], "email": r["email"],
+                 "message": r["message"],
+                 "created_at": str(r["created_at"]) if r["created_at"] else None}
+                for r in rows
+            ]})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/admin/signups")
+def admin_signups(request: Request, key: str | None = Query(default=None),
+                  since: str | None = Query(default=None)):
+    """JSON list of recent user signups (Brian 2026-10-09). For the signup watcher."""
+    if not _admin_key_ok(key):
+        return JSONResponse({"error": "denied"}, status_code=403)
+    try:
+        with db.get_conn() as conn:
+            if since:
+                rows = conn.execute(
+                    "SELECT id, email, created_at FROM users "
+                    "WHERE created_at >= %s::timestamptz ORDER BY created_at DESC",
+                    (since,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT id, email, created_at FROM users "
+                    "ORDER BY created_at DESC LIMIT 50"
+                ).fetchall()
+            return JSONResponse({"signups": [
+                {"id": r["id"], "email": r["email"],
+                 "created_at": str(r["created_at"]) if r["created_at"] else None}
+                for r in rows
+            ]})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.get("/admin/pro-subscribers")
 def admin_pro_subscribers(request: Request, key: str | None = Query(default=None),
                           since: str | None = Query(default=None)):
