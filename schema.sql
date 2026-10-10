@@ -262,6 +262,16 @@ CREATE TABLE IF NOT EXISTS whatnot_show_submissions (
 );
 CREATE INDEX IF NOT EXISTS idx_whatnot_submissions_status ON whatnot_show_submissions (status);
 
+-- Site feedback (Brian 2026-10-09): "leave feedback" section under the
+-- Whatnot submission form.
+CREATE TABLE IF NOT EXISTS feedback (
+    id         SERIAL PRIMARY KEY,
+    name       TEXT,
+    email      TEXT,
+    message    TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Release detail pages (Brian 2026-10-08): each upcoming set gets a detail
 -- page with manufacturer info, box configuration, and key hits.
 ALTER TABLE release_calendar ADD COLUMN IF NOT EXISTS manufacturer TEXT;

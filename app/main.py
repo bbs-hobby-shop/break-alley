@@ -808,6 +808,46 @@ def submit_show(
     return RedirectResponse("/submit-show?submitted=1", status_code=303)
 
 
+@app.post("/feedback")
+def leave_feedback(
+    request: Request,
+    name: str = Form(default=""),
+    email: str = Form(default=""),
+    message: str = Form(default=""),
+    website: str = Form(default=""),  # honeypot
+):
+    """Site feedback form (Brian 2026-10-09) — sits under the Whatnot form."""
+    if website.strip():
+        return RedirectResponse("/submit-show?feedback=1#feedback", status_code=303)
+    message = message.strip()
+    if not message:
+        return RedirectResponse("/submit-show?feedback=0#feedback", status_code=303)
+    try:
+        with db.get_conn() as conn:
+            db.add_feedback(conn, name, email, message)
+    except Exception:
+        return RedirectResponse("/submit-show?feedback=0#feedback", status_code=303)
+    return RedirectResponse("/submit-show?feedback=1#feedback", status_code=303)
+
+
+@app.get("/admin/feedback", response_class=HTMLResponse)
+def admin_feedback(request: Request, key: str | None = Query(default=None)):
+    """Brian's site-feedback inbox."""
+    if not _admin_key_ok(key):
+        return templates.TemplateResponse(request, "admin_feedback.html", {
+            "denied": True, "items": [], "key": key or "",
+        })
+    try:
+        with db.get_conn() as conn:
+            items = db.list_feedback(conn)
+    except Exception as exc:
+        return templates.TemplateResponse(request, "admin_feedback.html", {
+            "denied": False, "error": f"Database unavailable: {exc}",
+            "items": [], "key": key or "",
+        })
+    return templates.TemplateResponse(request, "admin_feedback.html", {
+        "denied": False, "items": items, "key": key or "",
+    })
 @app.get("/admin/whatnot", response_class=HTMLResponse)
 def admin_whatnot(request: Request, key: str | None = Query(default=None)):
     """Brian's review queue for Whatnot show submissions."""

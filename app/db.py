@@ -446,6 +446,28 @@ def list_whatnot_submissions(conn, status: str | None = None) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def add_feedback(conn, name: str | None, email: str | None, message: str) -> int:
+    """Store site feedback (Brian 2026-10-09). Returns the new id."""
+    cur = conn.execute(
+        """INSERT INTO feedback (name, email, message)
+           VALUES (%(name)s, %(email)s, %(message)s)
+           RETURNING id""",
+        {"name": (name or "").strip()[:100] or None,
+         "email": (email or "").strip()[:200] or None,
+         "message": message.strip()[:2000]},
+    )
+    return cur.fetchone()["id"]
+
+
+def list_feedback(conn, limit: int = 100) -> list[dict]:
+    """Newest-first site feedback for Brian's review."""
+    rows = conn.execute(
+        "SELECT * FROM feedback ORDER BY created_at DESC LIMIT %(limit)s",
+        {"limit": limit},
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def review_whatnot_submission(conn, submission_id: int, approved: bool) -> dict | None:
     """Approve or reject a Whatnot show submission. On approval, inserts the
     show into breaks with source='whatnot' (idempotent on show_url).
@@ -886,6 +908,14 @@ BEGIN
             ALTER TABLE breaks ADD COLUMN formats TEXT[];
         END IF;
     END IF;
+    -- Site feedback (Brian 2026-10-09).
+    CREATE TABLE IF NOT EXISTS feedback (
+        id         SERIAL PRIMARY KEY,
+        name       TEXT,
+        email      TEXT,
+        message    TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
     -- eBay auction support (Brian 2026-10-07): auction listings with countdown
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'breaks') THEN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='breaks' AND column_name='is_auction') THEN

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Site feedback — BreakAlley admin</title>
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<style>
+  body { font-family: system-ui, sans-serif; background: #0a0e1c; color: #f2f4ff;
+    max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+  h1 { font-size: 1.4rem; }
+  a { color: #00e676; }
+  .nav { margin-bottom: 1.5rem; color: #8b93b8; }
+  .fb { background: #151c38; border: 1px solid #26305c; border-radius: 12px;
+    padding: 1.1rem 1.3rem; margin-bottom: 1rem; }
+  .fb .meta { color: #8b93b8; font-size: .85rem; margin-bottom: .5rem; }
+  .fb .msg { color: #f2f4ff; font-size: .95rem; line-height: 1.55; white-space: pre-wrap; }
+  .empty { color: #8b93b8; padding: 2rem 0; text-align: center; }
+  .err { color: #ff3b5c; }
+  .denied input { background: #10162e; border: 1px solid #26305c; color: #f2f4ff;
+    padding: .6rem .8rem; border-radius: 8px; font-size: 1rem; }
+  button { border: 0; border-radius: 8px; padding: .55rem 1.1rem; font-weight: 700;
+    cursor: pointer; font-family: inherit; font-size: .9rem;
+    background: #00e676; color: #06130c; }
+</style>
+</head>
+<body>
+<div class="nav"><a href="/admin/whatnot?key={{ key }}">← whatnot submissions</a> &nbsp;·&nbsp; <a href="/">home</a></div>
+<h1>Site feedback ({{ items|length }})</h1>
+{% if denied %}
+<div class="denied">
+  <p>Enter the admin key to read site feedback.</p>
+  <form method="get" action="/admin/feedback">
+    <input type="password" name="key" placeholder="Admin key">
+    <button type="submit">View</button>
+  </form>
+</div>
+{% elif error %}
+<p class="err">{{ error }}</p>
+{% else %}
+{% if items %}
+  {% for f in items %}
+  <div class="fb">
+    <div class="meta">{{ f.name or 'Anonymous' }}{% if f.email %} · {{ f.email }}{% endif %} · {{ f.created_at }}</div>
+    <div class="msg">{{ f.message }}</div>
+  </div>
+  {% endfor %}
+{% else %}
+<p class="empty">No feedback yet.</p>
+{% endif %}
+{% endif %}
+</body>
+</html>
