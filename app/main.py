@@ -809,25 +809,38 @@ def submit_show(
 
 
 @app.post("/feedback")
+def _feedback_redirect(target: str, ok: bool) -> RedirectResponse:
+    """Send the user back to the page they left feedback from (Brian 2026-10-09:
+    the feedback form is on every public page). Only same-site paths allowed."""
+    t = (target or "").strip()
+    if not t.startswith("/") or t.startswith("//"):
+        t = "/submit-show"
+    sep = "&" if "?" in t else "?"
+    return RedirectResponse(f"{t}{sep}feedback={'1' if ok else '0'}#feedback",
+                            status_code=303)
+
+
+@app.post("/feedback")
 def leave_feedback(
     request: Request,
     name: str = Form(default=""),
     email: str = Form(default=""),
     message: str = Form(default=""),
+    next_page: str = Form(default="", alias="next"),
     website: str = Form(default=""),  # honeypot
 ):
-    """Site feedback form (Brian 2026-10-09) — sits under the Whatnot form."""
+    """Site feedback form (Brian 2026-10-09) — at the bottom of every page."""
     if website.strip():
-        return RedirectResponse("/submit-show?feedback=1#feedback", status_code=303)
+        return _feedback_redirect(next_page, True)
     message = message.strip()
     if not message:
-        return RedirectResponse("/submit-show?feedback=0#feedback", status_code=303)
+        return _feedback_redirect(next_page, False)
     try:
         with db.get_conn() as conn:
             db.add_feedback(conn, name, email, message)
     except Exception:
-        return RedirectResponse("/submit-show?feedback=0#feedback", status_code=303)
-    return RedirectResponse("/submit-show?feedback=1#feedback", status_code=303)
+        return _feedback_redirect(next_page, False)
+    return _feedback_redirect(next_page, True)
 
 
 @app.get("/admin/feedback", response_class=HTMLResponse)

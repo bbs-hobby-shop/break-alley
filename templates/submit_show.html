@@ -13,9 +13,6 @@
     --line: #26305c; --text: #f2f4ff; --muted: #8b93b8;
     --green: #00e676; --purple: #7c5cff; --red: #ff3b5c;
   }
-  /* Feedback section (Brian 2026-10-09) */
-  #feedback { margin-top: 3rem; scroll-margin-top: 5rem; }
-  #feedback h2 { font-size: 1.4rem; margin: 0 0 .4rem; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html { touch-action: manipulation; }
   body {
@@ -138,33 +135,7 @@
     <button class="submit" type="submit">Submit show</button>
   </form>
 
-  <section id="feedback">
-    <h2>Leave feedback</h2>
-    <p class="lede">Spotted a bug, missing a breaker, or have an idea? Send it our way — we read everything.</p>
-
-    {% if request.query_params.get('feedback') == '1' %}
-    <div class="notice ok">Thanks — your feedback is in. We appreciate it.</div>
-    {% elif request.query_params.get('feedback') == '0' %}
-    <div class="notice err">Please write your feedback before sending.</div>
-    {% endif %}
-
-    <form class="card" method="post" action="/feedback">
-      <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off">
-      <label class="field">
-        <span>Name <small style="display:inline">(optional)</small></span>
-        <input type="text" name="name" placeholder="Your name">
-      </label>
-      <label class="field">
-        <span>Email <small style="display:inline">(optional)</small></span>
-        <input type="text" name="email" placeholder="you@example.com" inputmode="email">
-      </label>
-      <label class="field">
-        <span>Feedback *</span>
-        <textarea name="message" placeholder="What's on your mind?" required></textarea>
-      </label>
-      <button class="submit" type="submit">Send feedback</button>
-    </form>
-  </section>
+  {% include "_feedback.html" %}
 </main>
 </body>
 </html>

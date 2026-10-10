@@ -1,0 +1,51 @@
+{# Shared "leave feedback" section (Brian 2026-10-09) — included at the
+   bottom of every public page. Posts to /feedback; the handler redirects
+   back to `next` with ?feedback=1#feedback so the notice renders here. #}
+<style>
+  .fb-wrap { max-width: 640px; margin: 3.5rem auto 0; padding: 0 1.25rem 3rem; scroll-margin-top: 5rem; }
+  .fb-wrap h2 { color: #f2f4ff; font-size: 1.35rem; margin: 0 0 .4rem; font-weight: 800;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .fb-lede { color: #8b93b8; line-height: 1.55; margin: 0 0 1.2rem; font-size: .95rem;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .fb-notice { border-radius: 12px; padding: .9rem 1.1rem; margin-bottom: 1.2rem; font-weight: 600;
+    font-size: .93rem; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .fb-notice.ok { background: rgba(0,230,118,.1); border: 1px solid #00e676; color: #00e676; }
+  .fb-notice.err { background: rgba(255,59,92,.1); border: 1px solid #ff3b5c; color: #ff3b5c; }
+  .fb-card { background: #151c38; border: 1px solid #26305c; border-radius: 14px; padding: 1.4rem; }
+  .fb-card label { display: block; margin-bottom: .9rem; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .fb-card label > span { display: block; color: #f2f4ff; font-weight: 700; margin-bottom: .35rem; font-size: .92rem; }
+  .fb-card label > span small { font-weight: 400; color: #8b93b8; }
+  .fb-card input[type=text], .fb-card textarea { width: 100%; background: #10162e; border: 1px solid #26305c;
+    border-radius: 10px; color: #f2f4ff; padding: .7rem .85rem; font-size: 1rem; font-family: inherit; box-sizing: border-box; }
+  .fb-card textarea { min-height: 80px; resize: vertical; }
+  .fb-card input:focus, .fb-card textarea:focus { outline: none; border-color: #00e676; }
+  .fb-hp { position: absolute; left: -9999px; }
+  .fb-card button { width: 100%; background: #00e676; color: #06130c; border: 0; border-radius: 12px;
+    padding: .85rem; font-size: 1rem; font-weight: 800; cursor: pointer; font-family: system-ui, sans-serif; }
+</style>
+<section id="feedback" class="fb-wrap">
+  <h2>Leave feedback</h2>
+  <p class="fb-lede">Spotted a bug, missing a breaker, or have an idea? Send it our way — we read everything.</p>
+  {% if request.query_params.get('feedback') == '1' %}
+  <div class="fb-notice ok">Thanks — your feedback is in. We appreciate it.</div>
+  {% elif request.query_params.get('feedback') == '0' %}
+  <div class="fb-notice err">Please write your feedback before sending.</div>
+  {% endif %}
+  <form class="fb-card" method="post" action="/feedback">
+    <input class="fb-hp" type="text" name="website" tabindex="-1" autocomplete="off">
+    <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+    <label>
+      <span>Name <small>(optional)</small></span>
+      <input type="text" name="name" placeholder="Your name">
+    </label>
+    <label>
+      <span>Email <small>(optional)</small></span>
+      <input type="text" name="email" placeholder="you@example.com" inputmode="email">
+    </label>
+    <label>
+      <span>Feedback *</span>
+      <textarea name="message" placeholder="What's on your mind?" required></textarea>
+    </label>
+    <button type="submit">Send feedback</button>
+  </form>
+</section>
