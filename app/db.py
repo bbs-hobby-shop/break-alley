@@ -858,11 +858,15 @@ BEGIN
     END IF;
     -- Sport tags (Brian 2026-10-09): no more "multi" category — each listing
     -- carries its sports array, and the filter matches any of them.
-    -- Rebuild the check constraint without 'multi'.
+    -- Rebuild the check constraint without 'multi'. Legacy 'multi' rows
+    -- are parked at 'other' FIRST (a check can't be added while they
+    -- violate it — this 500'd /results on 2026-10-09); the sports backfill
+    -- re-detects their true sports from the title on the next poller run.
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'breaks') THEN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='breaks' AND column_name='sports') THEN
             ALTER TABLE breaks ADD COLUMN sports TEXT[];
         END IF;
+        UPDATE breaks SET sport = 'other' WHERE sport = 'multi';
         IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'breaks_sport_check') THEN
             ALTER TABLE breaks DROP CONSTRAINT breaks_sport_check;
         END IF;
