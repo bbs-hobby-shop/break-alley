@@ -75,6 +75,24 @@
   .count { display: inline-block; min-width: 1.6em; padding: .1em .45em; border-radius: 12px;
     background: rgba(0,230,118,.12); color: var(--green); font-size: .85em; font-weight: 800;
     letter-spacing: 0; }
+  /* Breaker groups (Brian 2026-10-09): collapsible per-breaker sections. */
+  .bgroup { background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+    margin-bottom: .7rem; overflow: hidden; }
+  .bgroup summary { list-style: none; display: flex; align-items: center; gap: .6rem;
+    padding: .9rem 1.1rem; cursor: pointer; font-weight: 800; font-size: .98rem; }
+  .bgroup summary::-webkit-details-marker { display: none; }
+  .bgroup summary:hover { background: rgba(0,230,118,.04); }
+  .bgroup .bname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bgroup .bcount { color: var(--muted); font-size: .8rem; font-weight: 700; white-space: nowrap; }
+  .bgroup .chev { color: var(--muted); font-size: .8rem; transition: transform .15s; }
+  .bgroup[open] .chev { transform: rotate(180deg); }
+  .bgroup .blist { padding: 0 .7rem .7rem; }
+  .bgroup .blist .bcard { margin-bottom: .5rem; }
+  .bcard.hidden { display: none; }
+  .more-btn { display: block; width: 100%; background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; color: var(--green); font-weight: 800; font-size: .88rem;
+    padding: .65rem; cursor: pointer; font-family: inherit; }
+  .more-btn:hover { border-color: var(--green); }
 </style>
 </head>
 <body>
@@ -102,16 +120,31 @@
 
   <div class="card sect" id="sec-live">
     <h2>● Live &amp; upcoming from your breakers</h2>
-    {% if live %}
-      {% for b in live %}
-      <a class="bcard" href="/break/{{ b.id }}">
-        <div class="meta">
-          <p class="title">{{ b.display_title }}</p>
-          {% if b.is_live %}<span class="tag live">● LIVE</span>{% endif %}
-          {% if b.date_label and not b.is_live %}<span class="tag">{{ b.date_label }}</span>{% endif %}
-          {% if b.breaker %}<span class="tag">{{ b.breaker }}</span>{% endif %}
+    {% if live_by_breaker %}
+      {% for g in live_by_breaker %}
+      {% set live_n = g.breaks|selectattr('is_live')|list|length %}
+      <details class="bgroup" {% if live_n %}open{% endif %}>
+        <summary>
+          <span class="bname">{{ g.breaker }}</span>
+          {% if live_n %}<span class="tag live">● {{ live_n }} live</span>{% endif %}
+          <span class="bcount">{{ g.breaks|length }} break{{ 's' if g.breaks|length != 1 }}</span>
+          <span class="chev">⌄</span>
+        </summary>
+        <div class="blist">
+          {% for b in g.breaks %}
+          <a class="bcard{% if loop.index > 5 %} hidden{% endif %}" href="/break/{{ b.id }}">
+            <div class="meta">
+              <p class="title">{{ b.display_title }}</p>
+              {% if b.is_live %}<span class="tag live">● LIVE</span>{% endif %}
+              {% if b.date_label and not b.is_live %}<span class="tag">{{ b.date_label }}</span>{% endif %}
+            </div>
+          </a>
+          {% endfor %}
+          {% if g.breaks|length > 5 %}
+          <button type="button" class="more-btn">Show {{ g.breaks|length - 5 }} more</button>
+          {% endif %}
         </div>
-      </a>
+      </details>
       {% endfor %}
     {% else %}
       <div class="empty">Nothing live or scheduled from your breakers right now.</div>
@@ -167,6 +200,15 @@ document.getElementById('sectabs').addEventListener('click', function(e) {
   t.classList.add('active');
   document.querySelectorAll('.card.sect').forEach(function(c) { c.style.display = 'none'; });
   document.getElementById(t.dataset.sec).style.display = '';
+});
+// Brian 2026-10-09: per-breaker "show more" — reveal the hidden listings.
+document.getElementById('sec-live').addEventListener('click', function(e) {
+  var btn = e.target.closest('.more-btn');
+  if (!btn) return;
+  btn.closest('.blist').querySelectorAll('.bcard.hidden').forEach(function(c) {
+    c.classList.remove('hidden');
+  });
+  btn.remove();
 });
 </script>
 </body>

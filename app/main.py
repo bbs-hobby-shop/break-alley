@@ -1443,8 +1443,27 @@ def my_breaks(request: Request):
         error = None
     except Exception as exc:
         favs, live, saved_listings, error = [], [], [], f"Database unavailable: {exc}"
+    # Brian 2026-10-09: "From your breakers" tab grouped by breaker —
+    # each breaker gets a collapsible section (5 listings + show-more).
+    live_by_breaker = []
+    seen_breakers = set()
+    for f in favs:
+        name = f["breaker"]
+        group = [b for b in live if (b.get("breaker") or "") == name]
+        if group:
+            live_by_breaker.append({"breaker": name, "breaks": group})
+        seen_breakers.add(name)
+    for b in live:  # defensive: breakers not in the favorites list
+        name = b.get("breaker") or "Unknown"
+        if name not in seen_breakers:
+            live_by_breaker.append({
+                "breaker": name,
+                "breaks": [x for x in live
+                           if (x.get("breaker") or "Unknown") == name]})
+            seen_breakers.add(name)
     return templates.TemplateResponse(request, "my_breaks.html", {
         "user": user, "favorites": favs, "live": live,
+        "live_by_breaker": live_by_breaker,
         "saved_listings": saved_listings, "error": error,
     })
 
