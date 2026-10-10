@@ -7,7 +7,8 @@
 <meta name="robots" content="noindex, nofollow">
 <style>
   :root { --bg: #0a0e1c; --card: #151c38; --card2: #1a2242; --line: #26305c;
-          --text: #f2f4ff; --muted: #8b93b8; --green: #00e676; --red: #ff3b5c; }
+          --text: #f2f4ff; --muted: #8b93b8; --green: #00e676; --red: #ff3b5c;
+          --orange: #ff9f1c; }
   * { box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
          color: var(--text); background: var(--bg); min-height: 100vh; }
@@ -58,7 +59,7 @@
     font-size: 1.15rem; line-height: 1; padding: .1rem .2rem; flex-shrink: 0; }
   .fav-card button:hover { color: var(--red); }
   /* Saved-break rows inside breaker groups. */
-  .bgroup .blist .slink { flex: 1; min-width: 0; color: inherit; text-decoration: none; font-weight: 700; }
+  .bgroup .blist .slink { display: block; color: inherit; text-decoration: none; font-weight: 700; }
   .bgroup .blist .slink:hover { color: var(--green); }
   .bgroup .blist .bcard form { margin-left: auto; flex-shrink: 0; }
   .bgroup .blist .bcard button { background: none; border: 0; color: var(--muted); cursor: pointer;
@@ -72,6 +73,13 @@
   .tag { display: inline-block; font-size: .72rem; font-weight: 800; border-radius: 20px;
     padding: .15rem .6rem; background: var(--card); border: 1px solid var(--line); color: var(--muted); }
   .tag.live { background: var(--red); border-color: var(--red); color: #fff; }
+  .tag.date { background: rgba(0,230,118,.14); border-color: transparent; color: var(--green); }
+  .tag.auction { background: rgba(156,39,176,.18); border-color: transparent; color: #ce93d8; }
+  .tag.auction-timer { background: rgba(255,159,28,.15); border-color: transparent;
+    color: var(--orange); font-variant-numeric: tabular-nums; }
+  /* Tags row under each row's title (Brian 2026-10-10): start time + auction ending. */
+  .bcard .tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .45rem; }
+  .bgroup .blist .bcard .meta { flex: 1; min-width: 0; }
   .empty { color: var(--muted); padding: .6rem 0; font-size: .92rem; text-align: center; }
   .empty a { color: var(--green); font-weight: 700; }
   .srow { display: flex; align-items: center; gap: .8rem; background: var(--bg);
@@ -144,8 +152,12 @@
           <a class="bcard{% if loop.index > 5 %} hidden{% endif %}" href="/break/{{ b.id }}">
             <div class="meta">
               <p class="title">{{ b.display_title }}</p>
-              {% if b.is_live %}<span class="tag live">● LIVE</span>{% endif %}
-              {% if b.date_label and not b.is_live %}<span class="tag">{{ b.date_label }}</span>{% endif %}
+              <div class="tags">
+                {% if b.is_live and not b.is_auction %}<span class="tag live">● LIVE</span>{% endif %}
+                {% if b.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
+                {% if b.date_label and not b.is_live %}<span class="tag date">🕐 {{ b.date_label }}</span>{% endif %}
+                {% if b.is_auction and b.auction_ends_at %}<span class="tag auction-timer" data-ends="{{ b.auction_ends_at }}">⏳ --</span>{% endif %}
+              </div>
             </div>
           </a>
           {% endfor %}
@@ -175,8 +187,15 @@
         <div class="blist">
           {% for s in g.breaks %}
           <div class="bcard{% if loop.index > 5 %} hidden{% endif %}">
-            <a class="slink" href="/break/{{ s.id }}">{{ s.display_title }}</a>
-            {% if s.is_live %}<span class="tag live">● LIVE</span>{% endif %}
+            <div class="meta">
+              <a class="slink" href="/break/{{ s.id }}">{{ s.display_title }}</a>
+              <div class="tags">
+                {% if s.is_live and not s.is_auction %}<span class="tag live">● LIVE</span>{% endif %}
+                {% if s.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
+                {% if s.date_label and not s.is_live %}<span class="tag date">🕐 {{ s.date_label }}</span>{% endif %}
+                {% if s.is_auction and s.auction_ends_at %}<span class="tag auction-timer" data-ends="{{ s.auction_ends_at }}">⏳ --</span>{% endif %}
+              </div>
+            </div>
             <form method="post" action="/saved-listings/toggle">
               <input type="hidden" name="break_id" value="{{ s.id }}">
               <input type="hidden" name="next" value="/my-breaks">
@@ -237,6 +256,38 @@ document.querySelector('main').addEventListener('click', function(e) {
   });
   btn.remove();
 });
+</script>
+<script>
+// Brian 2026-10-10: auction countdown timers on My Breaks rows — same format as
+// the homepage cards (⏳ 2d 04h 12m, or ⏳ 01:23:45 under a day).
+(function() {
+  function pad(n) { return String(n).padStart(2, '0'); }
+  var timers = [];
+  document.querySelectorAll('.auction-timer[data-ends]').forEach(function(el) {
+    var ends = new Date(el.getAttribute('data-ends')).getTime();
+    if (isNaN(ends)) return;
+    timers.push({ el: el, ends: ends, last: '' });
+  });
+  if (!timers.length) return;
+  function tick() {
+    var now = Date.now();
+    for (var i = 0; i < timers.length; i++) {
+      var t = timers[i], diff = t.ends - now, txt;
+      if (diff <= 0) { txt = '⏳ Ended'; }
+      else {
+        var d = Math.floor(diff / 86400000),
+            h = Math.floor(diff % 86400000 / 3600000),
+            m = Math.floor(diff % 3600000 / 60000),
+            s = Math.floor(diff % 60000 / 1000);
+        txt = d > 0 ? '⏳ ' + d + 'd ' + pad(h) + 'h ' + pad(m) + 'm'
+                    : '⏳ ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+      }
+      if (txt !== t.last) { t.el.textContent = txt; t.last = txt; }
+    }
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
 </script>
 </body>
 </html>
