@@ -163,11 +163,15 @@ def _enrich(row: dict) -> dict:
         sports = [sport]
     row["sports_list"] = sports
     # Thumbnail: composite art when 2+ sports match, else the sport's art.
-    # ("other" keeps the emoji fallback.)
+    # Brian 2026-10-09: derive from the live-detected sports list, NOT the
+    # stored sport column — the column lags behind new keywords until the
+    # backfill runs, but the thumbnail must be right now. ("other" keeps
+    # the emoji fallback.)
+    primary = sports[0] if sports else sport
     if len(sports) > 1:
-        row["sport_img"] = multi_sport_thumb(sports) or SPORT_IMAGES.get(sport)
+        row["sport_img"] = multi_sport_thumb(sports) or SPORT_IMAGES.get(primary)
     else:
-        row["sport_img"] = SPORT_IMAGES.get(sport)
+        row["sport_img"] = SPORT_IMAGES.get(primary)
     row["sport_icon"] = SPORT_ICONS.get(sport, "🏟️")
     return row
 
