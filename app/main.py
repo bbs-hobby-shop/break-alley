@@ -1461,9 +1461,21 @@ def my_breaks(request: Request):
                 "breaks": [x for x in live
                            if (x.get("breaker") or "Unknown") == name]})
             seen_breakers.add(name)
+    # Brian 2026-10-09: same grouping for saved breaks.
+    saved_by_breaker = []
+    seen_saved = set()
+    for s in saved_listings:
+        name = s.get("breaker") or "Unknown"
+        if name not in seen_saved:
+            saved_by_breaker.append({
+                "breaker": name,
+                "breaks": [x for x in saved_listings
+                           if (x.get("breaker") or "Unknown") == name]})
+            seen_saved.add(name)
     return templates.TemplateResponse(request, "my_breaks.html", {
         "user": user, "favorites": favs, "live": live,
         "live_by_breaker": live_by_breaker,
+        "saved_by_breaker": saved_by_breaker,
         "saved_listings": saved_listings, "error": error,
     })
 

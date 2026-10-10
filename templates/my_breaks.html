@@ -47,14 +47,23 @@
     border: 1px solid var(--line); border-radius: 14px; padding: 1.4rem; margin-bottom: 1.1rem; }
   .card h2 { font-size: .78rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
     color: var(--muted); margin: 0 0 1rem; text-align: center; }
-  .chips { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; }
-  .chip { display: inline-flex; align-items: center; gap: .5rem; background: var(--bg);
-    border: 1px solid var(--line); border-radius: 20px; padding: .45rem .9rem; font-size: .9rem; }
-  .chip a { color: var(--text); text-decoration: none; }
-  .chip a:hover { color: var(--green); }
-  .chip form { display: inline; }
-  .chip button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; }
-  .chip button:hover { color: var(--red); }
+  /* Favorite breakers (Brian 2026-10-09): symmetrical uniform grid. */
+  .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .6rem; }
+  .fav-card { display: flex; align-items: center; gap: .5rem; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 12px; padding: .85rem 1rem; min-width: 0; }
+  .fav-card a { flex: 1; min-width: 0; color: var(--text); text-decoration: none; font-weight: 700;
+    font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fav-card a:hover { color: var(--green); }
+  .fav-card button { background: none; border: 0; color: var(--muted); cursor: pointer;
+    font-size: 1.15rem; line-height: 1; padding: .1rem .2rem; flex-shrink: 0; }
+  .fav-card button:hover { color: var(--red); }
+  /* Saved-break rows inside breaker groups. */
+  .bgroup .blist .slink { flex: 1; min-width: 0; color: inherit; text-decoration: none; font-weight: 700; }
+  .bgroup .blist .slink:hover { color: var(--green); }
+  .bgroup .blist .bcard form { margin-left: auto; flex-shrink: 0; }
+  .bgroup .blist .bcard button { background: none; border: 0; color: var(--muted); cursor: pointer;
+    font-size: 1.15rem; line-height: 1; padding: .1rem .2rem; }
+  .bgroup .blist .bcard button:hover { color: var(--red); }
   .bcard { display: flex; gap: 1rem; align-items: center; text-decoration: none; color: inherit;
     background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
     padding: 1rem 1.2rem; margin-bottom: .7rem; }
@@ -153,35 +162,52 @@
 
   <div class="card sect" id="sec-saved" style="display:none">
     <h2>★ Saved breaks <span class="count">{{ saved_listings|length }}</span></h2>
-    {% if saved_listings %}
-    <div class="chips">
-      {% for s in saved_listings %}
-      <span class="chip"><a href="/break/{{ s.id }}">{{ s.title_raw[:50] }}</a>
-        <form method="post" action="/saved-listings/toggle">
-          <input type="hidden" name="break_id" value="{{ s.id }}">
-          <input type="hidden" name="next" value="/my-breaks">
-          <button type="submit" title="Remove">×</button>
-        </form>
-      </span>
+    {% if saved_by_breaker %}
+      {% for g in saved_by_breaker %}
+      {% set live_n = g.breaks|selectattr('is_live')|list|length %}
+      <details class="bgroup" {% if live_n %}open{% endif %}>
+        <summary>
+          <span class="bname">{{ g.breaker }}</span>
+          {% if live_n %}<span class="tag live">● {{ live_n }} live</span>{% endif %}
+          <span class="bcount">{{ g.breaks|length }} break{{ 's' if g.breaks|length != 1 }}</span>
+          <span class="chev">⌄</span>
+        </summary>
+        <div class="blist">
+          {% for s in g.breaks %}
+          <div class="bcard{% if loop.index > 5 %} hidden{% endif %}">
+            <a class="slink" href="/break/{{ s.id }}">{{ s.display_title }}</a>
+            {% if s.is_live %}<span class="tag live">● LIVE</span>{% endif %}
+            <form method="post" action="/saved-listings/toggle">
+              <input type="hidden" name="break_id" value="{{ s.id }}">
+              <input type="hidden" name="next" value="/my-breaks">
+              <button type="submit" title="Remove">×</button>
+            </form>
+          </div>
+          {% endfor %}
+          {% if g.breaks|length > 5 %}
+          <button type="button" class="more-btn">Show {{ g.breaks|length - 5 }} more</button>
+          {% endif %}
+        </div>
+      </details>
       {% endfor %}
-    </div>
     {% else %}
-    <div class="empty">No saved breaks yet — tap ★ on any listing to save it. <a href="/">Find breaks →</a></div>
+      <div class="empty">No saved breaks yet — tap ★ on any listing to save it. <a href="/">Find breaks →</a></div>
     {% endif %}
   </div>
 
   <div class="card sect" id="sec-fav" style="display:none">
     <h2>★ Favorite breakers <span class="count">{{ favorites|length }}</span></h2>
     {% if favorites %}
-    <div class="chips">
+    <div class="fav-grid">
       {% for f in favorites %}
-      <span class="chip"><a href="/breaker/{{ f.breaker|urlencode }}">{{ f.breaker }}</a>
+      <div class="fav-card">
+        <a href="/breaker/{{ f.breaker|urlencode }}">{{ f.breaker }}</a>
         <form method="post" action="/favorites/toggle">
           <input type="hidden" name="breaker" value="{{ f.breaker }}">
           <input type="hidden" name="next" value="/my-breaks">
-          <button type="submit" title="Remove">×</button>
+          <button type="submit" title="Unfollow">×</button>
         </form>
-      </span>
+      </div>
       {% endfor %}
     </div>
     {% else %}
@@ -201,8 +227,9 @@ document.getElementById('sectabs').addEventListener('click', function(e) {
   document.querySelectorAll('.card.sect').forEach(function(c) { c.style.display = 'none'; });
   document.getElementById(t.dataset.sec).style.display = '';
 });
-// Brian 2026-10-09: per-breaker "show more" — reveal the hidden listings.
-document.getElementById('sec-live').addEventListener('click', function(e) {
+// Brian 2026-10-09: per-breaker "show more" — reveal the hidden listings
+// (works in both the live and saved tabs).
+document.querySelector('main').addEventListener('click', function(e) {
   var btn = e.target.closest('.more-btn');
   if (!btn) return;
   btn.closest('.blist').querySelectorAll('.bcard.hidden').forEach(function(c) {
