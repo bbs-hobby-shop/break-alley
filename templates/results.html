@@ -249,8 +249,11 @@
     transition: transform .12s ease, border-color .12s ease;
   }
   /* Brian 2026-10-09: tags get the full card width on their own row so they
-     sit side by side instead of stacking in the narrow meta column. */
+     sit side by side instead of stacking in the narrow meta column. The
+     breaker pill always gets its own row below, so every card looks the
+     same regardless of name length. */
   .card > .tags { flex: 1 1 100%; }
+  .card > .breaker-row { flex: 1 1 100%; display: flex; }
   .card:hover { transform: translateY(-2px); border-color: var(--green); }
   .card.is-live { border-left: 4px solid var(--red); }
   .thumb {
