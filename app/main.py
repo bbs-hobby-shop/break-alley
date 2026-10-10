@@ -1440,10 +1440,9 @@ def my_breaks(request: Request):
                     db.breaks_for_breakers(conn, [f["breaker"] for f in favs])]
             saved_listings = [_enrich(dict(r)) for r in
                               db.list_saved_listings(conn, user["id"])]
-            saved_ids = db.saved_listing_ids(conn, user["id"])
         error = None
     except Exception as exc:
-        favs, live, saved_listings, saved_ids, error = [], [], [], set(), f"Database unavailable: {exc}"
+        favs, live, saved_listings, error = [], [], [], f"Database unavailable: {exc}"
     # Brian 2026-10-09: "From your breakers" tab grouped by breaker —
     # each breaker gets a collapsible section (5 listings + show-more).
     live_by_breaker = []
@@ -1474,15 +1473,10 @@ def my_breaks(request: Request):
                            if (x.get("breaker") or "Unknown") == name]})
             seen_saved.add(name)
     return templates.TemplateResponse(request, "my_breaks.html", {
-        # Brian 2026-10-10: tabs render the full listing cards (templates/_card.html),
-        # which expects `favorites` as a list of breaker-name strings (like /results).
-        "user": user, "favorites": [f["breaker"] for f in favs], "live": live,
+        "user": user, "favorites": favs, "live": live,
         "live_by_breaker": live_by_breaker,
-        "saved_by_breaker": saved_by_breaker, "saved_ids": saved_ids,
+        "saved_by_breaker": saved_by_breaker,
         "saved_listings": saved_listings, "error": error,
-        "format_labels": FORMAT_LABELS, "source_labels": SOURCE_LABELS,
-        "sport_labels": SPORT_LABELS,
-        "card_next": "/my-breaks",
     })
 
 
