@@ -20,7 +20,35 @@ SPORT_KEYWORDS = {
     "baseball": [r"\bbaseball\b", r"\bmlb\b"],
     "soccer": [r"\bsoccer\b", r"\bpremier league\b", r"\bepl\b", r"\bfifa\b"],
     "hockey": [r"\bhockey\b", r"\bnhl\b"],
+    # Brian 2026-10-09: TCG breaks (Pokemon etc.) are real box breaks too —
+    # they get their own sport so buyers can filter for them.
+    "tcg": [r"\bpok[eé]mon\b", r"\btcg\b", r"\bmagic\b.{0,15}\bgathering\b",
+            r"\bmtg\b", r"\byu-?gi-?oh\b", r"\blorcana\b", r"\bone piece\b.{0,10}\bcard\b"],
 }
+
+# Brian 2026-10-09: buyer-facing sport names + ball icons. The ball is the
+# card thumbnail now (replacing listing photos per Brian's call); the format
+# icon moved to a badge in the card's top-right corner.
+SPORT_LABELS = {
+    "football": "Football",
+    "baseball": "Baseball",
+    "basketball": "Basketball",
+    "hockey": "Hockey",
+    "soccer": "Soccer",
+    "tcg": "TCG",
+    "other": "Other",
+}
+SPORT_ICONS = {
+    "football": "🏈",
+    "baseball": "⚾",
+    "basketball": "🏀",
+    "hockey": "🏒",
+    "soccer": "⚽",
+    "tcg": "🃏",
+    "other": "🏟️",
+}
+# Filter dropdown order.
+SPORTS = ["football", "baseball", "basketball", "hockey", "soccer", "tcg", "other"]
 
 # Five buyer-facing categories. Specific formats are checked first; anything
 # else a real break is still a box break, so the generic bucket catches it.

@@ -254,6 +254,14 @@
      same regardless of name length. */
   .card > .tags { flex: 1 1 100%; }
   .card > .breaker-row { flex: 1 1 100%; display: flex; }
+  /* Brian 2026-10-09: format icon badge pinned to the card's top-right
+     corner (the thumbnail is the sport ball now). */
+  .card { position: relative; }
+  .format-badge { position: absolute; top: -9px; right: -9px; z-index: 2;
+    width: 1.9rem; height: 1.9rem; border-radius: 50%;
+    background: var(--card2); border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; }
   .card:hover { transform: translateY(-2px); border-color: var(--green); }
   .card.is-live { border-left: 4px solid var(--red); }
   .thumb {

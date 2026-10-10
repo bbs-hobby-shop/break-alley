@@ -1,6 +1,7 @@
 {# Shared search/filter form (Brian 2026-10-08): used by the homepage (action=/results)
    and the results page (action=/results, for refining). Expects: q, format, max_price,
-   source, region, live, auctions, sort, formats, format_labels #}
+   source, region, live, auctions, sort, sport, formats, format_labels,
+   sports, sport_labels #}
 <form class="filters" method="get" action="/results">
   <input type="hidden" name="sort" value="{{ sort }}">
   <div class="searchrow">
@@ -12,6 +13,14 @@
       <input type="hidden" name="format" value="{{ format }}">
       <button type="button" class="cselect-btn" aria-label="Break format">
         <span class="cselect-value">{{ format_labels[format] if format else 'Any format' }}</span>
+        <span class="cselect-chev">⌄</span>
+      </button>
+    </div>
+    {# Brian 2026-10-09: sport filter. #}
+    <div class="cselect" data-name="sport" data-label="Any sport">
+      <input type="hidden" name="sport" value="{{ sport }}">
+      <button type="button" class="cselect-btn" aria-label="Sport">
+        <span class="cselect-value">{{ sport_labels[sport] if sport else 'Any sport' }}</span>
         <span class="cselect-chev">⌄</span>
       </button>
     </div>
@@ -37,6 +46,11 @@
   <template id="cselect-opts-format">
     <button type="button" data-value="">Any format</button>
     {% for f in formats %}<button type="button" data-value="{{ f }}">{{ format_labels[f] }}</button>{% endfor %}
+  </template>
+  {# Brian 2026-10-09: sport options. #}
+  <template id="cselect-opts-sport">
+    <button type="button" data-value="">Any sport</button>
+    {% for s in sports %}<button type="button" data-value="{{ s }}">{{ sport_labels[s] }}</button>{% endfor %}
   </template>
   <template id="cselect-opts-source">
     <button type="button" data-value="">All platforms</button>

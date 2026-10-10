@@ -21,6 +21,7 @@ from fastapi.templating import Jinja2Templates
 from . import auth, config, db, push, youtube
 from .ingest import run_ebay, run_fanatics, run_twitch_roster, run_youtube, run_youtube_roster
 from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
+from .normalizer import SPORT_LABELS, SPORT_ICONS, SPORTS
 
 # Brian 2026-10-09: platform tag on listing cards.
 SOURCE_LABELS = {
@@ -99,6 +100,9 @@ def _enrich(row: dict) -> dict:
         "box_break": "🃏",
     }
     row["format_icon"] = icons.get(fmt, "🃏")
+    # Brian 2026-10-09: the card thumbnail is the sport ball now (replacing
+    # listing photos per his call); the format icon moved to a corner badge.
+    row["sport_icon"] = SPORT_ICONS.get((row.get("sport") or "").lower(), "🏟️")
     return row
 
 
@@ -130,6 +134,8 @@ def home(
         "live": False, "region": "", "sort": "", "auctions": False,
         "formats": ["pyt", "random", "personal", "case_break", "box_break"],
         "format_labels": FORMAT_LABELS,
+        "sport": "",
+        "sports": SPORTS, "sport_labels": SPORT_LABELS,
     })
 
 
@@ -145,10 +151,13 @@ def search(
     suggested: str | None = Query(default=None),
     sort: str | None = Query(default=None),
     auctions: bool = Query(default=False),
+    sport: str | None = Query(default=None),
 ):
     format = format or None
     source = source or None
     region = region if region in ("us", "intl") else None
+    # Brian 2026-10-09: sport filter — only known sports, anything else is "all".
+    sport = sport if sport in SPORTS else None
     sort = sort if sort in ("soonest", "price_low", "price_high", "newest", "live", "ending") else None
     # max_price arrives as "" when the query string carries empty params
     # (e.g. after favoriting) — treat blank/invalid as "no cap", never 422.
@@ -169,7 +178,7 @@ def search(
                 conn, q=q or None, format=format,
                 max_price=max_price_val, source=source,
                 live_only=True if live else None, region=region,
-                auction_only=True if auctions else None,
+                auction_only=True if auctions else None, sport=sport,
             )
             all_results = [
                 _enrich(dict(r)) for r in db.search_breaks(
@@ -177,7 +186,7 @@ def search(
                     max_price=max_price_val, source=source,
                     live_only=True if live else None, region=region,
                     sort=sort, auction_only=True if auctions else None,
-                    limit=PAGE_SIZE,
+                    limit=PAGE_SIZE, sport=sport,
                 )
             ]
             # Pagination (Brian 2026-10-07): render 60 at a time so the page
@@ -196,13 +205,14 @@ def search(
                 upcoming_releases = []
             # Brian 2026-10-07: track real searches (not plain homepage loads)
             # for demand analytics — what buyers are looking for.
-            if q or format or source or max_price_val or live or auctions or sort or region:
+            if q or format or source or max_price_val or live or auctions or sort or region or sport:
                 db.log_event(
                     conn, "search",
                     user_id=user["id"] if user else None,
                     meta={"q": q or None, "format": format, "source": source,
                           "max_price": max_price_val, "live": live,
                           "auctions": auctions, "sort": sort, "region": region,
+                          "sport": sport,
                           "result_count": len(results)},
                 )
         error = None
@@ -217,7 +227,7 @@ def search(
         "q": q or "", "format": format or "",
         "max_price": max_price or "", "source": source or "", "live": live,
         "region": region or "", "sort": sort or "", "auctions": auctions,
-        "suggested": suggested or "",
+        "suggested": suggested or "", "sport": sport or "",
         "user": user, "favorites": favorites, "saved_ids": saved_ids,
         "refresh_running": _public_refresh_running(),
         "updated_ago": updated_ago,
@@ -225,6 +235,7 @@ def search(
         "formats": ["pyt", "random", "personal", "case_break", "box_break"],
         "format_labels": FORMAT_LABELS,
         "source_labels": SOURCE_LABELS,
+        "sports": SPORTS, "sport_labels": SPORT_LABELS, "sport_icons": SPORT_ICONS,
     })
 
 
@@ -289,6 +300,8 @@ def breaker_page(request: Request, breaker_name: str):
         "formats": ["pyt", "random", "personal", "case_break", "box_break"],
         "format_labels": FORMAT_LABELS,
         "source_labels": SOURCE_LABELS,
+        "sport": "",
+        "sports": SPORTS, "sport_labels": SPORT_LABELS, "sport_icons": SPORT_ICONS,
     })
 
 
@@ -306,6 +319,7 @@ def load_more(
     region: str | None = Query(default=None),
     sort: str | None = Query(default=None),
     auctions: bool = Query(default=False),
+    sport: str | None = Query(default=None),
     offset: int = Query(default=0),
 ):
     """Brian 2026-10-07: AJAX pagination — returns the next PAGE_SIZE cards
@@ -314,6 +328,7 @@ def load_more(
     source = source or None
     region = region if region in ("us", "intl") else None
     sort = sort if sort in ("soonest", "price_low", "price_high", "newest", "live", "ending") else None
+    sport = sport if sport in SPORTS else None
     try:
         max_price_val = float(max_price) if max_price and max_price.strip() else None
     except (ValueError, TypeError):
@@ -329,7 +344,7 @@ def load_more(
                     max_price=max_price_val, source=source,
                     live_only=True if live else None, region=region,
                     sort=sort, auction_only=True if auctions else None,
-                    limit=PAGE_SIZE, offset=offset,
+                    limit=PAGE_SIZE, offset=offset, sport=sport,
                 )
             ]
             if user:
@@ -344,6 +359,8 @@ def load_more(
             "b": b, "user": user, "favorites": favorites, "saved_ids": saved_ids,
             "q": q or "", "format": format or "", "source": source or "",
             "max_price": max_price or "", "live": live,
+            "sport": sport or "", "sport_icons": SPORT_ICONS,
+            "format_labels": FORMAT_LABELS, "source_labels": SOURCE_LABELS,
         }))
     return HTMLResponse("\n".join(cards))
 
