@@ -30,6 +30,7 @@
           {% if b.date_label and not show_live %}<span class="tag date">{{ b.date_label }}</span>{% endif %}
           {% if not b.date_label and b.break_time_text %}<span class="tag date">🕐 {{ b.break_time_text }}</span>{% endif %}
           {% if b.format and format_labels and format_labels.get(b.format) %}<span class="tag format-tag">{{ format_labels[b.format] }}</span>{% endif %}
+          {% if b.sport and sport_labels and sport_labels.get(b.sport) %}<span class="tag sport-tag">{{ sport_labels[b.sport] }}</span>{% endif %}
           {% if b.group_count and b.group_count > 1 %}
             <span class="tag">{{ b.group_count }} teams</span>
           {% endif %}

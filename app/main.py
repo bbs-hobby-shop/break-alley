@@ -360,6 +360,7 @@ def load_more(
             "q": q or "", "format": format or "", "source": source or "",
             "max_price": max_price or "", "live": live,
             "sport": sport or "", "sport_icons": SPORT_ICONS,
+            "sport_labels": SPORT_LABELS,
             "format_labels": FORMAT_LABELS, "source_labels": SOURCE_LABELS,
         }))
     return HTMLResponse("\n".join(cards))
