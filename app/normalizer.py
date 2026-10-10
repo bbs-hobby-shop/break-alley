@@ -269,16 +269,35 @@ def _first_match(text: str, patterns: dict | list) -> str | None:
     return None
 
 
-def detect_sport(title: str) -> str:
-    # Prefer the curated product table (explicit sport) over bare keywords,
-    # since brand words like "topps" span multiple sports.
-    canonical = normalize_product(title)
+def _keyword_sport_hits(title: str) -> list[str]:
+    """Sport keys whose keywords match the title (dict order)."""
+    return [key for key, pats in SPORT_KEYWORDS.items()
+            if any(re.search(p, title, re.IGNORECASE) for p in pats)]
+
+
+def detect_sports(title: str) -> list[str]:
+    """All sports matching the title, in SPORTS display order.
+
+    The curated product table counts as a match (its explicit sport comes
+    first), plus any additional keyword sports. Used for multi-sport
+    thumbnails (Brian 2026-10-09): a listing matching baseball + football
+    + racing gets a composite of those three arts.
+    """
+    hits: list[str] = []
+    canonical = normalize_product(title or "")
     if canonical:
-        return PRODUCTS[canonical]["sport"]
+        hits.append(PRODUCTS[canonical]["sport"])
+    for s in _keyword_sport_hits(title or ""):
+        if s not in hits:
+            hits.append(s)
+    order = {s: i for i, s in enumerate(SPORTS)}
+    return sorted(hits, key=lambda s: order.get(s, 99))
+
+
+def detect_sport(title: str) -> str:
     # Brian 2026-10-09: a title matching 2+ sports is a multi-sport mixer —
     # never "other".
-    hits = [key for key, pats in SPORT_KEYWORDS.items()
-            if any(re.search(p, title, re.IGNORECASE) for p in pats)]
+    hits = detect_sports(title)
     if len(hits) >= 2:
         return "multi"
     if hits:

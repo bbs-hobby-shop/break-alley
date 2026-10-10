@@ -21,7 +21,7 @@ from fastapi.templating import Jinja2Templates
 from . import auth, config, db, push, youtube
 from .ingest import run_ebay, run_fanatics, run_twitch_roster, run_youtube, run_youtube_roster
 from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
-from .normalizer import SPORT_LABELS, SPORT_ICONS, SPORTS, SPORT_IMAGES
+from .normalizer import SPORT_LABELS, SPORT_ICONS, SPORTS, SPORT_IMAGES, detect_sports
 
 # Brian 2026-10-09: platform tag on listing cards.
 SOURCE_LABELS = {
@@ -58,6 +58,58 @@ def _ensure_schema():
             db.ensure_schema(conn)
     except Exception as e:
         print(f"startup schema ensure failed: {e}")
+
+
+def multi_sport_thumb(sports: list[str]) -> str | None:
+    """Composite thumbnail for a multi-sport listing (Brian 2026-10-09).
+
+    Tiles the matched sports' art into one square image, e.g. baseball +
+    football + racing -> one thumbnail showing all three. Generated lazily
+    on first request and cached under static/ (regenerates after deploys,
+    which wipe generated files). Returns the /static URL path, or None if
+    compositing isn't possible (falls back to the generic multi art).
+    """
+    sports = [s for s in sports if s in SPORT_IMAGES][:4]
+    if len(sports) < 2:
+        return None
+    key = "-".join(sports)
+    fname = f"sport-multi-{key}.webp"
+    fpath = BASE_DIR / "static" / fname
+    if fpath.exists():
+        return f"/static/{fname}"
+    try:
+        from PIL import Image
+        size = 640
+        canvas = Image.new("RGB", (size, size), (10, 22, 40))
+        # Layouts: 2 = side-by-side halves; 3 = one tall left + two stacked
+        # right; 4 = 2x2 grid. Each tile is center-cropped to fill.
+        if len(sports) == 2:
+            boxes = [(0, 0, 320, 640), (320, 0, 640, 640)]
+        elif len(sports) == 3:
+            boxes = [(0, 0, 320, 640), (320, 0, 640, 320), (320, 320, 640, 640)]
+        else:
+            boxes = [(0, 0, 320, 320), (320, 0, 640, 320),
+                     (0, 320, 320, 640), (320, 320, 640, 640)]
+        for sport, (x0, y0, x1, y1) in zip(sports, boxes):
+            w, h = x1 - x0, y1 - y0
+            img = Image.open(BASE_DIR / "static" / f"sport-{sport}.webp").convert("RGB")
+            # Center-crop to the tile's aspect ratio, then resize.
+            iw, ih = img.size
+            target_ratio = w / h
+            if iw / ih > target_ratio:
+                new_w = int(ih * target_ratio)
+                x = (iw - new_w) // 2
+                img = img.crop((x, 0, x + new_w, ih))
+            else:
+                new_h = int(iw / target_ratio)
+                y = (ih - new_h) // 2
+                img = img.crop((0, y, iw, y + new_h))
+            canvas.paste(img.resize((w, h), Image.LANCZOS), (x0, y0))
+        canvas.save(fpath, "WEBP", quality=85)
+        return f"/static/{fname}"
+    except Exception as exc:
+        _breakalley_log.warning("multi thumb failed for %s: %s", key, exc)
+        return None
 
 
 def _enrich(row: dict) -> dict:
@@ -103,7 +155,13 @@ def _enrich(row: dict) -> dict:
     # Brian 2026-10-09: the card thumbnail is the sport's custom art
     # (generated images, not generic emoji). "other" keeps the emoji fallback.
     sport = (row.get("sport") or "").lower()
-    row["sport_img"] = SPORT_IMAGES.get(sport)
+    # Brian 2026-10-09: multi-sport listings get a composite thumbnail of
+    # the matched sports (baseball + football + racing -> all three arts).
+    if sport == "multi":
+        composite = multi_sport_thumb(detect_sports(title))
+        row["sport_img"] = composite or SPORT_IMAGES.get(sport)
+    else:
+        row["sport_img"] = SPORT_IMAGES.get(sport)
     row["sport_icon"] = SPORT_ICONS.get(sport, "🏟️")
     return row
 
