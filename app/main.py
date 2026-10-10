@@ -286,6 +286,9 @@ def search(
         results, error = [], f"Database unavailable: {exc}"
         updated_ago = "—"
         upcoming_releases = []
+        # 2026-10-09: the response below references these — a DB error must
+        # show the "Database unavailable" page, not 500 on UnboundLocalError.
+        total_results, has_more = 0, False
     return templates.TemplateResponse(request, "results.html", {
         "results": results, "error": error,
         "total_results": total_results, "has_more": has_more,
