@@ -104,3 +104,4 @@ apebreaks  # eBay Live break shows, 99.9% (11.3K) (Brian approved 2026-10-09, we
 card-shop-live  # PYT + case-break Live shows, 100% (114.6K) (Brian approved 2026-10-09, weekly discovery)
 cardvaultbreaks  # $1-start break auctions, eBay Live, 99.9% (12K) (Brian approved 2026-10-09, weekly discovery)
 48breaks  # NFL random team breaks, eBay Live, 99.6% (1.2K) (Brian approved 2026-10-09, weekly discovery)
+sportscollectorandmore  # sportscollectorandmore — PYT football + hockey (Brian approved 2026-10-10, weekly discovery)
