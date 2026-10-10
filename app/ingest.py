@@ -22,7 +22,7 @@ from pathlib import Path
 import psycopg.errors
 
 from . import config, db, ebay, fanatics_roster, twitch, twitch_roster, youtube, youtube_roster
-from .normalizer import normalize_ebay_item
+from .normalizer import looks_like_real_break, normalize_ebay_item
 
 
 def _transact_with_retry(work, attempts=3):
@@ -198,6 +198,7 @@ def run_ebay() -> int:
     n = 0
     n_video = 0
     n_err = 0
+    n_junk = 0
     with db.get_conn() as conn:
         for item in items:
             try:
@@ -214,6 +215,19 @@ def run_ebay() -> int:
             if item.get("_known_auction"):
                 row["is_auction"] = True
             if not row.get("source_url"):
+                continue
+            # Brian 2026-10-10: eBay listings must pass the same real-buy-in-break
+            # test as every other platform. Rostered sellers list plenty of
+            # non-break inventory with "break" in the title (singles "pulled from
+            # a break", supplies, sealed boxes, repacks) — without this gate it
+            # all flowed straight onto the site. Checked before video extraction
+            # so junk never costs a getItem call either.
+            if not looks_like_real_break(
+                row.get("title_raw") or "",
+                row.get("format"),
+                row.get("breaker"),
+            ):
+                n_junk += 1
                 continue
             # Extract video info for new listings before they enter the app
             # (Brian 2026-10-06: all details must be there before listing goes live).
@@ -261,7 +275,8 @@ def run_ebay() -> int:
                 db.mark_video_checked(conn, row["source_url"])
             n += 1
     print(f"upserted {n} normalized breaks ({n_video} new with video info)"
-          + (f", {n_err} errors" if n_err else ""))
+          + (f", {n_err} errors" if n_err else "")
+          + (f", {n_junk} non-break listings rejected" if n_junk else ""))
     # Remove ended auctions, sold-out BIN, and vanished listings (Brian 2026-10-07).
     # Fresh connection: the upsert block's conn is closed by now, and the
     # long poll run can also kill idle connections (2026-10-08: prune failed

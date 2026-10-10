@@ -225,6 +225,16 @@ NON_BREAK_TITLE_WORDS = [
     # Card lots/repacks — not box breaks
     r"\b\d+\s+card\s+lot\b",
     r"\bguaranteed\b.{0,20}\b(holo|rare|vmax|vstar)\b",
+    r"\brepacks?\b",
+    r"\bempty\s+(box|wrapper)",
+    r"\bbreak\s+pulls?\b",  # "Break Pull" = single card pulled from a break
+    # Break supplies/accessories — not box breaks (Brian 2026-10-10)
+    r"\btoploaders?\b",
+    r"\bpenny\s*sleeves?\b",
+    r"\bcard\s*sleeves?\b",
+    r"\bteam\s*bags?\b",
+    r"\bmagnet(ic)?\s*(holder|one\s*touch)?\b",
+    r"\bbreak\s*mats?\b",
     # Gaming streams — "break" in game titles/context, not box breaks (Brian 2026-10-08)
     *GAMING_WORDS,
     # Gossip/celebrity "breaks silence" — not a box break (Brian 2026-10-08)
