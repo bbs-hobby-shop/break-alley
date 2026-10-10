@@ -1236,14 +1236,15 @@ def purge_junk_breaks(conn) -> int:
 
 def backfill_sports(conn) -> int:
     """Re-detect the sport for listings stuck at NULL/'other' (Brian 2026-10-09:
-    every break gets a real sport). Uses the latest detect_sport keywords, so
-    rows ingested before racing/wrestling/golf/tennis/tcg existed get fixed.
-    Idempotent: only touches rows that still need a sport. Returns the number
-    of rows whose sport changed."""
+    every break gets a real sport). Also re-checks 'multi' rows: the multi
+    detector was over-firing on brand words that span sports (Bowman), so
+    false multis get corrected to their real sport. Uses the latest
+    detect_sport keywords. Idempotent: only touches rows that still need a
+    sport. Returns the number of rows whose sport changed."""
     from .normalizer import detect_sport
     rows = conn.execute(
         "SELECT id, title_raw, sport FROM breaks "
-        "WHERE sport IS NULL OR sport = 'other'"
+        "WHERE sport IS NULL OR sport IN ('other', 'multi')"
     ).fetchall()
     updates = []
     for r in rows:

@@ -18,7 +18,9 @@ SPORT_KEYWORDS = {
     "football": [r"\bfootball\b", r"\bnfl\b", r"\bcollege football\b", r"\bcfb\b"],
     "basketball": [r"\bbasketball\b", r"\bnba\b", r"\bwnba\b"],
     "baseball": [r"\bbaseball\b", r"\bmlb\b", r"allen\s*&\s*ginter\b",
-               r"\bbowman\b", r"\bdiamond kings\b", r"\btopps heritage\b"],
+               # NOTE: "bowman" is NOT here — Bowman makes football and
+               # basketball cards too (Bowman NFL/U broke this 2026-10-09).
+               r"\bdiamond kings\b", r"\btopps heritage\b"],
     "soccer": [r"\bsoccer\b", r"\bpremier league\b", r"\bepl\b", r"\bfifa\b",
                r"\bmls\b", r"\bchampions league\b", r"\bworld cup\b", r"\bla liga\b"],
     "hockey": [r"\bhockey\b", r"\bnhl\b"],
@@ -31,8 +33,9 @@ SPORT_KEYWORDS = {
     # own sport + thumbnail — no break settles for "other".
     "racing": [r"\bnascar\b", r"\bf1\b", r"\bformula\s?1\b", r"\bindycar\b",
                r"\bmotogp\b", r"\bracing\b"],
+    # NOTE: "boxing day" is soccer (Premier League fixtures), not the sport.
     "wrestling": [r"\bwwe\b", r"\baew\b", r"\bwrestling\b", r"\bwrestlemania\b",
-                  r"\bufc\b", r"\bmma\b", r"\bboxing\b"],
+                  r"\bufc\b", r"\bmma\b", r"\bboxing\b(?!\s*day)"],
     "golf": [r"\bgolf\b", r"\bpga\b", r"\bliv golf\b"],
     "tennis": [r"\btennis\b", r"\batp\b", r"\bwta\b"],
 }
