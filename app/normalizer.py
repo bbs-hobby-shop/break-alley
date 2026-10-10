@@ -15,29 +15,50 @@ CENTRAL = ZoneInfo("America/Chicago")
 SPORT_KEYWORDS = {
     # Only unambiguous sport words here. Brand words (panini, topps, bowman,
     # upper deck) span multiple sports and are handled via the product table.
-    "football": [r"\bfootball\b", r"\bnfl\b", r"\bcollege football\b", r"\bcfb\b"],
-    "basketball": [r"\bbasketball\b", r"\bnba\b", r"\bwnba\b"],
+    "football": [r"\bfootball\b", r"\bnfl\b", r"\bcollege football\b", r"\bcfb\b",
+                 "🏈"],
+    "basketball": [r"\bbasketball\b", r"\bnba\b", r"\bwnba\b", "🏀"],
     "baseball": [r"\bbaseball\b", r"\bmlb\b", r"allen\s*&\s*ginter\b",
                # NOTE: "bowman" is NOT here — Bowman makes football and
                # basketball cards too (Bowman NFL/U broke this 2026-10-09).
-               r"\bdiamond kings\b", r"\btopps heritage\b"],
+               r"\bdiamond kings\b", r"\btopps heritage\b", "⚾"],
     "soccer": [r"\bsoccer\b", r"\bpremier league\b", r"\bepl\b", r"\bfifa\b",
-               r"\bmls\b", r"\bchampions league\b", r"\bworld cup\b", r"\bla liga\b"],
-    "hockey": [r"\bhockey\b", r"\bnhl\b"],
+               r"\bmls\b", r"\bchampions league\b", r"\bworld cup\b", r"\bla liga\b",
+               "⚽"],
+    "hockey": [r"\bhockey\b", r"\bnhl\b", "🏒"],
     # Brian 2026-10-09: TCG breaks (Pokemon etc.) are real box breaks too —
     # they get their own sport so buyers can filter for them.
     "tcg": [r"\bpok[eé]mon\b", r"\btcg\b", r"\bmagic\b.{0,15}\bgathering\b",
             r"\bmtg\b", r"\byu-?gi-?oh\b", r"\blorcana\b", r"\bone piece\b.{0,10}\bcard\b",
-            r"\bdigimon\b", r"\bweiss schwarz\b"],
+            r"\bdigimon\b", r"\bweiss schwarz\b",
+            # Brian 2026-10-09: Pokemon set names (researched 2026-10-09) —
+            # titles like "30th Celebration Box Break" say Pokemon without
+            # saying "pokemon". Mega Evolution era + Scarlet & Violet era +
+            # Sword & Shield era.
+            r"\bmega evolution\b", r"\bphantasmal flames\b", r"\bascended heroes\b",
+            r"\bperfect order\b", r"\bchaos rising\b", r"\bpitch black\b",
+            r"\b30th celebration\b", r"\b30th anniversary\b", r"\bdelta reign\b",
+            r"\bprismatic evolutions?\b", r"\bsurging sparks\b", r"\bstellar crown\b",
+            r"\bshrouded fable\b", r"\btwilight masquerade\b", r"\btemporal forces\b",
+            r"\bpaldean fates\b", r"\bparadox rift\b", r"\b151\b",
+            r"\bobsidian flames\b", r"\bpaldea evolved\b",
+            r"\bscarlet\s*&\s*violet\b", r"\bscarlet and violet\b",
+            r"\bdestined rivals\b", r"\bjourney together\b",
+            r"\bblack bolt\b", r"\bwhite flare\b",
+            r"\bcrown zenith\b", r"\bsilver tempest\b", r"\blost origin\b",
+            r"\bastral radiance\b", r"\bbrilliant stars\b", r"\bevolving skies\b",
+            r"\bcelebrations\b", r"\bfusion strike\b", r"\bchilling reign\b",
+            r"\bbattle styles\b", r"\bvivid voltage\b", r"\bdarkness ablaze\b",
+            r"\bshining fates\b", r"\bpokemon go\b"],
     # Brian 2026-10-09: racing, wrestling/combat, golf, tennis all get their
     # own sport + thumbnail — no break settles for "other".
     "racing": [r"\bnascar\b", r"\bf1\b", r"\bformula\s?1\b", r"\bindycar\b",
-               r"\bmotogp\b", r"\bracing\b"],
+               r"\bmotogp\b", r"\bracing\b", "🏎"],
     # NOTE: "boxing day" is soccer (Premier League fixtures), not the sport.
     "wrestling": [r"\bwwe\b", r"\baew\b", r"\bwrestling\b", r"\bwrestlemania\b",
-                  r"\bufc\b", r"\bmma\b", r"\bboxing\b(?!\s*day)"],
-    "golf": [r"\bgolf\b", r"\bpga\b", r"\bliv golf\b"],
-    "tennis": [r"\btennis\b", r"\batp\b", r"\bwta\b"],
+                  r"\bufc\b", r"\bmma\b", r"\bboxing\b(?!\s*day)", "🤼"],
+    "golf": [r"\bgolf\b", r"\bpga\b", r"\bliv golf\b", "⛳"],
+    "tennis": [r"\btennis\b", r"\batp\b", r"\bwta\b", "🎾"],
 }
 
 # Brian 2026-10-09: buyer-facing sport names + thumbnails. Every break gets a
