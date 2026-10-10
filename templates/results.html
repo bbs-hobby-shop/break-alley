@@ -98,11 +98,22 @@
   a.tag.breaker-tag:hover { background: rgba(255,255,255,.14); }
   .breaker-link { cursor: pointer; }
   .breaker-link:hover { background: rgba(255,255,255,.14); }
-  /* Breaker name + follow button stay glued as one unit (Brian 2026-10-07):
-     the group never splits across lines, items are vertically centered. */
-  .breaker-group { display: inline-flex; align-items: center; gap: .35rem;
-    white-space: nowrap; }
+  /* Breaker name + follow button merged into ONE pill (Brian 2026-10-09):
+     no longer looks like two separate tags. The group is the pill; the name
+     and the button inside are transparent segments of it. */
+  .breaker-group { display: inline-flex; align-items: stretch;
+    white-space: nowrap; background: rgba(255,255,255,.07);
+    border-radius: 999px; overflow: hidden; }
   .breaker-group .follow-form { display: inline-flex !important; }
+  .breaker-group .tag.breaker-tag { background: transparent; border-radius: 0;
+    padding: .55rem .35rem .55rem 1.1rem; }
+  .breaker-group a.tag.breaker-tag:hover, .breaker-group .breaker-link:hover {
+    background: rgba(255,255,255,.10); }
+  .breaker-group .follow-btn { background: transparent; border: 0;
+    border-left: 1px solid rgba(255,255,255,.12); border-radius: 0;
+    width: auto; height: auto; padding: .55rem 1rem; font-size: 1.15rem; }
+  .breaker-group .follow-btn.following { color: var(--green); border: 0;
+    border-left: 1px solid rgba(255,255,255,.12); }
   /* Listing save star (Brian 2026-10-07): bigger tap target */
   .fav-btn { font-size: 1.6rem; min-width: 48px; min-height: 48px;
     display: inline-flex; align-items: center; justify-content: center; }
