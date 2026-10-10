@@ -3,9 +3,11 @@
       {# countdown is the listing's state; the live tag only confuses it. #}
       {% set show_live = b.is_live and not b.is_auction %}
       <a class="card {% if show_live %}is-live{% endif %}" href="/break/{{ b.id }}">
-        {# Brian 2026-10-09: the thumbnail is the sport's custom art.
-           The format icon moved to a badge left of the save star. #}
-        {% if b.sport_img %}
+        {# Brian 2026-10-09: platform thumbnail (YouTube/Twitch) where one
+           exists; our custom sport art as the fallback; emoji last resort. #}
+        {% if b.thumb_url %}
+        <img class="thumb thumb-img" src="{{ b.thumb_url }}" alt="{{ b.display_title }}">
+        {% elif b.sport_img %}
         <img class="thumb thumb-img" src="{{ b.sport_img }}" alt="{{ b.sport }} break">
         {% else %}
         <div class="thumb sport-thumb">{{ b.sport_icon }}</div>
