@@ -999,7 +999,8 @@ def admin_feedback_json(request: Request, key: str | None = Query(default=None),
 def admin_sports_other(request: Request,
                        key: str | None = Query(default=None),
                        limit: int = Query(default=2000),
-                       summary: int = Query(default=0)):
+                       summary: int = Query(default=0),
+                       breaker: str | None = Query(default=None)):
     """JSON export of listings currently tagged sport='other'."""
     if not _admin_key_ok(key):
         return JSONResponse({"error": "denied"}, status_code=403)
@@ -1022,7 +1023,15 @@ def admin_sports_other(request: Request,
                         for r in rows
                     ],
                 })
-            rows = conn.execute(
+            if breaker:
+                rows = conn.execute(
+                    """SELECT id, title_raw, product_normalized, breaker, source
+                       FROM breaks WHERE sport = 'other' AND breaker = %s
+                       ORDER BY id DESC LIMIT %s""",
+                    (breaker, min(limit, 5000)),
+                ).fetchall()
+            else:
+                rows = conn.execute(
                 """SELECT id, title_raw, product_normalized, breaker, source
                    FROM breaks WHERE sport = 'other'
                    ORDER BY id DESC LIMIT %s""",
