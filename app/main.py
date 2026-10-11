@@ -1005,7 +1005,7 @@ def admin_sports_other(request: Request,
     try:
         with db.get_conn() as conn:
             total = conn.execute(
-                "SELECT COUNT(*) FROM breaks WHERE sport = 'other'").fetchone()[0]
+                "SELECT COUNT(*) AS count FROM breaks WHERE sport = 'other'").fetchone()["count"]
             rows = conn.execute(
                 """SELECT id, title_raw, product_normalized, breaker, source
                    FROM breaks WHERE sport = 'other'
@@ -1049,7 +1049,7 @@ async def admin_sports_backfill(request: Request,
     try:
         with db.get_conn() as conn:
             other_before = conn.execute(
-                "SELECT COUNT(*) FROM breaks WHERE sport = 'other'").fetchone()[0]
+                "SELECT COUNT(*) AS count FROM breaks WHERE sport = 'other'").fetchone()["count"]
             rows = conn.execute(
                 "SELECT id, title_raw FROM breaks WHERE sport = 'other'").fetchall()
             by_rules = 0
@@ -1072,7 +1072,7 @@ async def admin_sports_backfill(request: Request,
                         (sport, sports, bid))
                     by_direct += 1
             other_after = conn.execute(
-                "SELECT COUNT(*) FROM breaks WHERE sport = 'other'").fetchone()[0]
+                "SELECT COUNT(*) AS count FROM breaks WHERE sport = 'other'").fetchone()["count"]
             return JSONResponse({
                 "other_before": other_before,
                 "recategorized_by_rules": by_rules,
