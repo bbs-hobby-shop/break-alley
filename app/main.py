@@ -588,7 +588,7 @@ def admin_purge_ebay_junk(request: Request, key: str | None = Query(default=None
     junk_ids: list = []
     junk_sample: list = []
     for r in rows:
-        bid, title, breaker = r[0], r[1] or "", r[2]
+        bid, title, breaker = r["id"], r["title_raw"] or "", r["breaker"]
         fmt = detect_format(title)
         if not looks_like_real_break(title, fmt, breaker):
             junk_ids.append(bid)
