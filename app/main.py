@@ -570,50 +570,6 @@ def _admin_key_ok(key: str | None) -> bool:
     return bool(config.ADMIN_KEY) and key == config.ADMIN_KEY
 
 
-# Brian 2026-10-10: ONE-TIME eBay junk purge endpoint. Previewed 376 junk
-# of ~6,471 eBay rows with the exact live gate (fmt=detect_format(title)).
-# REMOVE THIS ENDPOINT after the purge is verified. Usage:
-#   GET  /admin/purge-ebay-junk?key=...            -> dry run (count + sample)
-#   POST /admin/purge-ebay-junk?key=...&confirm=yes -> deletes the junk rows
-@app.api_route("/admin/purge-ebay-junk", methods=["GET", "POST"])
-def admin_purge_ebay_junk(request: Request, key: str | None = Query(default=None),
-                          confirm: str | None = Query(default=None)):
-    if not _admin_key_ok(key):
-        return JSONResponse({"error": "forbidden"}, status_code=403)
-    from .normalizer import detect_format, looks_like_real_break
-    with db.get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id, title_raw, breaker FROM breaks WHERE source='ebay'")
-            rows = cur.fetchall()
-    junk_ids: list = []
-    junk_sample: list = []
-    for r in rows:
-        bid, title, breaker = r["id"], r["title_raw"] or "", r["breaker"]
-        fmt = detect_format(title)
-        if not looks_like_real_break(title, fmt, breaker):
-            junk_ids.append(bid)
-            if len(junk_sample) < 10:
-                junk_sample.append({"id": bid, "title": title[:80], "breaker": breaker})
-    total = len(rows)
-    n_junk = len(junk_ids)
-    # Safety gate: refuse if the count looks wrong (e.g. stub-failure mode
-    # where every row computes as junk, or an empty table).
-    if n_junk == total or n_junk > 2000 or n_junk == 0:
-        return JSONResponse({"status": "refused", "reason": "safety gate tripped",
-                             "total_ebay": total, "junk_computed": n_junk})
-    if confirm != "yes":
-        return JSONResponse({"status": "dry_run", "total_ebay": total,
-                             "junk": n_junk, "sample": junk_sample})
-    with db.get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("DELETE FROM breaks WHERE source='ebay' AND id = ANY(%s)",
-                        (junk_ids,))
-            deleted = cur.rowcount
-        conn.commit()
-    return JSONResponse({"status": "deleted", "deleted": deleted,
-                         "total_ebay": total, "sample": junk_sample})
-
-
 @app.get("/admin/suggestions", response_class=HTMLResponse)
 def admin_suggestions(
     request: Request,
