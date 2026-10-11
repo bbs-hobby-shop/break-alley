@@ -201,9 +201,18 @@
 </main>
 <script>
 document.getElementById('manageSubBtn')?.addEventListener('click', async function() {
+  const btn = this;
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = 'Opening…';
   const r = await fetch('/api/stripe/portal', { method: 'POST' });
   const j = await r.json();
-  if (j.ok && j.url) { window.location = j.url; }
+  if (j.ok && j.url) { window.location = j.url; return; }
+  btn.disabled = false;
+  btn.textContent = orig;
+  alert(j.error === 'no_subscription'
+    ? 'No active subscription found on your account.'
+    : 'Could not open subscription management: ' + (j.error || 'unknown error'));
 });
 async function savePushPrefs() {
   const r = await fetch('/api/push/prefs', { method: 'POST',

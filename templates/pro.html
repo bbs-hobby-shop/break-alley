@@ -119,9 +119,17 @@ document.getElementById('upgradeBtn')?.addEventListener('click', async function(
   } catch (e) { alert('Checkout unavailable — please try again.'); this.disabled = false; this.textContent = 'Go Pro — $4.99/mo'; }
 });
 document.getElementById('manageBtn')?.addEventListener('click', async function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Opening…';
   const r = await fetch('/api/stripe/portal', { method: 'POST' });
   const j = await r.json();
-  if (j.ok && j.url) { window.location = j.url; }
+  if (j.ok && j.url) { window.location = j.url; return; }
+  btn.disabled = false;
+  btn.textContent = 'Manage subscription';
+  alert(j.error === 'no_subscription'
+    ? 'No active subscription found on your account.'
+    : 'Could not open subscription management: ' + (j.error || 'unknown error'));
 });
 </script>
 </body>
