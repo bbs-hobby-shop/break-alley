@@ -834,16 +834,30 @@ def submit_show(
     return RedirectResponse("/submit-show?submitted=1", status_code=303)
 
 
-@app.post("/feedback")
+@app.get("/feedback", response_class=HTMLResponse)
+def feedback_page(request: Request):
+    """Standalone feedback page (Brian 2026-10-11): the inline form that was
+    at the bottom of every page is now a link to here."""
+    user = auth.get_current_user(request)
+    nxt = request.query_params.get("next", "/")
+    if not nxt.startswith("/") or nxt.startswith("//"):
+        nxt = "/"
+    return templates.TemplateResponse(request, "feedback.html", {
+        "user": user,
+        "next_page": nxt,
+    })
+
+
 def _feedback_redirect(target: str, ok: bool) -> RedirectResponse:
-    """Send the user back to the page they left feedback from (Brian 2026-10-09:
-    the feedback form is on every public page). Only same-site paths allowed."""
-    t = (target or "").strip()
+    """Send the user to the standalone feedback page with a status notice
+    (Brian 2026-10-11). Only same-site paths allowed for the back link."""
+    from urllib.parse import quote
+    t = (target or "/").strip()
     if not t.startswith("/") or t.startswith("//"):
-        t = "/submit-show"
-    sep = "&" if "?" in t else "?"
-    return RedirectResponse(f"{t}{sep}feedback={'1' if ok else '0'}#feedback",
-                            status_code=303)
+        t = "/"
+    return RedirectResponse(
+        f"/feedback?feedback={'1' if ok else '0'}&next={quote(t, safe='')}",
+        status_code=303)
 
 
 @app.post("/feedback")
@@ -855,7 +869,7 @@ def leave_feedback(
     next_page: str = Form(default="", alias="next"),
     website: str = Form(default=""),  # honeypot
 ):
-    """Site feedback form (Brian 2026-10-09) — at the bottom of every page."""
+    """Site feedback form (Brian 2026-10-09; standalone page since 2026-10-11)."""
     if website.strip():
         return _feedback_redirect(next_page, True)
     message = message.strip()

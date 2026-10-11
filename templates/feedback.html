@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leave feedback — BreakAlley</title>
+<meta name="description" content="Spotted a bug, missing a breaker, or have an idea? Send it our way — we read everything.">
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<meta name="theme-color" content="#0a0e1c">
+<style>
+  :root {
+    --bg: #0a0e1c; --bg2: #10162e; --card: #151c38; --card2: #1a2242;
+    --line: #26305c; --text: #f2f4ff; --muted: #8b93b8;
+    --green: #00e676; --purple: #7c5cff; --red: #ff3b5c;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { touch-action: manipulation; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; color: var(--text); background: var(--bg);
+    background-image: radial-gradient(900px 400px at 15% -5%, rgba(124,92,255,.14), transparent),
+                      radial-gradient(800px 380px at 90% 0%, rgba(0,230,118,.08), transparent);
+    min-height: 100vh;
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: #0a0e1c; border-bottom: 1px solid var(--line);
+    padding: 1rem 1.5rem .85rem;
+  }
+  .brandrow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-bottom: .75rem; }
+  .logo { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; }
+  .logo img { width: 44px; height: 44px; }
+  .wordmark { color: var(--text); font-weight: 900; letter-spacing: .08em; font-size: 1.5rem; }
+  .wordmark span { color: var(--green); }
+  .signout { grid-column: 3; justify-self: end; margin: 0; }
+  .signout button { background: none; border: 1px solid var(--line); color: var(--muted);
+    border-radius: 8px; padding: .45rem .8rem; font-size: .85rem; cursor: pointer; }
+  nav.tabs { display: flex; gap: .25rem; justify-content: center; }
+  nav.tabs a { color: var(--muted); text-decoration: none; font-weight: 700; font-size: .95rem;
+    padding: .6rem .9rem; border-radius: 8px; }
+  nav.tabs a:hover { color: var(--text); background: var(--card); }
+  main { max-width: 640px; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
+  h1 { margin: 0 0 .5rem; font-size: 1.9rem; text-align: center; }
+  .lede { color: var(--muted); line-height: 1.55; margin: 0 0 1.5rem; text-align: center; }
+  .notice { border-radius: 12px; padding: .9rem 1.1rem; margin-bottom: 1.2rem; font-weight: 600; font-size: .93rem; }
+  .notice.ok { background: rgba(0,230,118,.1); border: 1px solid var(--green); color: var(--green); }
+  .notice.err { background: rgba(255,59,92,.1); border: 1px solid var(--red); color: var(--red); }
+  form.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 1.4rem; }
+  label.field { display: block; margin-bottom: 1rem; }
+  label.field > span { display: block; color: var(--text); font-weight: 700; margin-bottom: .35rem; font-size: .92rem; }
+  label.field > span small { font-weight: 400; color: var(--muted); }
+  input[type=text], textarea { width: 100%; background: var(--bg2); border: 1px solid var(--line);
+    border-radius: 10px; color: var(--text); padding: .7rem .85rem; font-size: 1rem; font-family: inherit; }
+  textarea { min-height: 120px; resize: vertical; }
+  input:focus, textarea:focus { outline: none; border-color: var(--green); }
+  .hp { position: absolute; left: -9999px; }
+  button.submit { width: 100%; background: var(--green); color: #06130c; border: 0; border-radius: 12px;
+    padding: .95rem; font-size: 1.05rem; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .back { display: block; text-align: center; margin-top: 1.5rem; color: var(--muted);
+    text-decoration: none; font-weight: 600; }
+  .back:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brandrow">
+    <div></div>
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+    {% if user %}
+    <form method="post" action="/logout" class="signout"><button type="submit">Sign out</button></form>
+    {% endif %}
+  </div>
+  <nav class="tabs">
+    <a href="/">Home</a>
+    {% if user %}
+    <a href="/my-breaks">My Breaks</a>
+    <a href="/account">Account</a>
+    <a href="/pro">Pro</a>
+    {% else %}
+    <a href="/login">Sign in</a>
+    <a href="/signup">Sign up</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  <h1>Leave feedback</h1>
+  <p class="lede">Spotted a bug, missing a breaker, or have an idea? Send it our way — we read everything.</p>
+
+  {% if request.query_params.get('feedback') == '1' %}
+  <div class="notice ok">Thanks — your feedback is in. We appreciate it.</div>
+  {% elif request.query_params.get('feedback') == '0' %}
+  <div class="notice err">Please write your feedback before sending.</div>
+  {% endif %}
+
+  <form class="card" method="post" action="/feedback">
+    <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off">
+    <input type="hidden" name="next" value="{{ next_page }}">
+    <label class="field">
+      <span>Name <small>(optional)</small></span>
+      <input type="text" name="name" placeholder="Your name">
+    </label>
+    <label class="field">
+      <span>Email <small>(optional)</small></span>
+      <input type="text" name="email" placeholder="you@example.com" inputmode="email">
+    </label>
+    <label class="field">
+      <span>Feedback *</span>
+      <textarea name="message" placeholder="What's on your mind?" required></textarea>
+    </label>
+    <button class="submit" type="submit">Send feedback</button>
+  </form>
+
+  <a class="back" href="{{ next_page }}">← Back</a>
+</main>
+{% include "_footer.html" %}
+</body>
+</html>

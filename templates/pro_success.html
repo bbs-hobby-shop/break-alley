@@ -5,30 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>You're Pro — BreakAlley</title>
 <link rel="icon" type="image/png" href="/static/favicon-64.png">
+<meta name="theme-color" content="#0a0e1c">
 <style>
   :root { --bg: #0a0e1c; --card: #151c38; --line: #26305c; --text: #f2f4ff;
     --muted: #8b93b8; --green: #00e676; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { margin: 0; background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    padding: 1rem; text-align: center; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
-    padding: 2.5rem 2rem; max-width: 420px; }
-  h1 { margin: 0 0 .5rem; } h1 em { color: var(--green); font-style: normal; }
-  p { color: var(--muted); }
-  .btn { display: inline-block; margin: .5rem .25rem; padding: .85rem 1.5rem; border-radius: 10px;
-    font-weight: 800; text-decoration: none; }
-  .btn.primary { background: var(--green); color: #06130c; }
-  .btn.ghost { border: 1px solid var(--line); color: var(--text); }
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 4rem 1rem 1rem; text-align: center;
+    background-image: radial-gradient(900px 400px at 50% -5%, rgba(0,230,118,.08), transparent); }
+  .badge { display: inline-block; background: rgba(0,230,118,.12); border: 1px solid var(--green);
+    color: var(--green); font-weight: 800; font-size: .8rem; letter-spacing: .12em;
+    padding: .45rem 1rem; border-radius: 999px; margin-bottom: 1.25rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 2.5rem 2rem; max-width: 420px; width: 100%; }
+  h1 { margin: 0 0 .6rem; font-size: 2rem; }
+  h1 em { color: var(--green); font-style: normal; }
+  p { color: var(--muted); line-height: 1.6; margin: 0 0 1.75rem; }
+  .btn { display: block; width: 100%; margin: 0 0 .75rem; padding: .95rem 1.5rem; border-radius: 12px;
+    font-weight: 800; font-size: 1rem; text-decoration: none; cursor: pointer; font-family: inherit; }
+  .btn.primary { background: var(--green); color: #06130c; border: 0; }
+  .btn.ghost { border: 1px solid var(--line); color: var(--text); background: transparent; }
+  .btn.ghost:hover { border-color: var(--muted); }
+  .btn:last-child { margin-bottom: 0; }
 </style>
 </head>
 <body>
-<div class="card">
-  <h1>You're <em>Pro</em>.</h1>
-  <p>Enable push notifications to get alerted the instant your followed breakers go live.</p>
-  <button class="btn primary" id="enablePush">Enable notifications</button><br>
-  <a class="btn ghost" href="/">Back to breaks</a>
-</div>
+  <div class="badge">PRO ACTIVE</div>
+  <div class="card">
+    <h1>You're <em>Pro</em>.</h1>
+    <p>Enable push notifications to get alerted the instant your followed breakers go live.</p>
+    <button class="btn primary" id="enablePush">Enable notifications</button>
+    <a class="btn ghost" href="/">Back to breaks</a>
+  </div>
+  {% include "_feedback_link.html" %}
 <script>
 document.getElementById('enablePush').addEventListener('click', async function() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -61,6 +72,5 @@ function urlBase64ToUint8Array(b64) {
   return out;
 }
 </script>
-{% include "_feedback.html" %}
 </body>
 </html>
