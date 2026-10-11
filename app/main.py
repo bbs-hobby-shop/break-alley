@@ -1941,6 +1941,12 @@ def stripe_portal(request: Request):
         )
     except RuntimeError as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+    except Exception as e:
+        # Test-mode customer IDs don't exist in live mode (Brian 2026-10-10).
+        if "No such customer" in str(e):
+            return JSONResponse({"ok": False, "error": "no_live_subscription"},
+                                status_code=400)
+        return JSONResponse({"ok": False, "error": "portal_failed"}, status_code=500)
     return JSONResponse({"ok": True, "url": url})
 
 

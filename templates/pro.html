@@ -127,6 +127,22 @@ document.getElementById('manageBtn')?.addEventListener('click', async function()
   if (j.ok && j.url) { window.location = j.url; return; }
   btn.disabled = false;
   btn.textContent = 'Manage subscription';
+  if (j.error === 'no_live_subscription') {
+    // Test-mode Pro with no live subscription (Brian 2026-10-10): offer a live subscribe.
+    btn.textContent = 'Subscribe — $4.99/mo';
+    btn.onclick = async function() {
+      btn.disabled = true; btn.textContent = 'Loading…';
+      try {
+        const r2 = await fetch('/api/stripe/checkout', { method: 'POST' });
+        const j2 = await r2.json();
+        if (j2.ok && j2.url) { window.location = j2.url; return; }
+      } catch (e) {}
+      alert('Checkout unavailable — please try again.');
+      btn.disabled = false; btn.textContent = 'Subscribe — $4.99/mo';
+    };
+    alert('Your Pro status is from testing — subscribe below to start a live subscription.');
+    return;
+  }
   alert(j.error === 'no_subscription'
     ? 'No active subscription found on your account.'
     : 'Could not open subscription management: ' + (j.error || 'unknown error'));
