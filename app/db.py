@@ -825,6 +825,74 @@ def analytics_platform_split(conn, days: int = 30) -> list[dict]:
     ).fetchall()]
 
 
+def traffic_overview(conn, days: int = 30) -> dict:
+    """Site-traffic rollup: unique visitors, pageviews, sessions (Brian 2026-10-11)."""
+    r = conn.execute(
+        """SELECT COUNT(*) AS pageviews,
+                  COUNT(DISTINCT visitor_id) AS visitors,
+                  COUNT(DISTINCT session_id) AS sessions
+           FROM page_views
+           WHERE created_at > NOW() - (%(d)s || ' days')::INTERVAL""",
+        {"d": days},
+    ).fetchone()
+    return dict(r) if r else {}
+
+
+def traffic_top_pages(conn, days: int = 30, limit: int = 15) -> list[dict]:
+    """Most-viewed paths."""
+    return [dict(r) for r in conn.execute(
+        """SELECT path, COUNT(*) AS n,
+                  COUNT(DISTINCT visitor_id) AS visitors
+           FROM page_views
+           WHERE created_at > NOW() - (%(d)s || ' days')::INTERVAL
+           GROUP BY path
+           ORDER BY n DESC
+           LIMIT %(limit)s""",
+        {"d": days, "limit": limit},
+    ).fetchall()]
+
+
+def traffic_referrers(conn, days: int = 30, limit: int = 15) -> list[dict]:
+    """Top external referrer hosts — where traffic comes from."""
+    return [dict(r) for r in conn.execute(
+        """SELECT referrer, COUNT(DISTINCT session_id) AS sessions
+           FROM page_views
+           WHERE created_at > NOW() - (%(d)s || ' days')::INTERVAL
+             AND referrer IS NOT NULL
+           GROUP BY referrer
+           ORDER BY sessions DESC
+           LIMIT %(limit)s""",
+        {"d": days, "limit": limit},
+    ).fetchall()]
+
+
+def traffic_devices(conn, days: int = 30) -> list[dict]:
+    """Pageviews by device type (mobile / desktop / tablet)."""
+    return [dict(r) for r in conn.execute(
+        """SELECT device, COUNT(*) AS n
+           FROM page_views
+           WHERE created_at > NOW() - (%(d)s || ' days')::INTERVAL
+           GROUP BY device
+           ORDER BY n DESC""",
+        {"d": days},
+    ).fetchall()]
+
+
+def traffic_daily(conn, days: int = 30) -> list[dict]:
+    """Per-day visitors and pageviews for the trend table."""
+    return [dict(r) for r in conn.execute(
+        """SELECT DATE(created_at) AS day,
+                  COUNT(*) AS pageviews,
+                  COUNT(DISTINCT visitor_id) AS visitors,
+                  COUNT(DISTINCT session_id) AS sessions
+           FROM page_views
+           WHERE created_at > NOW() - (%(d)s || ' days')::INTERVAL
+           GROUP BY DATE(created_at)
+           ORDER BY day""",
+        {"d": days},
+    ).fetchall()]
+
+
 def breaks_for_breakers(conn, breakers: list[str], limit: int = 100) -> list[dict]:
     """Live-first breaks from the given breaker names (for My Breakers)."""
     if not breakers:
@@ -1138,6 +1206,24 @@ CREATE TABLE IF NOT EXISTS auction_ending_log (
     notified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (break_id, user_id)
 );
+
+-- First-party site traffic (Brian 2026-10-11): anonymous pageview tracking.
+-- No third-party trackers, no IPs, no PII — visitor_id is a random UUID in
+-- a first-party cookie, referrer is host-only. Powers the Site traffic
+-- section of /admin/stats.
+CREATE TABLE IF NOT EXISTS page_views (
+    id         SERIAL PRIMARY KEY,
+    visitor_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    path       TEXT NOT NULL,
+    referrer   TEXT,
+    device     TEXT NOT NULL DEFAULT 'unknown',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_page_views_created ON page_views(created_at);
+CREATE INDEX IF NOT EXISTS idx_page_views_visitor ON page_views(visitor_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_page_views_path ON page_views(path, created_at);
 """
 
 

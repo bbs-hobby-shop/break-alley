@@ -95,6 +95,93 @@
     <div class="card"><div class="k">Live breaks</div><div class="v">{{ overview.breaks_total or 0 }}</div></div>
   </div>
 
+  <h2>Site traffic — first-party, no third-party trackers</h2>
+  <p class="sub" style="margin:-.4rem 0 1rem">Anonymous pageviews (random visitor cookie, host-only referrers, no IPs). Bots and admin pages excluded.</p>
+  <div class="cards">
+    <div class="card"><div class="k">Unique visitors</div><div class="v green">{{ t_overview.visitors or 0 }}</div></div>
+    <div class="card"><div class="k">Page views</div><div class="v">{{ t_overview.pageviews or 0 }}</div></div>
+    <div class="card"><div class="k">Sessions</div><div class="v">{{ t_overview.sessions or 0 }}</div></div>
+    <div class="card"><div class="k">Pages / session</div><div class="v">{{ t_overview.pages_per_session or 0 }}</div></div>
+    <div class="card"><div class="k">Visitor → signup</div><div class="v">{{ t_overview.signup_rate or 0 }}%</div></div>
+  </div>
+
+  <div class="two">
+    <div>
+      <h2>Top pages</h2>
+      <div class="wrap">
+      {% if t_pages %}
+        {% set top = t_pages[0].n %}
+        {% for p in t_pages %}
+        <div class="bar">
+          <div class="lbl">{{ p.path }}</div>
+          <div class="track"><div class="fill" style="width:{{ (p.n / top * 100)|round(1) }}%"></div></div>
+          <div class="n">{{ p.n }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty">No pageviews yet — tracking starts with this deploy.</div>
+      {% endif %}
+      </div>
+    </div>
+    <div>
+      <h2>Where visitors come from</h2>
+      <div class="wrap">
+      {% if t_referrers %}
+        {% set top = t_referrers[0].sessions %}
+        {% for r in t_referrers %}
+        <div class="bar">
+          <div class="lbl">{{ r.referrer }}</div>
+          <div class="track"><div class="fill" style="width:{{ (r.sessions / top * 100)|round(1) }}%"></div></div>
+          <div class="n">{{ r.sessions }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty">No referrer data yet — direct traffic or deploys so far.</div>
+      {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="two">
+    <div>
+      <h2>Devices</h2>
+      <div class="wrap">
+      {% if t_devices %}
+        {% set top = t_devices[0].n %}
+        {% for d in t_devices %}
+        <div class="bar">
+          <div class="lbl">{{ d.device|title }}</div>
+          <div class="track"><div class="fill" style="width:{{ (d.n / top * 100)|round(1) }}%"></div></div>
+          <div class="n">{{ d.n }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty">No data yet.</div>
+      {% endif %}
+      </div>
+    </div>
+    <div>
+      <h2>Daily traffic</h2>
+      <div class="wrap">
+      {% if t_daily %}
+      <table>
+        <tr><th>Day</th><th class="num">Visitors</th><th class="num">Page views</th><th class="num">Sessions</th></tr>
+        {% for d in t_daily|reverse %}
+        <tr>
+          <td>{{ d.day }}</td>
+          <td class="num hl">{{ d.visitors }}</td>
+          <td class="num">{{ d.pageviews }}</td>
+          <td class="num">{{ d.sessions }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}
+      <div class="empty">No data yet.</div>
+      {% endif %}
+      </div>
+    </div>
+  </div>
+
   <h2>Breaker leaderboard — your sales sheet</h2>
   <div class="wrap">
   {% if leaderboard %}

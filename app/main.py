@@ -18,7 +18,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import auth, config, db, push, youtube
+from . import auth, config, db, push, traffic, youtube
 from .ingest import run_ebay, run_fanatics, run_twitch_roster, run_youtube, run_youtube_roster
 from .normalizer import date_label, display_title, extract_break_number, FORMAT_LABELS
 from .normalizer import SPORT_LABELS, SPORT_ICONS, SPORTS, SPORT_IMAGES, detect_sports, detect_formats
@@ -48,6 +48,23 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 app = FastAPI(title="Box Break Finder")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
+
+# ---------------------------------------------------------------------------
+# First-party traffic tracking (Brian 2026-10-11): anonymous pageviews for
+# /admin/stats. Runs after the response is built; never breaks the request.
+# ---------------------------------------------------------------------------
+@app.middleware("http")
+async def track_pageview(request: Request, call_next):
+    response = await call_next(request)
+    try:
+        # Resolve the logged-in user cheaply (signed cookie decode, no DB hit)
+        # so traffic can be joined to signups for funnel analysis.
+        user_id = auth.read_session(request.cookies.get(auth.SESSION_COOKIE))
+    except Exception:
+        user_id = None
+    traffic.log_pageview(request, response, user_id=user_id)
+    return response
 
 
 @app.on_event("startup")
@@ -623,14 +640,32 @@ def admin_stats(
             daily = db.analytics_daily(conn, days)
             searches = db.analytics_top_searches(conn, days)
             platforms = db.analytics_platform_split(conn, days)
+            # First-party site traffic (Brian 2026-10-11).
+            t_overview = db.traffic_overview(conn, days)
+            t_pages = db.traffic_top_pages(conn, days)
+            t_referrers = db.traffic_referrers(conn, days)
+            t_devices = db.traffic_devices(conn, days)
+            t_daily = db.traffic_daily(conn, days)
         error = None
     except Exception as exc:
         overview, leaderboard, daily, searches, platforms = {}, [], [], [], []
+        t_overview, t_pages, t_referrers, t_devices, t_daily = {}, [], [], [], []
         error = f"Database unavailable: {exc}"
+    # Visitor → signup conversion for the period.
+    visitors = t_overview.get("visitors") or 0
+    signups = overview.get("signups") or 0
+    t_overview["signup_rate"] = (round(signups / visitors * 100, 1)
+                                 if visitors else 0)
+    sessions = t_overview.get("sessions") or 0
+    t_overview["pages_per_session"] = (round((t_overview.get("pageviews") or 0)
+                                            / sessions, 1) if sessions else 0)
     return templates.TemplateResponse(request, "admin_stats.html", {
         "denied": False, "key": key or "", "days": days, "error": error,
         "overview": overview, "leaderboard": leaderboard, "daily": daily,
         "searches": searches, "platforms": platforms,
+        "t_overview": t_overview, "t_pages": t_pages,
+        "t_referrers": t_referrers, "t_devices": t_devices,
+        "t_daily": t_daily,
     })
 
 
