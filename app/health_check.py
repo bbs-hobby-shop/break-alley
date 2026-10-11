@@ -54,7 +54,8 @@ def check_pollers():
     """Each poller slice should have fresh data (updated in last N hours)."""
     # Max acceptable staleness per source
     FRESHNESS = {
-        "ebay": timedelta(hours=1),
+        # Brian 2026-10-11: ebay at 2h while poller is TEMPORARILY hourly (429 throttle); revert to 1h when back to 30-min cadence
+        "ebay": timedelta(hours=2),
         "youtube": timedelta(hours=8),
         "twitch": timedelta(hours=1),
         "fanatics": timedelta(hours=1),
