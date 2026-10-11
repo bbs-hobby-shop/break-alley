@@ -226,9 +226,12 @@ def estimate_roster_quota_units(n_channels: int, n_videos: int) -> int:
 def fetch_roster_breaks(conn):
     """Poll active roster channels and return kept break rows.
 
-    Returns (rows, hit_channel_ids, checked_channel_ids, stats). Writes
-    nothing — the caller upserts rows and stamps the roster, so a total API
-    failure leaves existing data untouched (no slice wipe here at all).
+    Returns (rows, hit_channel_ids, checked_channel_ids, channel_of_video,
+    stats). channel_of_video maps every seen video id to its channel (all
+    from successfully checked channels) — the caller uses it to demote live
+    rows the roster no longer sees. Writes nothing — the caller upserts rows
+    and stamps the roster, so a total API failure leaves existing data
+    untouched (no slice wipe here at all).
     """
     get_api_key()  # fail fast with a clear message when the key is missing
 
@@ -236,7 +239,7 @@ def fetch_roster_breaks(conn):
     if not channels:
         print("youtube-roster: roster is empty — discovery hook will fill it "
               "as the search poller keeps breaks.")
-        return [], [], [], {
+        return [], [], [], {}, {
             "n_channels": 0, "n_api_ok": 0, "units": 0,
             "n_kept": 0, "n_non_break": 0, "n_past": 0, "n_no_date": 0,
         }
@@ -326,7 +329,7 @@ def fetch_roster_breaks(conn):
           f"= ~{units} quota units across {len(checked)} channels; "
           f"{len(rows)} upcoming breaks kept, "
           f"{n_non_break} non-break / {n_past} past / {n_no_date} no-date dropped")
-    return rows, sorted(hit_channels), checked, {
+    return rows, sorted(hit_channels), checked, channel_of_video, {
         "n_channels": len(channels),
         "n_api_ok": n_playlist_calls,
         "units": units,

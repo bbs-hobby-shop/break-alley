@@ -15,6 +15,7 @@ YouTube roster every ~6 hours offset from the search poll
 Twitch roster every ~20 min (see app/twitch_roster.py).
 """
 import argparse
+import re
 import sys
 import time
 from pathlib import Path
@@ -23,6 +24,17 @@ import psycopg.errors
 
 from . import config, db, ebay, fanatics_roster, twitch, twitch_roster, youtube, youtube_roster
 from .normalizer import looks_like_real_break, normalize_ebay_item
+
+
+_YT_VID_RE = re.compile(r"[?&]v=([A-Za-z0-9_-]{11})")
+
+
+def _youtube_video_id(url):
+    """Extract the 11-char video id from a youtube watch URL, or None."""
+    if not url:
+        return None
+    m = _YT_VID_RE.search(url)
+    return m.group(1) if m else None
 
 
 def _transact_with_retry(work, attempts=3):
@@ -145,7 +157,7 @@ def run_ebay() -> int:
                     except Exception:
                         pass
                     conn.execute(
-                        "UPDATE breaks SET starts_at=%s, is_live=%s WHERE id=%s",
+                        "UPDATE breaks SET starts_at=%s, is_live=%s, fetched_at=NOW() WHERE id=%s",
                         (parsed, is_live, r["id"]),
                     )
                     n_parsed += 1
@@ -168,7 +180,7 @@ def run_ebay() -> int:
                     now = datetime.now(timezone.utc)
                     if timedelta(hours=-4) < (dt - now) < timedelta(minutes=15):
                         conn.execute(
-                            "UPDATE breaks SET is_live=TRUE WHERE id=%s",
+                            "UPDATE breaks SET is_live=TRUE, fetched_at=NOW() WHERE id=%s",
                             (r["id"],),
                         )
                         n_live += 1
@@ -358,7 +370,7 @@ def run_youtube_roster() -> int:
             n_manual = db.seed_manual_channels(conn, lines)
             if n_manual:
                 print(f"youtube-roster: seeded {n_manual} manual channels")
-        rows, hit_channel_ids, checked, stats = youtube_roster.fetch_roster_breaks(conn)
+        rows, hit_channel_ids, checked, channel_of_video, stats = youtube_roster.fetch_roster_breaks(conn)
         if stats["n_channels"] > 0 and stats["n_api_ok"] == 0:
             # Total API failure (quota exhausted, rate-limited, or outage):
             # nothing was checked, so there is nothing to write. Unlike the
@@ -390,6 +402,32 @@ def run_youtube_roster() -> int:
         ).rowcount
         if n_pruned:
             print(f"youtube-roster: pruned {n_pruned} stale breaks")
+        # Demote live rows the roster no longer sees (front-end audit
+        # 2026-10-11: the prune above kept is_live rows forever, so ended
+        # streams stayed marked live). Only channels successfully checked
+        # this run count — a failed playlist fetch leaves that channel's
+        # rows untouched. seen_vids is playlist-level, so a videos.list
+        # failure can't demote a still-live stream; rows with no parseable
+        # video id are left alone.
+        seen_vids = set(channel_of_video)
+        demote_ids = []
+        if checked:
+            live_rows = conn.execute(
+                "SELECT id, source_url FROM breaks WHERE source='youtube' "
+                "AND COALESCE(is_live, FALSE) AND channel_id = ANY(%s)",
+                (checked,),
+            ).fetchall()
+            for r in live_rows:
+                vid = _youtube_video_id(r.get("source_url"))
+                if vid and vid not in seen_vids:
+                    demote_ids.append(r["id"])
+        if demote_ids:
+            conn.execute(
+                "UPDATE breaks SET is_live=FALSE, fetched_at=NOW() "
+                "WHERE id = ANY(%s)",
+                (demote_ids,),
+            )
+            print(f"youtube-roster: demoted {len(demote_ids)} no-longer-live breaks")
     print(f"youtube-roster: upserted {n} breaks from {len(checked)} channels "
           f"(~{stats['units']} quota units)")
     return 0

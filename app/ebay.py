@@ -60,11 +60,16 @@ def _browse_get(params: dict, token: str):
     time.sleep(API_PACING)
     resp = httpx.get(SEARCH_URL, params=params, headers=headers, timeout=30)
     if resp.status_code == 429:
-        print("ebay: 429 rate-limited — waiting 5s and retrying once",
-              file=sys.stderr)
+        # eBay support (ticket 261010-000051) needs the rlogId from a failed
+        # call's response headers — log them so the next throttled run
+        # captures it for the ticket reply.
+        print(f"ebay: 429 rate-limited (resp headers={dict(resp.headers)})"
+              " — waiting 5s and retrying once", file=sys.stderr)
         time.sleep(5)
         resp = httpx.get(SEARCH_URL, params=params, headers=headers, timeout=30)
         if resp.status_code == 429:
+            print(f"ebay: 429 persisted (resp headers={dict(resp.headers)})",
+                  file=sys.stderr)
             raise EbayThrottled("eBay rate limit (429) persisted after retry")
     resp.raise_for_status()
     return resp

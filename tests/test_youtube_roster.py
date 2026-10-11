@@ -35,15 +35,21 @@ class FakeResult:
 class FakeConn:
     """Records every execute(); answers roster/seed reads with canned data."""
 
-    def __init__(self, roster_channels=None, seed_rowcount=0):
+    def __init__(self, roster_channels=None, seed_rowcount=0, live_rows=None):
         self.roster_channels = roster_channels or []
         self.seed_rowcount = seed_rowcount
+        self.live_rows = live_rows or []
         self.executes = []  # list of (sql, params)
 
     def execute(self, sql, params=None):
         self.executes.append((sql, params))
         if "SELECT channel_id, title, country FROM youtube_channels" in sql:
             return FakeResult(rows=self.roster_channels)
+        if "COALESCE(is_live, FALSE) AND channel_id = ANY" in sql:
+            # Emulate the ANY(checked) filter: only rows from checked channels.
+            checked = set(params[0]) if params and params[0] else set()
+            return FakeResult(rows=[r for r in self.live_rows
+                                    if r.get("channel_id") in checked])
         if "FROM breaks" in sql and "INSERT INTO youtube_channels" in sql:
             return FakeResult(rowcount=self.seed_rowcount)
         if "INSERT INTO youtube_channels" in sql and "'manual'" in sql:
@@ -197,7 +203,7 @@ def test_roster_fetch_filters_and_attributes():
                 (youtube_roster, "channel_countries",
                  lambda ids: {CH_A: "US"}),
                 (config, "YOUTUBE_API_KEY", "fake-key")]):
-        rows, hit_cids, checked, stats = youtube_roster.fetch_roster_breaks(conn)
+        rows, hit_cids, checked, channel_of_video, stats = youtube_roster.fetch_roster_breaks(conn)
 
     kept = sorted(r["title_raw"] for r in rows)
     assert kept == ["2024 Topps Chrome Baseball 2 Box Break PYT #5",
@@ -228,7 +234,7 @@ def test_roster_country_known_override():
                 (youtube_roster, "channel_countries", lambda ids: {}),
                 (youtube_roster, "KNOWN_COUNTRIES", {CH_A: "CA"}),
                 (config, "YOUTUBE_API_KEY", "fake-key")]):
-        rows, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
+        rows, _, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
     assert rows and all(r["country"] == "CA" for r in rows), rows
     updates = [(s, p) for s, p in conn.executes
                if "UPDATE youtube_channels SET country" in s]
@@ -247,7 +253,7 @@ def test_roster_country_title_fallback():
                 (youtube_roster, "KNOWN_COUNTRIES", {}),
                 (youtube_roster, "KNOWN_COUNTRIES_BY_TITLE", {"bythacard": "TW"}),
                 (config, "YOUTUBE_API_KEY", "fake-key")]):
-        rows, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
+        rows, _, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
     assert rows and all(r["country"] == "TW" for r in rows), rows
     print("ok test_roster_country_title_fallback")
 
@@ -264,7 +270,7 @@ def test_roster_country_details_title_fallback():
                 (youtube_roster, "KNOWN_COUNTRIES", {}),
                 (youtube_roster, "KNOWN_COUNTRIES_BY_TITLE", {"channel": "TW"}),
                 (config, "YOUTUBE_API_KEY", "fake-key")]):
-        rows, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
+        rows, _, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
     assert rows and all(r["country"] == "TW" for r in rows), rows
     print("ok test_roster_country_details_title_fallback")
 
@@ -336,6 +342,53 @@ def test_ingest_run_writes():
     assert conn.sqls_containing("last_checked_at"), "checked channels stamped"
     assert conn.sqls_containing("FROM breaks"), "seed backfill ran"
     print("ok test_ingest_run_writes")
+
+
+def test_roster_demotes_unseen_live_rows():
+    # Front-end audit 2026-10-11: ended streams stayed is_live=TRUE forever
+    # because the roster prune kept live rows. The poller must demote live
+    # rows whose channel was checked but whose video is no longer seen.
+    CH = "UCdemotechannell01"
+    CH_DEAD = "UCdeadchannell022"
+    VID_LIVE = "aBcDeFgHiJ1"    # 11 chars, still live, in playlist
+    VID_ENDED = "kLmNoPqRsT2"   # 11 chars, ended -> absent from playlist
+    VID_OTHER = "zZzZzZzZzZ3"   # live row on an unchecked channel: untouched
+
+    def fake_get(url, params):
+        if "playlistItems" in url:
+            if params["playlistId"] == "UU" + CH[2:]:
+                return {"items": [{"contentDetails": {"videoId": VID_LIVE}}]}
+            raise _http_error(500)  # CH_DEAD: playlist fetch fails
+        assert "/videos" in url, f"unexpected call: {url}"
+        return {"items": [_video_resource(
+            VID_LIVE, CH, "LIVE 2 Box 2024 Prizm Basketball Break PYT #7",
+            live=True, started="2026-10-11T01:00:00Z")]}
+
+    live_rows = [
+        {"id": 101, "channel_id": CH,
+         "source_url": f"https://www.youtube.com/watch?v={VID_LIVE}"},
+        {"id": 102, "channel_id": CH,
+         "source_url": f"https://www.youtube.com/watch?v={VID_ENDED}"},
+        {"id": 103, "channel_id": CH_DEAD,
+         "source_url": f"https://www.youtube.com/watch?v={VID_OTHER}"},
+    ]
+    conn = FakeConn(
+        roster_channels=[{"channel_id": CH, "title": "Demo", "country": "US"},
+                         {"channel_id": CH_DEAD, "title": "Dead", "country": "US"}],
+        live_rows=live_rows)
+    with patch([(youtube_roster, "_get", fake_get),
+                (youtube, "_get", fake_get),
+                (youtube_roster, "channel_countries", lambda ids: {}),
+                (config, "YOUTUBE_API_KEY", "fake-key")]):
+        with fake_db_conn(conn):
+            rc = ingest.run_youtube_roster()
+    assert rc == 0
+    demotes = [(s, p) for s, p in conn.executes
+               if "SET is_live=FALSE" in s]
+    assert len(demotes) == 1, f"expected one demote UPDATE, got {len(demotes)}"
+    demoted_ids = demotes[0][1][0]
+    assert demoted_ids == [102], f"only the ended video demotes, got {demoted_ids}"
+    print("ok test_roster_demotes_unseen_live_rows")
 
 
 def test_discovery_hook_in_search_poller():
