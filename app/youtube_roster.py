@@ -80,6 +80,10 @@ KNOWN_COUNTRIES = {
     # Hokej Karty: Czech hockey card shop group breaks (Brian approved 2026-10-07)
     "UCTm16TWigrtCUgIWv-7Y-1Q": "CZ",
     # --- Researched 2026-10-11: channels not setting snippet.country ---
+    # Ozzie Collectables: Melbourne AU B&M card shop (TCG sweep 2026-10-11)
+    "UC9WQU0HbGGfxnOQ2Bft4Njg": "AU",
+    # RNGmart: Aussie TCG rip & ship, rngmart.com.au (TCG sweep 2026-10-11)
+    "UCzm8YqSFfek1PyMS5w9VhIQ": "AU",
     # Philmington: Florida corp records; US hobby figure
     "UClSazuEj3e0c_q8OX-JtNbQ": "US",
     # Phil's Pulls: ex-Yankees pitcher Phil Hughes

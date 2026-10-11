@@ -114,3 +114,19 @@ fastbreaktradingcards23  # Fast Break Trading Cards — hobby/case breaks on eBa
 gothamsportscards  # Gotham Sports Cards — Rip&Ship break shows on eBay Live (multi-sport), 100% (~1.3K), Top-rated seller (Brian approved 2026-10-11, weekly discovery)
 daddy_dubs  # DaddyDubs Sports Cards — football/baseball hobby breaks on eBay Live, 99.6% (~1.4K) (Brian approved 2026-10-11, weekly discovery)
 popeyscardbreaks  # Popeys Card Breaks (AU) — $1-start AFL break shows on eBay Live AU, 100% (~185); AU seller, no eBay region-tag mechanism yet so listings show under US filter (Brian approved 2026-10-11, weekly discovery)
+
+# TCG sweep 2026-10-11 (Brian approved "Add all 44")
+weedles_warehouse  # Weedles Warehouse — Pokemon case/box breaks on eBay Live, 100% (~12-15K)
+pokeswpz  # PokeSwpz Card Shop — Pokemon + One Piece case breaks, 99.6% (~4.9K)
+fabricatorsforge  # Fabricator's Forge — Pokemon + One Piece nightly rips, 99.9% (~18.4K)
+professordantcg  # ProfessorDanTCG (GB) — Pokemon + Lorcana, London shop, 100% (~3.9K)
+lakecardstore  # Lake Card Store (GB) — Pokemon box breaks, ~100% (7.5K+)
+cheeky-jigglypuff-cards  # Cheeky Jigglypuff Cards (GB) — Pokemon box breaks, 100% (~1.7K)
+rarecandy.collectibles  # RareCandy Collectibles Ltd (GB) — multi-TCG rip & ship, 100% (~4K); username verified via eBay Live URL
+alt-i-rip  # Alt-I-Rip (GB) — Pokemon + Lorcana rip & ship, 100% (~761), newer seller
+swapitttt  # Swapitttt (AU) — Pokemon + One Piece $1-start rips, 99.9% (~3.4K)
+ozzie.collectables  # Ozzie Collectables (AU) — Melbourne B&M, multi-TCG live breaks, 99.7% (~3.8K)
+thewanderingcollectorau  # The Wandering Collector (AU) — Pokemon/One Piece, 100% (~578)
+funkohub  # FunkoHub (AU) — One Piece rip & ship, 100% (~700)
+ccjamesinc  # CCJames Inc (CA) — Pokemon rip & ship + pack battles, Montreal
+slabsharkslive  # Slab Sharks Live (CA) — Pokemon rip & ship, 99.9% (~6K)

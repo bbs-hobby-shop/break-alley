@@ -50,6 +50,15 @@ TWITCH_COUNTRIES: dict[str, str] = {
     "tcgpeppi": "NL",              # Dutch; TCGPeppi.nl
     "drewsbreaks": "GR",           # Thessaloniki, Greece
     "magictradersnl": "NL",        # Netherlands ("nl" in name)
+    "packflipps": "CA",      # PackFlipps, Ontario, Canada (TCG sweep 2026-10-11)
+    "packripstcg": "GR",     # PackRipsTCG, Greece (TCG sweep 2026-10-11)
+    "retro_now": "US",       # Retro Now (TCG sweep 2026-10-11)
+    "tcgtwan": "NL",         # TCGTwan, Netherlands (TCG sweep 2026-10-11)
+    "tcgaddan": "SE",        # tcgaddan, Sweden (TCG sweep 2026-10-11)
+    "gbkort": "NO",          # GBKort, Norway (TCG sweep 2026-10-11)
+    "paymoneywubby": "US",   # PaymoneyWubby, San Diego (TCG sweep 2026-10-11)
+    "ruxin34": "US",         # ruxin34, Ohio area (TCG sweep 2026-10-11)
+    "rngmart": "AU",         # RNGmart, Australia (TCG sweep 2026-10-11)
 }
 # eBay seller username (lowercased) -> 2-letter country
 # Researched 2026-10-11 (eBay seller pages, listing locations, seller sites).
@@ -153,6 +162,20 @@ EBAY_SELLER_COUNTRIES: dict[str, str] = {
     "cardshub_it": "IT",  # POSITIVE: listings show "Reggio Emilia, IT" (confirms _it = Italy)
     "renegadecollectibles": "CA",  # POSITIVE: listings consistently "Located in Canada"
     "popeyscardbreaks": "AU",  # known: Australian seller, AFL breaks (not re-researched)
+    "weedles_warehouse": "US",       # TCG sweep 2026-10-11
+    "pokeswpz": "US",                # TCG sweep 2026-10-11
+    "fabricatorsforge": "US",        # TCG sweep 2026-10-11
+    "professordantcg": "GB",        # London, UK (TCG sweep 2026-10-11)
+    "lakecardstore": "GB",          # UK (TCG sweep 2026-10-11)
+    "cheeky-jigglypuff-cards": "GB",  # UK (TCG sweep 2026-10-11)
+    "rarecandy.collectibles": "GB",  # UK (TCG sweep 2026-10-11)
+    "alt-i-rip": "GB",              # UK (TCG sweep 2026-10-11)
+    "swapitttt": "AU",               # Australia (TCG sweep 2026-10-11)
+    "ozzie.collectables": "AU",      # Melbourne (TCG sweep 2026-10-11)
+    "thewanderingcollectorau": "AU",  # Australia (TCG sweep 2026-10-11)
+    "funkohub": "AU",                # Australia (TCG sweep 2026-10-11)
+    "ccjamesinc": "CA",              # Montreal (TCG sweep 2026-10-11)
+    "slabsharkslive": "CA",          # Canada (TCG sweep 2026-10-11)
 }
 # Fanatics Live shop name -> 2-letter country
 # Researched 2026-10-11 (shop sites, addresses, web search).
@@ -199,6 +222,19 @@ FANATICS_SHOP_COUNTRIES: dict[str, str] = {
     "the wax culture": "US",  # evidence: PO Box 198, Victor, NY 14564; store at 2 West Main (thewax
     "lms box breaks": "US",  # ? evidence: socials IG @lmsboxbreaks / X @BoxLms; multi-platform US 
     "dave & adams uk": "GB",  # evidence: known — United Kingdom storefront
+    "badger breaks": "US",           # TCG sweep 2026-10-11
+    "bozeman breaks": "US",          # Bozeman, MT (TCG sweep 2026-10-11)
+    "crossingtcg": "US",             # TCG sweep 2026-10-11
+    "the card bar": "US",            # TCG sweep 2026-10-11
+    "mama breaks": "US",             # TCG sweep 2026-10-11
+    "gotham card breaks": "US",      # TCG sweep 2026-10-11
+    "suhpreme cards": "US",          # TCG sweep 2026-10-11
+    "queenz of cardz": "US",         # TCG sweep 2026-10-11
+    "allsportsbreaks": "US",         # TCG sweep 2026-10-11
+    "hit seekers sports cards": "US",  # TCG sweep 2026-10-11
+    "brew town trading co": "US",    # TCG sweep 2026-10-11
+    "coach chris cards": "US",       # TCG sweep 2026-10-11
+    "wheelhouse breaks": "US",       # TCG sweep 2026-10-11
 }
 _MAPS = {
     "twitch": TWITCH_COUNTRIES,

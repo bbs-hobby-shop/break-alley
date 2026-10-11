@@ -53,3 +53,14 @@ lonestarpackbreaks  # Lone Star Pack Breaks — Carrollton TX, Pokemon TCG group
 685media  # 685 Media — sports-card group breaks + ranked breaks, live scoring on Twitch (Brian approved 2026-10-10, weekly discovery)
 likebutterlive  # ThePokePair — TCG personal pack/box breaks + case breaks, LLC, breaks daily (Brian approved 2026-10-11, weekly discovery)
 wildflowa  # Wildflowa — Pokemon/TCG group breaks + personals, CA LLC, Whatnot 5.0/432 reviews (Brian approved 2026-10-11, weekly discovery)
+
+# TCG sweep 2026-10-11 (Brian approved "Add all 44")
+packflipps  # PackFlipps (CA) — daily Pokemon rip&ship, Partner, 25K followers
+packripstcg  # PackRipsTCG (GR) — Pokemon rip&ship, Partner
+retro_now  # Retro Now (US) — Pokemon vintage+modern box breaks
+tcgtwan  # TCGTwan (NL) — Dutch Pokemon rip&ship, near-daily
+tcgaddan  # tcgaddan (SE) — Swedish Pokemon rip&ship, near-daily
+gbkort  # GBKort (NO) — Norwegian Pokemon rip&ship, new channel
+paymoneywubby  # PaymoneyWubby (US) — MTG Magic Monday weekly buy-in breaks, 705K followers
+ruxin34  # ruxin34 (US) — Yu-Gi-Oh! consignment box/case breaks
+rngmart  # RNGmart (AU) — Pokemon + One Piece rip&ship
