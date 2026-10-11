@@ -998,7 +998,8 @@ def admin_feedback_json(request: Request, key: str | None = Query(default=None),
 @app.get("/admin/sports-other")
 def admin_sports_other(request: Request,
                        key: str | None = Query(default=None),
-                       limit: int = Query(default=2000)):
+                       limit: int = Query(default=2000),
+                       summary: int = Query(default=0)):
     """JSON export of listings currently tagged sport='other'."""
     if not _admin_key_ok(key):
         return JSONResponse({"error": "denied"}, status_code=403)
@@ -1006,6 +1007,21 @@ def admin_sports_other(request: Request,
         with db.get_conn() as conn:
             total = conn.execute(
                 "SELECT COUNT(*) AS count FROM breaks WHERE sport = 'other'").fetchone()["count"]
+            if summary:
+                rows = conn.execute(
+                    """SELECT breaker, source, COUNT(*) AS n,
+                              MAX(title_raw) AS sample_title
+                       FROM breaks WHERE sport = 'other'
+                       GROUP BY breaker, source ORDER BY n DESC"""
+                ).fetchall()
+                return JSONResponse({
+                    "total_other": total,
+                    "by_breaker": [
+                        {"breaker": r["breaker"], "source": r["source"],
+                         "count": r["n"], "sample_title": r["sample_title"]}
+                        for r in rows
+                    ],
+                })
             rows = conn.execute(
                 """SELECT id, title_raw, product_normalized, breaker, source
                    FROM breaks WHERE sport = 'other'
