@@ -34,6 +34,18 @@ SITE_URL = "https://breakalley.com"
 
 CHECKS = []  # (name, passed, detail)
 
+# Max acceptable slice staleness per source — shared by check_pollers and
+# check_times so the two checks can never drift. (2026-10-11: the blanket
+# 2h "live breaks fresh" bar false-alarmed every morning on YouTube, whose
+# roster poll runs on a longer cadence than the other platforms.)
+POLLER_FRESHNESS = {
+    # Brian 2026-10-11: ebay at 2h while poller is TEMPORARILY hourly (429 throttle); revert to 1h when back to 30-min cadence
+    "ebay": timedelta(hours=2),
+    "youtube": timedelta(hours=8),
+    "twitch": timedelta(hours=1),
+    "fanatics": timedelta(hours=1),
+}
+
 
 def check(name, passed, detail=""):
     CHECKS.append((name, bool(passed), str(detail)))
@@ -52,14 +64,8 @@ def get_db():
 
 def check_pollers():
     """Each poller slice should have fresh data (updated in last N hours)."""
-    # Max acceptable staleness per source
-    FRESHNESS = {
-        # Brian 2026-10-11: ebay at 2h while poller is TEMPORARILY hourly (429 throttle); revert to 1h when back to 30-min cadence
-        "ebay": timedelta(hours=2),
-        "youtube": timedelta(hours=8),
-        "twitch": timedelta(hours=1),
-        "fanatics": timedelta(hours=1),
-    }
+    # Max acceptable staleness per source (shared module constant)
+    FRESHNESS = POLLER_FRESHNESS
     try:
         with get_db() as conn:
             for source, max_age in FRESHNESS.items():
@@ -151,12 +157,24 @@ def check_times():
     """Spot-check that break times are sane and timezone-aware."""
     try:
         with get_db() as conn:
-            # Live breaks should have been fetched recently
-            n = conn.execute(
-                "SELECT COUNT(*) FROM breaks WHERE is_live"
-                " AND fetched_at < NOW() - INTERVAL '2 hours'"
-            ).fetchone()[0]
-            check("times: live breaks fresh", n == 0, f"{n} stale live")
+            # Live breaks should have been fetched recently — per source,
+            # using the same staleness bars as check_pollers. A blanket bar
+            # false-alarms on platforms with longer poll cadences
+            # (e.g. YouTube roster polls every 3h).
+            stale = 0
+            detail_parts = []
+            for source, max_age in POLLER_FRESHNESS.items():
+                n = conn.execute(
+                    "SELECT COUNT(*) FROM breaks WHERE source = %s AND is_live"
+                    " AND fetched_at < NOW() - %s::interval",
+                    (source, max_age),
+                ).fetchone()[0]
+                if n:
+                    stale += n
+                    detail_parts.append(f"{source}:{n}")
+            check("times: live breaks fresh", stale == 0,
+                  f"{stale} stale live ({', '.join(detail_parts)})" if stale
+                  else "0 stale live")
     except Exception as e:
         check("times: database reachable", False, str(e)[:100])
 
