@@ -570,40 +570,6 @@ def _admin_key_ok(key: str | None) -> bool:
     return bool(config.ADMIN_KEY) and key == config.ADMIN_KEY
 
 
-# ONE-TIME diagnostic (Brian 2026-10-10): verify the Stripe portal call chain
-# with the real stored customer ID. REMOVE after verification.
-@app.get("/admin/diag-portal")
-def admin_diag_portal(key: str = ""):
-    if not _admin_key_ok(key):
-        return JSONResponse({"ok": False, "error": "forbidden"}, status_code=403)
-    from . import billing
-    import os
-    # Key-type prefixes only (first 8 chars identify rk_live_/pk_live_/sk_live_/whsec_;
-    # not sensitive, but tells us if the wrong key type was pasted).
-    prefixes = {
-        n: os.environ.get(n, "").strip()[:8]
-        for n in ("STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY",
-                  "STRIPE_WEBHOOK_SECRET", "STRIPE_PRO_PRICE_ID")
-    }
-    with db.get_conn() as conn:
-        row = conn.execute(
-            "SELECT stripe_customer_id FROM users WHERE stripe_customer_id IS NOT NULL LIMIT 1"
-        ).fetchone()
-    if not row or not row["stripe_customer_id"]:
-        return JSONResponse({"ok": False, "error_kind": "no_customer_on_file",
-                             "prefixes": prefixes})
-    try:
-        url = billing.create_portal_session(
-            row["stripe_customer_id"], "https://breakalley.com"
-        )
-        return JSONResponse({"ok": True, "url_host": url.split("/")[2],
-                             "prefixes": prefixes})
-    except Exception as e:
-        msg = str(e)
-        kind = "no_such_customer" if "No such customer" in msg else f"other:{type(e).__name__}"
-        return JSONResponse({"ok": False, "error_kind": kind, "prefixes": prefixes})
-
-
 @app.get("/admin/suggestions", response_class=HTMLResponse)
 def admin_suggestions(
     request: Request,
