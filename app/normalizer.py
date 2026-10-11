@@ -34,9 +34,11 @@ SPORT_KEYWORDS = {
                r"\btopps tribute\b", r"\btopps finest\b", r"\btopps archives\b",
                r"\bsapphire\b", r"\bdiamond kings\b", r"\btopps heritage\b",
                r"\btopps gilded\b", r"\btopps tier one\b",
-               r"\btopps\b.{0,10}\bset-break\b", "⚾"],
+               r"\btopps\b.{0,20}\bset-break\b",
+               r"\bflagship\b", "⚾"],
     "basketball": [r"\bbasketball\b", r"\bnba\b", r"\bwnba\b",
-                   r"\bprizm\b.{0,15}\bdraft picks\b", "🏀"],
+                   r"\bprizm\b.{0,15}\bdraft picks\b",
+                   r"\bpanini select\b", "🏀"],
 
     "soccer": [r"\bsoccer\b", r"\bpremier league\b", r"\bepl\b", r"\bfifa\b",
                r"\bmls\b", r"\bchampions league\b", r"\bworld cup\b", r"\bla liga\b",
