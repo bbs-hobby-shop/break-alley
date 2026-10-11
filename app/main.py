@@ -1477,6 +1477,8 @@ def my_breaks(request: Request):
         "live_by_breaker": live_by_breaker,
         "saved_by_breaker": saved_by_breaker,
         "saved_listings": saved_listings, "error": error,
+        # Brian 2026-10-10: save stars on "From your breakers" rows.
+        "saved_ids": {s.get("id") for s in saved_listings},
     })
 
 

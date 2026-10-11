@@ -70,6 +70,16 @@
     padding: 1rem 1.2rem; margin-bottom: .7rem; }
   .bcard:hover { border-color: var(--green); }
   .bcard .meta .title { font-weight: 800; margin: 0 0 .3rem; }
+  /* Brian 2026-10-10: save star on "From your breakers" rows. The star form
+     is a sibling of the row link (never nested inside the <a>). */
+  .bcard-wrap { position: relative; }
+  .bcard-wrap .bcard { padding-right: 3.4rem; }
+  .bcard-wrap .fav-form { position: absolute; right: .7rem; top: 50%;
+    transform: translateY(-50%); margin: 0; }
+  .fav-btn { background: none; border: 0; cursor: pointer; font-size: 1.6rem; line-height: 1;
+    color: var(--muted); min-width: 48px; min-height: 48px;
+    display: inline-flex; align-items: center; justify-content: center; font-family: inherit; }
+  .fav-btn.faved { color: var(--orange); }
   .tag { display: inline-block; font-size: .72rem; font-weight: 800; border-radius: 20px;
     padding: .15rem .6rem; background: var(--card); border: 1px solid var(--line); color: var(--muted); }
   .tag.live { background: var(--red); border-color: var(--red); color: #fff; }
@@ -106,6 +116,7 @@
   .bgroup .blist { padding: 0 .7rem .7rem; }
   .bgroup .blist .bcard { margin-bottom: .5rem; }
   .bcard.hidden { display: none; }
+  .bcard-wrap.hidden { display: none; }
   .more-btn { display: block; width: 100%; background: var(--card); border: 1px solid var(--line);
     border-radius: 10px; color: var(--green); font-weight: 800; font-size: .88rem;
     padding: .65rem; cursor: pointer; font-family: inherit; }
@@ -149,17 +160,24 @@
         </summary>
         <div class="blist">
           {% for b in g.breaks %}
-          <a class="bcard{% if loop.index > 5 %} hidden{% endif %}" href="/break/{{ b.id }}">
-            <div class="meta">
-              <p class="title">{{ b.display_title }}</p>
-              <div class="tags">
-                {% if b.is_live and not b.is_auction %}<span class="tag live">● LIVE</span>{% endif %}
-                {% if b.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
-                {% if b.date_label and not b.is_live %}<span class="tag date">🕐 {{ b.date_label }}</span>{% endif %}
-                {% if b.is_auction and b.auction_ends_at %}<span class="tag auction-timer" data-ends="{{ b.auction_ends_at }}">⏳ --</span>{% endif %}
+          <div class="bcard-wrap{% if loop.index > 5 %} hidden{% endif %}">
+            <a class="bcard" href="/break/{{ b.id }}">
+              <div class="meta">
+                <p class="title">{{ b.display_title }}</p>
+                <div class="tags">
+                  {% if b.is_live and not b.is_auction %}<span class="tag live">● LIVE</span>{% endif %}
+                  {% if b.is_auction %}<span class="tag auction">🔨 AUCTION</span>{% endif %}
+                  {% if b.date_label and not b.is_live %}<span class="tag date">🕐 {{ b.date_label }}</span>{% endif %}
+                  {% if b.is_auction and b.auction_ends_at %}<span class="tag auction-timer" data-ends="{{ b.auction_ends_at }}">⏳ --</span>{% endif %}
+                </div>
               </div>
-            </div>
-          </a>
+            </a>
+            <form class="fav-form" method="post" action="/saved-listings/toggle">
+              <input type="hidden" name="break_id" value="{{ b.id }}">
+              <input type="hidden" name="next" value="/my-breaks">
+              <button class="fav-btn {% if b.id in saved_ids %}faved{% endif %}" type="submit" title="{% if b.id in saved_ids %}Unsave this break{% else %}Save this break{% endif %}">★</button>
+            </form>
+          </div>
           {% endfor %}
           {% if g.breaks|length > 5 %}
           <button type="button" class="more-btn">Show {{ g.breaks|length - 5 }} more</button>
@@ -247,14 +265,42 @@ document.getElementById('sectabs').addEventListener('click', function(e) {
   document.getElementById(t.dataset.sec).style.display = '';
 });
 // Brian 2026-10-09: per-breaker "show more" — reveal the hidden listings
-// (works in both the live and saved tabs).
+// (works in both the live and saved tabs; live rows wrap in .bcard-wrap
+// since 2026-10-10 when the save star was added).
 document.querySelector('main').addEventListener('click', function(e) {
   var btn = e.target.closest('.more-btn');
   if (!btn) return;
-  btn.closest('.blist').querySelectorAll('.bcard.hidden').forEach(function(c) {
+  btn.closest('.blist').querySelectorAll('.bcard.hidden, .bcard-wrap.hidden').forEach(function(c) {
     c.classList.remove('hidden');
   });
   btn.remove();
+});
+// Brian 2026-10-10: instant save-star flips on "From your breakers" rows —
+// same optimistic AJAX pattern as the homepage cards (flip instantly, sync
+// in the background, never reload the page).
+document.addEventListener('submit', function(e) {
+  var form = e.target.closest ? e.target.closest('#sec-live .fav-form') : null;
+  if (!form) return;
+  e.preventDefault();
+  var btn = form.querySelector('.fav-btn');
+  if (!btn) return;
+  var wasSaved = btn.classList.contains('faved');
+  btn.classList.toggle('faved', !wasSaved);
+  btn.title = wasSaved ? 'Save this break' : 'Unsave this break';
+  fetch(form.action, {
+    method: 'POST',
+    body: new URLSearchParams(new FormData(form)),
+    headers: { 'Accept': 'application/json' },
+    credentials: 'same-origin'
+  }).then(function(r) { return r.json(); }).then(function(j) {
+    if (!j || !j.ok) {
+      btn.classList.toggle('faved', wasSaved);
+      btn.title = wasSaved ? 'Unsave this break' : 'Save this break';
+    }
+  }).catch(function() {
+    btn.classList.toggle('faved', wasSaved);
+    btn.title = wasSaved ? 'Unsave this break' : 'Save this break';
+  });
 });
 </script>
 <script>
