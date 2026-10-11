@@ -570,38 +570,6 @@ def _admin_key_ok(key: str | None) -> bool:
     return bool(config.ADMIN_KEY) and key == config.ADMIN_KEY
 
 
-# ONE-TIME (Brian 2026-10-10): wipe his test-mode Pro state so he can
-# subscribe live with a clean slate. Clears Pro flags only; the account,
-# saved breaks, and follows are untouched. REMOVE after use.
-@app.post("/admin/wipe-test-pro")
-def admin_wipe_test_pro(key: str = "", email: str = ""):
-    if not _admin_key_ok(key):
-        return JSONResponse({"ok": False, "error": "forbidden"}, status_code=403)
-    email = (email or "").strip().lower()
-    if not email:
-        return JSONResponse({"ok": False, "error": "email_required"}, status_code=400)
-    with db.get_conn() as conn:
-        row = conn.execute(
-            "SELECT id, email, is_pro, stripe_customer_id FROM users WHERE lower(email) = %s",
-            (email,),
-        ).fetchone()
-        if not row:
-            return JSONResponse({"ok": False, "error": "no_such_user"}, status_code=404)
-        conn.execute(
-            """UPDATE users SET is_pro = FALSE, stripe_customer_id = NULL,
-                      stripe_subscription_id = NULL, pro_expires_at = NULL,
-                      pro_started_at = NULL WHERE id = %s""",
-            (row["id"],),
-        )
-        after = conn.execute(
-            "SELECT is_pro, stripe_customer_id FROM users WHERE id = %s",
-            (row["id"],),
-        ).fetchone()
-    return JSONResponse({"ok": True, "email": row["email"],
-                         "is_pro": after["is_pro"],
-                         "stripe_customer_id": after["stripe_customer_id"]})
-
-
 @app.get("/admin/suggestions", response_class=HTMLResponse)
 def admin_suggestions(
     request: Request,
