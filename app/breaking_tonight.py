@@ -76,6 +76,16 @@ def _short_title(title: str, product: str | None, max_len: int = 64) -> str:
     return t
 
 
+def _fit(d, text: str, fnt, max_w: float) -> str:
+    """Trim text (pixel-measured) so it never overflows its box. Brian 2026-10-11."""
+    text = (text or "").strip()
+    if d.textlength(text, font=fnt) <= max_w:
+        return text
+    while text and d.textlength(text + "…", font=fnt) > max_w:
+        text = text[:-1]
+    return text.rstrip() + "…"
+
+
 def build_caption(breaks, date_str: str | None = None) -> str:
     """Text caption for X / Threads."""
     if date_str is None:
@@ -110,19 +120,27 @@ def render_card(breaks) -> bytes:
     # Header
     d.rectangle([0, 0, W, 300], fill=(6, 14, 28))
     d.ellipse([70, 108, 110, 148], fill=GREEN)  # live dot
-    d.text((140, 92), "BREAKING TONIGHT", font=font(64), fill=WHITE)
+    header_fnt = font(64)
+    header = _fit(d, "BREAKING TONIGHT", header_fnt, W - 140 - 70)
+    d.text((140, 92), header, font=header_fnt, fill=WHITE)
     date_str = datetime.now(CT).strftime("%A, %B %-d").upper()
     d.text((72, 190), date_str, font=font(34, bold=False), fill=MUTED)
     d.text((72, 240), "Every live box break, one place  \u2014  breakalley.com",
            font=font(28, bold=False), fill=MUTED)
 
     y = 340
+    # Inner text must stay inside the rounded card: margins 48 + padding 32 each side.
+    TEXT_W = W - 48 * 2 - 32 * 2
     for b in breaks:
         is_live = bool(b.get("is_live"))
         t = _fmt_time(b.get("starts_at"), is_live)
-        breaker = (b.get("breaker") or "Unknown").strip()
-        title = _short_title(b.get("title_raw"), b.get("product_normalized"), 72)
+        breaker_fnt, title_fnt = font(32), font(26, bold=False)
+        breaker = _fit(d, b.get("breaker") or "Unknown", breaker_fnt, TEXT_W)
+        title = _fit(d, _short_title(b.get("title_raw"), b.get("product_normalized"), 90),
+                     title_fnt, TEXT_W)
         sport = (b.get("sport") or "").strip().upper()
+        sport_fnt = font(24, bold=False)
+        sport = _fit(d, sport, sport_fnt, 220)
 
         # Card row
         d.rounded_rectangle([48, y, W - 48, y + 172], radius=24, fill=CARD_BG)
@@ -131,15 +149,15 @@ def render_card(breaks) -> bytes:
             d.ellipse([80, y + 32, 104, y + 56], fill=GREEN)
             d.text((118, y + 24), "LIVE NOW", font=font(30), fill=GREEN)
         else:
-            d.text((80, y + 24), t, font=font(30), fill=GOLD)
+            d.text((80, y + 24), _fit(d, t, font(30), TEXT_W), font=font(30), fill=GOLD)
         # Breaker
-        d.text((80, y + 64), breaker[:34], font=font(32), fill=WHITE)
+        d.text((80, y + 64), breaker, font=breaker_fnt, fill=WHITE)
         # Title
-        d.text((80, y + 106), title, font=font(26, bold=False), fill=MUTED)
-        # Sport tag
+        d.text((80, y + 106), title, font=title_fnt, fill=MUTED)
+        # Sport tag (right-aligned inside the card)
         if sport:
-            d.text((W - 80 - d.textlength(sport, font=font(24)), y + 24),
-                   sport, font=font(24, bold=False), fill=MUTED)
+            d.text((W - 48 - 32 - d.textlength(sport, font=sport_fnt), y + 24),
+                   sport, font=sport_fnt, fill=MUTED)
         y += 200
         if y > H - 220:
             break
