@@ -30,6 +30,7 @@ from .normalizer import (
     looks_like_real_break,
     normalize_product,
 )
+from .seller_countries import seller_country
 
 
 def normalize_fanatics_stream(stream: dict) -> dict | None:
@@ -59,6 +60,7 @@ def normalize_fanatics_stream(stream: dict) -> dict | None:
         "source": "fanatics",
         "source_url": url,
         "breaker": shop_name or "Fanatics Live",
+        "country": seller_country("fanatics", shop_name),
         "product_raw": title,
         "product_normalized": normalize_product(title),
         "sport": detect_sport(title),

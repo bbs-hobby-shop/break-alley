@@ -361,6 +361,34 @@ def check_audit_patterns():
         check("audit: database reachable", False, str(e)[:100])
 
 
+def check_regions():
+    """Brian 2026-10-11: every seller on every platform gets an explicit region.
+
+    No NULL countries — a breaker without a country is a gap to research,
+    not something to silently default. Flags distinct breakers (by source)
+    that have breaks with NULL country.
+    """
+    try:
+        with get_db() as conn:
+            # Non-YouTube: breaker names with NULL country
+            for source in ["twitch", "ebay", "fanatics"]:
+                rows = conn.execute(
+                    "SELECT DISTINCT breaker FROM breaks "
+                    "WHERE source = %s AND country IS NULL AND breaker IS NOT NULL",
+                    (source,)).fetchall()
+                names = sorted(r[0] for r in rows)
+                check(f"regions:{source} all breakers tagged", not names,
+                      f"{len(names)} untagged: {', '.join(names[:5])}" + ("..." if len(names) > 5 else "") if names else "all tagged")
+            # YouTube: channels with NULL country
+            rows = conn.execute(
+                "SELECT COUNT(*) FROM youtube_channels WHERE country IS NULL").fetchone()
+            n = rows[0]
+            check("regions:youtube all channels tagged", n == 0,
+                  f"{n} channels without country" if n else "all tagged")
+    except Exception as e:
+        check("regions: database reachable", False, str(e)[:100])
+
+
 def main():
     print(f"BreakAlley daily health check — {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}")
     print("=" * 60)
@@ -380,6 +408,7 @@ def main():
     check_db_growth()
     check_prune()
     check_security()
+    check_regions()
 
     print("=" * 60)
     failed = [c for c in CHECKS if not c[1]]

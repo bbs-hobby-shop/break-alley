@@ -79,6 +79,69 @@ KNOWN_COUNTRIES = {
     "UCxnQmu6CJTaEIqEYWvmeCvg": "CA",
     # Hokej Karty: Czech hockey card shop group breaks (Brian approved 2026-10-07)
     "UCTm16TWigrtCUgIWv-7Y-1Q": "CZ",
+    # --- Researched 2026-10-11: channels not setting snippet.country ---
+    # Philmington: Florida corp records; US hobby figure
+    "UClSazuEj3e0c_q8OX-JtNbQ": "US",
+    # Phil's Pulls: ex-Yankees pitcher Phil Hughes
+    "UC4zH7QBYi7MT4d5HuhFulCg": "US",
+    # Southwest Missouri Box Breaks: Missouri in channel name
+    "UC0-KR087k3WBVjTu8npmojg": "US",
+    # Jason's Jet Breakers: founder is US Air Force pilot/tax lawyer
+    "UCXFMq9LL2blU7w0ph-v5YNQ": "US",
+    # Paradise Card Breaks: Town Square, Las Vegas NV
+    "UCwgK1TlL3ZAHFhaJQKDur2A": "US",
+    # CardCollector2_Breaks: physical store, Grove City OH
+    "UCJxLZQKPXThfFKqs0A6ygMQ": "US",
+    # HobbyLegends: eBay seller location "United States"
+    "UC18DbVup8vtTn0mhe5sapAw": "US",
+    # Triple Diamond Sports: brick & mortar, Eagan MN
+    "UC2nBjhaUh9G7Uh96vKEPKMQ": "US",
+    # Ultimate Sportcards: local shop, North Bay ON
+    "UCHIg0idFC-k-ixqZOMfsxRw": "CA",
+    # Batflip Breaks: via Midwest Box Breaks, ET schedule
+    "UC4CdQqyJmEXO0kSTo2LxYFQ": "US",
+    # BREAKfast Cards: (?) USD pricing; ships worldwide; no address found
+    "UCztFnyVxFxrHth5FAcQ5RAw": "US",
+    # Cards in the Land: 17800 Chillicothe Rd, Chagrin Falls OH
+    "UCrm1MFFCqHkg3RROCCLRu0w": "US",
+    # Tandem Collectibles: (?) .com Shopify; no location found
+    "UCyPlr1b2qCfzr6jzHVIIQ1A": "US",
+    # Prime Pulls TCG: Prime Pulls Card Shop, Yakima WA
+    "UCUXZsz3TCngc4idailyfVhQ": "US",
+    # Pack Hype Collective: eBay seller in Spring Hill FL
+    "UC5izyuTTqgdwzu8ZQirnQPw": "US",
+    # The GroupBreakers: (?) USD pricing + Venmo; no address found
+    "UC_PjmujGaQkPa1GCEoSL8Iw": "US",
+    # Bizzy Breaks: channel desc "Located in BC" with Canada flag
+    "UC9JhDPM4rRj9yWfDMjPxB_g": "CA",
+    # TheTCGbrothers: eBay seller, Mount Clemens MI
+    "UC-NmZMN97iUdPrcaEQc3vYQ": "US",
+    # Black Gold Sports Cards: 2327 Silvernail Rd, Pewaukee WI
+    "UCZhJdE5P_IqKuqoAEOABxGA": "US",
+    # RIPANDLIST: Dakota Gaming Supply Inc, US flag in bio
+    "UC4f1Q1pmTgkUNiyCiqLIhcA": "US",
+    # Cajun Breaker: Cajun branding = Louisiana
+    "UCzHcm9GuQEunW6oCjYh_13Q": "US",
+    # Breaks N' Takes 2: eBay seller, Gardena CA
+    "UCP0D6Qrn3DTtmhrpxgDagmg": "US",
+    # Stlcards6: St. Louis in channel name
+    "UCzLJBNJyCCSpUakfcp6Hz9w": "US",
+    # JunkWaxVintage: "based in Austin, TX"
+    "UCUm8Lf9N5o3E7s05ojIVPyQ": "US",
+    # 718 Breaks: 718 = NYC area code
+    "UCLGwtWJbQfWReI5fn7bYQlw": "US",
+    # BLUNT COLLECTIONS NZ: "New Zealand's home of live breaks"
+    "UC1_hSoZlZAsQj4vtWee54tQ": "NZ",
+    # ThePokePair!: ThePokePair LLC, US-based
+    "UCvKOmHF0puJrv6Q_a3imhSQ": "US",
+    # Long Ball Cards: USD pricing, baseball breaker
+    "UC-huOEAW2s3UtCEKbsc23BQ": "US",
+    # Big Breaks: 106 Oak Hill Ave, Wrentham MA
+    "UC2-U3zqIDpoIFn5HmATOg8g": "US",
+    # AllYouCanBreak: "Hong Kong Sports Card Group Breaks"
+    "UCLsYvea08KZBO8IHv7Ob-cQ": "HK",
+    # SportsBoxBreaks.com: Las Vegas NV & Pennsylvania
+    "UCDuXqiKkABHh6bSbIUOOxhg": "US",
 }
 
 # Title-substring fallback for discovered channels whose IDs aren't in

@@ -36,6 +36,7 @@ import time
 import httpx
 
 from . import config
+from .seller_countries import seller_country
 from .normalizer import (
     detect_format,
     detect_sport,
@@ -174,6 +175,7 @@ def normalize_twitch_channel(channel: dict, stream: dict | None = None) -> dict 
         "source": "twitch",
         "source_url": url,
         "breaker": channel.get("display_name") or login,
+        "country": seller_country("twitch", login),
         "product_raw": title,
         "product_normalized": normalize_product(title),
         "sport": detect_sport(title),

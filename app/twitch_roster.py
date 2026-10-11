@@ -30,6 +30,7 @@ import httpx
 
 from . import db
 from .normalizer import looks_like_real_break
+from .seller_countries import seller_country
 from .twitch import (
     STREAMS_URL,
     _headers,
@@ -222,6 +223,7 @@ def fetch_roster_breaks(conn):
             "source": "twitch",
             "source_url": url,
             "breaker": display,
+            "country": seller_country("twitch", login),
             "product_raw": title,
             "product_normalized": normalize_product(title),
             "sport": detect_sport(title),

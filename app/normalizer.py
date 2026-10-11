@@ -9,6 +9,7 @@ from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
 from .products import PRODUCTS
+from .seller_countries import seller_country
 
 CENTRAL = ZoneInfo("America/Chicago")
 
@@ -428,6 +429,7 @@ def normalize_ebay_item(item: dict, affiliate_url: str | None = None) -> dict:
         "source": "ebay",
         "source_url": item.get("itemWebUrl"),
         "breaker": breaker,
+        "country": seller_country("ebay", breaker),
         "product_raw": title,
         "product_normalized": normalize_product(title),
         "sport": detect_sport(title),
