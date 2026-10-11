@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Affiliate Disclosure — BreakAlley</title>
+<meta name="description" content="How BreakAlley earns money: affiliate commissions from eBay Partner Network links, at no extra cost to you.">
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<meta name="theme-color" content="#0a0e1c">
+<style>
+  :root {
+    --bg: #0a0e1c; --bg2: #10162e; --card: #151c38; --card2: #1a2242;
+    --line: #26305c; --text: #f2f4ff; --muted: #8b93b8;
+    --green: #00e676; --purple: #7c5cff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { touch-action: manipulation; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; color: var(--text); background: var(--bg);
+    background-image: radial-gradient(900px 400px at 15% -5%, rgba(124,92,255,.14), transparent),
+                      radial-gradient(800px 380px at 90% 0%, rgba(0,230,118,.08), transparent);
+    min-height: 100vh;
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: #0a0e1c; border-bottom: 1px solid var(--line);
+    padding: 1rem 1.5rem .85rem;
+  }
+  .brandrow { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: .75rem; }
+  .logo { font-weight: 900; font-size: 1.9rem; letter-spacing: .5px; display: flex; align-items: center; gap: .7rem;
+    color: var(--text); text-decoration: none; }
+  .logo img { width: 52px; height: 52px; border-radius: 12px; }
+  .logo .wordmark span { color: var(--green); }
+  nav.tabs { display: flex; justify-content: center; gap: .5rem; }
+  nav.tabs a { flex: 1; max-width: 220px; text-align: center; padding: .65rem .5rem; border-radius: 10px;
+    color: var(--muted); text-decoration: none; font-weight: 700; border: 1px solid transparent; }
+  nav.tabs a:hover { color: var(--text); border-color: var(--green); }
+  main { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  h1 { font-size: 1.7rem; margin: 0 0 .5rem; }
+  .updated { color: var(--muted); font-size: .85rem; margin: 0 0 2rem; }
+  h2 { font-size: 1.2rem; margin: 2rem 0 .8rem; color: var(--green); }
+  p, li { line-height: 1.65; color: var(--muted); font-size: .96rem; }
+  p { margin: 0 0 1rem; }
+  ul { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: .45rem; }
+  p strong, li strong { color: var(--text); }
+  .callout { background: rgba(0,230,118,.07); border: 1px solid var(--green);
+    border-radius: 12px; padding: 1.1rem 1.25rem; margin: 1.5rem 0; }
+  .callout p { margin: 0; color: var(--text); }
+  @media (max-width: 560px) { nav.tabs a { font-size: .88rem; padding: .6rem .25rem; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brandrow">
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+  </div>
+  <nav class="tabs">
+    <a href="/">Home</a>
+    {% if user %}
+    <a href="/my-breaks">My Breaks</a>
+    <a href="/account">Account</a>
+    {% else %}
+    <a href="/login">Sign in</a>
+    <a href="/signup">Sign up</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  <h1>Affiliate Disclosure</h1>
+  <p class="updated">Last updated: October 2026</p>
+
+  <div class="callout">
+    <p>📢 Some links on BreakAlley — particularly links to eBay listings — may earn us a commission if you make a purchase through them, at no extra cost to you.</p>
+  </div>
+
+  <h2>How it works</h2>
+  <p>BreakAlley is free to use, and keeping it that way costs money (servers, data, development). One way we keep the lights on is affiliate partnerships — currently the <strong>eBay Partner Network</strong>.</p>
+  <p>When you tap a break that lives on eBay, the outbound link may include our affiliate identifier. If you then buy something on eBay, eBay pays us a small commission out of their own cut. <strong>You pay exactly the same price either way</strong> — the commission comes from eBay, not from your pocket.</p>
+
+  <h2>What this doesn't change</h2>
+  <ul>
+    <li><strong>Rankings are never for sale.</strong> Affiliate status has zero influence on which breaks appear, their order, or our recommendations. The feed is driven by what's live and upcoming, period.</li>
+    <li><strong>Most links aren't affiliate links.</strong> Breaks on YouTube, Twitch, and Fanatics Live link straight to the source with no affiliate identifier.</li>
+    <li><strong>We're transparent about it.</strong> This page exists so you always know how the site makes money. If our affiliate relationships ever change, we'll update this page.</li>
+  </ul>
+
+  <h2>Pro subscriptions</h2>
+  <p>BreakAlley also offers an optional Pro subscription with extra perks (unlimited follows, push alerts). That's a direct subscription — no affiliate involved.</p>
+
+  <h2>Questions</h2>
+  <p>Anything unclear? Use the feedback form at the bottom of any page and we'll answer.</p>
+</main>
+{% include "_footer.html" %}
+</body>
+</html>

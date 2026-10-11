@@ -331,6 +331,32 @@ def guide_page(request: Request):
     })
 
 
+# Brian 2026-10-10: site-maturity pages for the EPN reapplication —
+# About, Privacy, and Affiliate Disclosure. Static content, no DB needed.
+@app.get("/about", response_class=HTMLResponse)
+def about_page(request: Request):
+    user = auth.get_current_user(request)
+    return templates.TemplateResponse(request, "about.html", {
+        "request": request, "user": user,
+    })
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page(request: Request):
+    user = auth.get_current_user(request)
+    return templates.TemplateResponse(request, "privacy.html", {
+        "request": request, "user": user,
+    })
+
+
+@app.get("/disclosure", response_class=HTMLResponse)
+def disclosure_page(request: Request):
+    user = auth.get_current_user(request)
+    return templates.TemplateResponse(request, "disclosure.html", {
+        "request": request, "user": user,
+    })
+
+
 @app.get("/release/{release_id}", response_class=HTMLResponse)
 def release_page(request: Request, release_id: int):
     """Brian 2026-10-08: clickable release titles — each upcoming set gets

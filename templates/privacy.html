@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — BreakAlley</title>
+<meta name="description" content="How BreakAlley collects, uses, and protects your data. No third-party trackers, no data selling, ever.">
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<meta name="theme-color" content="#0a0e1c">
+<style>
+  :root {
+    --bg: #0a0e1c; --bg2: #10162e; --card: #151c38; --card2: #1a2242;
+    --line: #26305c; --text: #f2f4ff; --muted: #8b93b8;
+    --green: #00e676; --purple: #7c5cff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { touch-action: manipulation; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; color: var(--text); background: var(--bg);
+    background-image: radial-gradient(900px 400px at 15% -5%, rgba(124,92,255,.14), transparent),
+                      radial-gradient(800px 380px at 90% 0%, rgba(0,230,118,.08), transparent);
+    min-height: 100vh;
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: #0a0e1c; border-bottom: 1px solid var(--line);
+    padding: 1rem 1.5rem .85rem;
+  }
+  .brandrow { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: .75rem; }
+  .logo { font-weight: 900; font-size: 1.9rem; letter-spacing: .5px; display: flex; align-items: center; gap: .7rem;
+    color: var(--text); text-decoration: none; }
+  .logo img { width: 52px; height: 52px; border-radius: 12px; }
+  .logo .wordmark span { color: var(--green); }
+  nav.tabs { display: flex; justify-content: center; gap: .5rem; }
+  nav.tabs a { flex: 1; max-width: 220px; text-align: center; padding: .65rem .5rem; border-radius: 10px;
+    color: var(--muted); text-decoration: none; font-weight: 700; border: 1px solid transparent; }
+  nav.tabs a:hover { color: var(--text); border-color: var(--green); }
+  main { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  h1 { font-size: 1.7rem; margin: 0 0 .5rem; }
+  .updated { color: var(--muted); font-size: .85rem; margin: 0 0 2rem; }
+  h2 { font-size: 1.2rem; margin: 2rem 0 .8rem; color: var(--green); }
+  p, li { line-height: 1.65; color: var(--muted); font-size: .96rem; }
+  p { margin: 0 0 1rem; }
+  ul { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: .45rem; }
+  p strong, li strong { color: var(--text); }
+  @media (max-width: 560px) { nav.tabs a { font-size: .88rem; padding: .6rem .25rem; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brandrow">
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+  </div>
+  <nav class="tabs">
+    <a href="/">Home</a>
+    {% if user %}
+    <a href="/my-breaks">My Breaks</a>
+    <a href="/account">Account</a>
+    {% else %}
+    <a href="/login">Sign in</a>
+    <a href="/signup">Sign up</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: October 2026</p>
+
+  <p>BreakAlley is a break aggregator, not a data business. This page explains what we collect, why, and what we never do with it. Short version: <strong>we collect the minimum needed to run the site, use no third-party trackers, and never sell your data.</strong></p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Account info</strong> — if you create an account, we store your email address and a securely hashed password. That's it.</li>
+    <li><strong>Your activity</strong> — saved breaks, followed breakers, and searches, so the site can show you your stuff.</li>
+    <li><strong>Push notification preferences</strong> — if you enable alerts, we store your push subscription so we can notify you when a followed breaker goes live.</li>
+    <li><strong>First-party analytics</strong> — we log outbound clicks, page views, saves, follows, and searches in our own database to understand what's working. All of it stays on our servers.</li>
+    <li><strong>Feedback and suggestions</strong> — anything you send through our forms, so we can read and act on it.</li>
+  </ul>
+
+  <h2>What we don't do</h2>
+  <ul>
+    <li><strong>No third-party trackers.</strong> No Google Analytics, no Facebook Pixel, no ad-network beacons. Our analytics are first-party only.</li>
+    <li><strong>We never sell your data.</strong> Not to advertisers, not to data brokers, not to anyone.</li>
+    <li><strong>No selling on BreakAlley.</strong> We're a pure aggregator — breaks happen on YouTube, Twitch, eBay, and Fanatics Live. We don't process payments for breaks (Pro subscriptions are handled by our payment provider).</li>
+  </ul>
+
+  <h2>Cookies</h2>
+  <p>We use a single signed session cookie to keep you logged in. We don't use advertising or cross-site tracking cookies.</p>
+
+  <h2>Affiliate links</h2>
+  <p>Some outbound links to eBay may include an affiliate identifier, which means we may earn a commission if you buy through them — at no extra cost to you. See our <a href="/disclosure" style="color: var(--green);">affiliate disclosure</a> for details.</p>
+
+  <h2>Your control</h2>
+  <ul>
+    <li>You can change your email or password anytime on your <a href="/account" style="color: var(--green);">account page</a>.</li>
+    <li>You can delete your account anytime from the same page — this removes your profile, saves, follows, and notification settings.</li>
+  </ul>
+
+  <h2>Changes</h2>
+  <p>If this policy changes in a meaningful way, we'll update the date above. For questions about your data, use the feedback form on any page.</p>
+</main>
+{% include "_footer.html" %}
+</body>
+</html>

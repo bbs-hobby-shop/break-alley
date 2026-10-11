@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About — BreakAlley</title>
+<meta name="description" content="What BreakAlley is: every live and upcoming box break across YouTube, Twitch, eBay, and Fanatics Live, in one place.">
+<link rel="icon" type="image/png" href="/static/favicon-64.png">
+<meta name="theme-color" content="#0a0e1c">
+<style>
+  :root {
+    --bg: #0a0e1c; --bg2: #10162e; --card: #151c38; --card2: #1a2242;
+    --line: #26305c; --text: #f2f4ff; --muted: #8b93b8;
+    --green: #00e676; --purple: #7c5cff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { touch-action: manipulation; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; color: var(--text); background: var(--bg);
+    background-image: radial-gradient(900px 400px at 15% -5%, rgba(124,92,255,.14), transparent),
+                      radial-gradient(800px 380px at 90% 0%, rgba(0,230,118,.08), transparent);
+    min-height: 100vh;
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: #0a0e1c; border-bottom: 1px solid var(--line);
+    padding: 1rem 1.5rem .85rem;
+  }
+  .brandrow { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: .75rem; }
+  .logo { font-weight: 900; font-size: 1.9rem; letter-spacing: .5px; display: flex; align-items: center; gap: .7rem;
+    color: var(--text); text-decoration: none; }
+  .logo img { width: 52px; height: 52px; border-radius: 12px; }
+  .logo .wordmark span { color: var(--green); }
+  nav.tabs { display: flex; justify-content: center; gap: .5rem; }
+  nav.tabs a { flex: 1; max-width: 220px; text-align: center; padding: .65rem .5rem; border-radius: 10px;
+    color: var(--muted); text-decoration: none; font-weight: 700; border: 1px solid transparent; }
+  nav.tabs a:hover { color: var(--text); border-color: var(--green); }
+  main { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  h1 { font-size: 1.7rem; margin: 0 0 .5rem; }
+  .lede { color: var(--muted); font-size: 1.05rem; line-height: 1.55; margin: 0 0 2rem; }
+  h2 { font-size: 1.25rem; margin: 2.2rem 0 .9rem; color: var(--green); }
+  p { line-height: 1.65; color: var(--muted); font-size: .98rem; margin: 0 0 1rem; }
+  p strong { color: var(--text); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1.1rem 1.25rem; margin-bottom: .9rem; }
+  .card p { margin: 0; }
+  .cta { text-align: center; margin-top: 2.5rem; }
+  .cta a { display: inline-block; background: var(--green); color: #06130c; font-weight: 800;
+    text-decoration: none; padding: .9rem 2rem; border-radius: 12px; font-size: 1.05rem; }
+  @media (max-width: 560px) { nav.tabs a { font-size: .88rem; padding: .6rem .25rem; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brandrow">
+    <a class="logo" href="/"><img src="/static/logo-mark.webp" alt="BreakAlley logo"><span class="wordmark">BREAK<span>ALLEY</span></span></a>
+  </div>
+  <nav class="tabs">
+    <a href="/">Home</a>
+    {% if user %}
+    <a href="/my-breaks">My Breaks</a>
+    <a href="/account">Account</a>
+    {% else %}
+    <a href="/login">Sign in</a>
+    <a href="/signup">Sign up</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  <h1>About BreakAlley</h1>
+  <p class="lede">Every break, every platform, one place. BreakAlley is the Google Flights of box breaks — a single search across the entire hobby so you never miss a break again.</p>
+
+  <h2>What it does</h2>
+  <p>Box breaks happen everywhere: YouTube streams, Twitch channels, eBay Live auctions, Fanatics Live shops. Keeping track of all of them meant following dozens of breakers across four apps and still missing the good ones.</p>
+  <p><strong>BreakAlley fixes that.</strong> We track hundreds of vetted breakers and pull every live and upcoming break into one searchable feed. Filter by sport, format, platform, or price. Follow your favorite breakers and get notified the moment they go live. Save the breaks you want and find them in seconds.</p>
+
+  <h2>How it works</h2>
+  <div class="card">
+    <p>🔍 <strong>We watch the breakers.</strong> Our roster covers established box-break channels, shops, and sellers across YouTube, Twitch, eBay, and Fanatics Live — every one vetted before it's listed.</p>
+  </div>
+  <div class="card">
+    <p>🧹 <strong>We keep it clean.</strong> Only real buy-in breaks make the feed. Single-card sales, sealed boxes, supplies, and repacks get filtered out automatically.</p>
+  </div>
+  <div class="card">
+    <p>⚡ <strong>You never miss out.</strong> Follow breakers, save breaks, and get push alerts when a breaker goes live or a break you saved is about to start.</p>
+  </div>
+
+  <h2>Pure aggregator</h2>
+  <p>Nothing is sold on BreakAlley. Every break happens on its home platform — we just point you to it. When you tap a listing, you go straight to the breaker's stream or auction.</p>
+
+  <h2>Who built this</h2>
+  <p>BreakAlley was built by a collector who was tired of missing breaks. It started as a personal tracker and grew into the site you're looking at. If you break cards — or just love the hobby — this is for you.</p>
+
+  <h2>Contact</h2>
+  <p>Spotted a bug, know a breaker we're missing, or just want to talk shop? Use the feedback form at the bottom of any page — every message gets read.</p>
+
+  <div class="cta">
+    <a href="/">Find your next break →</a>
+  </div>
+</main>
+{% include "_footer.html" %}
+</body>
+</html>
