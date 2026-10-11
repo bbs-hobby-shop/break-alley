@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from .products import PRODUCTS
 from .seller_countries import seller_country
+from .teams import detect_team_sport
 
 CENTRAL = ZoneInfo("America/Chicago")
 
@@ -18,15 +19,26 @@ SPORT_KEYWORDS = {
     # upper deck) span multiple sports and are handled via the product table.
     "football": [r"\bfootball\b", r"\bnfl\b", r"\bcollege football\b", r"\bcfb\b",
                  "🏈"],
-    "basketball": [r"\bbasketball\b", r"\bnba\b", r"\bwnba\b", "🏀"],
     "baseball": [r"\bbaseball\b", r"\bmlb\b", r"allen\s*&\s*ginter\b",
-               # NOTE: "bowman" is NOT here — Bowman makes football and
+               # NOTE: bare "bowman" is NOT here — Bowman makes football and
                # basketball cards too (Bowman NFL/U broke this 2026-10-09).
-               r"\bdiamond kings\b", r"\btopps heritage\b", "⚾"],
+               # But these Bowman/Topps lines are baseball-only products.
+               r"\bbowman chrome\b", r"\bbowman delight\b", r"\bbowman draft\b",
+               r"\bbowman sterling\b", r"\bbowman best\b",
+               r"\btopps chrome\b", r"\btopps update\b", r"\btopps series\b",
+               r"\btopps museum\b", r"\btopps pristine\b", r"\btopps flagship\b",
+               r"\btopps tribute\b", r"\btopps finest\b", r"\btopps archives\b",
+               r"\bsapphire\b", r"\bdiamond kings\b", r"\btopps heritage\b",
+               r"\btopps gilded\b", r"\btopps tier one\b",
+               r"\btopps\b.{0,10}\bset-break\b", "⚾"],
+    "basketball": [r"\bbasketball\b", r"\bnba\b", r"\bwnba\b",
+                   r"\bprizm\b.{0,15}\bdraft picks\b", "🏀"],
+
     "soccer": [r"\bsoccer\b", r"\bpremier league\b", r"\bepl\b", r"\bfifa\b",
                r"\bmls\b", r"\bchampions league\b", r"\bworld cup\b", r"\bla liga\b",
                "⚽"],
-    "hockey": [r"\bhockey\b", r"\bnhl\b", "🏒"],
+    "hockey": [r"\bhockey\b", r"\bnhl\b", r"\bupper deck\b",
+               r"\bopc\b", r"\bo-pee-chee\b", r"\bteam canada\b", "🏒"],
     # Brian 2026-10-09: TCG breaks (Pokemon etc.) are real box breaks too —
     # they get their own sport so buyers can filter for them.
     "tcg": [r"\bpok[eé]mon\b", r"\btcg\b", r"\bmagic\b.{0,15}\bgathering\b",
@@ -50,7 +62,11 @@ SPORT_KEYWORDS = {
             r"\bastral radiance\b", r"\bbrilliant stars\b", r"\bevolving skies\b",
             r"\bcelebrations\b", r"\bfusion strike\b", r"\bchilling reign\b",
             r"\bbattle styles\b", r"\bvivid voltage\b", r"\bdarkness ablaze\b",
-            r"\bshining fates\b", r"\bpokemon go\b"],
+            r"\bshining fates\b", r"\bpokemon go\b",
+            # Brian 2026-10-11: Star Wars / Marvel / Disney trading-card
+            # breaks (Topps Chrome Star Wars, Marvel Neon/Mint, Disney
+            # Chrome) — all TCG in the break world.
+            r"\bstar wars\b", r"\bmarvel\b", r"\bdisney\b"],
     # Brian 2026-10-09: racing, wrestling/combat, golf, tennis all get their
     # own sport + thumbnail — no break settles for "other".
     "racing": [r"\bnascar\b", r"\bf1\b", r"\bformula\s?1\b", r"\bindycar\b",
@@ -308,13 +324,18 @@ def detect_sports(title: str) -> list[str]:
     """All sports matching the title, in SPORTS display order.
 
     The curated product table counts as a match (its explicit sport comes
-    first), plus any additional keyword sports. The full list drives the
-    per-sport tags on cards (Brian 2026-10-09).
+    first), plus team-name hits, plus any additional keyword sports. The
+    full list drives the per-sport tags on cards (Brian 2026-10-09).
     """
     hits: list[str] = []
     canonical = normalize_product(title or "")
     if canonical:
         hits.append(PRODUCTS[canonical]["sport"])
+    # Brian 2026-10-11: team names resolve "<TEAM> <product> break" titles
+    # that name no league (e.g. "Kansas City Royals 2026 TOPPS UPDATE BREAK").
+    team_sport = detect_team_sport(title or "")
+    if team_sport and team_sport not in hits:
+        hits.append(team_sport)
     for s in _keyword_sport_hits(title or ""):
         if s not in hits:
             hits.append(s)
