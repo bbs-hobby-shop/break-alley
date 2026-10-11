@@ -105,3 +105,7 @@ cardvaultbreaks  # $1-start break auctions, eBay Live, 99.9% (12K) (Brian approv
 sportscollectorandmore  # sportscollectorandmore — PYT football + hockey (Brian approved 2026-10-10, weekly discovery)
 honeyholecollect  # HoneyHoleCollect — eBay Live random-team $1 baseball breaks (Bowman Chrome/Cosmic/Inception), 99.8% (~34K) (Brian approved 2026-10-10, weekly discovery)
 otbreaks  # OT BREAKS — eBay Live random-team $1 break shows (Bowman Chrome/Inception), 99.9% (San Diego CA) (Brian approved 2026-10-10, weekly discovery)
+thecardboardjungle  # The Cardboard Jungle — PYT buy-in breaks via eBay store auctions (Brian approved 2026-10-10, weekly discovery)
+break_n_bad  # Break'n Bad — $1 random-team mixers on eBay Live (Break.n.Bad) (Brian approved 2026-10-10, weekly discovery)
+breakzonelive  # BreakZoneLive — nightly NFL player/team breaks on eBay Live (Brian approved 2026-10-10, weekly discovery)
+sdsportscards23  # SD Sports Cards — daily PYT/random-team mixers on eBay Live, San Diego card shop (Brian approved 2026-10-10, weekly discovery; username spelling UNCONFIRMED)
