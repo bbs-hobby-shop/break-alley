@@ -19,7 +19,9 @@ PRO_PRICE_MONTHLY = 499  # cents
 def _client():
     import stripe
 
-    key = os.environ.get("STRIPE_SECRET_KEY", "")
+    # Strip whitespace: a pasted key with a trailing newline/space fails
+    # auth with a confusing error (Brian 2026-10-10).
+    key = os.environ.get("STRIPE_SECRET_KEY", "").strip()
     if not key:
         raise RuntimeError("STRIPE_SECRET_KEY not configured")
     stripe.api_key = key
@@ -27,11 +29,11 @@ def _client():
 
 
 def publishable_key() -> str:
-    return os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+    return os.environ.get("STRIPE_PUBLISHABLE_KEY", "").strip()
 
 
 def pro_price_id() -> str:
-    return os.environ.get("STRIPE_PRO_PRICE_ID", "")
+    return os.environ.get("STRIPE_PRO_PRICE_ID", "").strip()
 
 
 def create_checkout_session(user_id: int, email: str, base_url: str) -> str:
@@ -64,7 +66,7 @@ def create_portal_session(stripe_customer_id: str, base_url: str) -> str:
 def verify_webhook(payload: bytes, sig_header: str):
     """Verify and parse a Stripe webhook. Returns the event."""
     stripe = _client()
-    secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
     if not secret:
         raise RuntimeError("STRIPE_WEBHOOK_SECRET not configured")
     return stripe.Webhook.construct_event(payload, sig_header, secret)
