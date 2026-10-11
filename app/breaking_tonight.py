@@ -95,9 +95,14 @@ def render_card(breaks) -> bytes:
     from PIL import Image, ImageDraw, ImageFont
 
     def font(size: int, bold: bool = True):
+        from PIL import ImageFont
         path = ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
                 if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-        return ImageFont.truetype(path, size)
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            # Render's slim image may lack DejaVu until fonts-dejavu-core installs
+            return ImageFont.load_default(size=size)
 
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)

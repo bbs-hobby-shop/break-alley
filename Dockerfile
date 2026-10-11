@@ -2,9 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /srv/app
 
-# System deps (postgresql-client for schema init; curl for healthchecks)
+# System deps (postgresql-client for schema init; curl for healthchecks;
+# fonts-dejavu-core for Pillow social-card rendering)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-client curl \
+    postgresql-client curl fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
