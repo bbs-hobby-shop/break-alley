@@ -19,12 +19,16 @@ SPORT_KEYWORDS = {
     # upper deck) span multiple sports and are handled via the product table.
     "football": [r"\bfootball\b", r"\bnfl\b", r"\bcollege football\b", r"\bcfb\b",
                  "🏈"],
-    "baseball": [r"\bbaseball\b", r"\bmlb\b", r"allen\s*&\s*ginter\b",
+    "baseball": [r"\bbaseball\b", r"\bmlb\b", r"[xX]mlb\b",
+               r"allen\s+(?:and|&)\s+ginter\b", r"\bginter\b",
                # NOTE: bare "bowman" is NOT here — Bowman makes football and
                # basketball cards too (Bowman NFL/U broke this 2026-10-09).
+               # Bare "bowman" is handled as a weak fallback in
+               # detect_sports(): only when nothing else matched.
                # But these Bowman/Topps lines are baseball-only products.
                r"\bbowman chrome\b", r"\bbowman delight\b", r"\bbowman draft\b",
-               r"\bbowman sterling\b", r"\bbowman best\b",
+               r"\bbowman sterling\b", r"\bbowman best\b", r"\bbowman jumbo\b",
+               r"\bbowman hobby\b", r"\bbowman mega\b",
                r"\btopps chrome\b", r"\btopps update\b", r"\btopps series\b",
                r"\btopps museum\b", r"\btopps pristine\b", r"\btopps flagship\b",
                r"\btopps tribute\b", r"\btopps finest\b", r"\btopps archives\b",
@@ -339,6 +343,11 @@ def detect_sports(title: str) -> list[str]:
     for s in _keyword_sport_hits(title or ""):
         if s not in hits:
             hits.append(s)
+    # Brian 2026-10-11: bare "bowman" is a weak baseball signal — only when
+    # nothing else matched. (Bowman NFL/U titles already hit football or
+    # basketball above, so this can't create false multis.)
+    if not hits and re.search(r"\bbowman\b", title or "", re.IGNORECASE):
+        hits.append("baseball")
     order = {s: i for i, s in enumerate(SPORTS)}
     return sorted(hits, key=lambda s: order.get(s, 99))
 
