@@ -988,6 +988,101 @@ def admin_feedback_json(request: Request, key: str | None = Query(default=None),
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+# ---------------------------------------------------------------------------
+# Sport recategorization (Brian 2026-10-11): kill the "other" backlog.
+# GET /admin/sports-other exports "other"-sport listings for analysis.
+# POST /admin/sports-backfill re-runs sport detection on "other" rows and
+# applies explicit id->sport overrides. Both ADMIN_KEY-gated, both temporary
+# (remove once the backlog is cleared).
+# ---------------------------------------------------------------------------
+@app.get("/admin/sports-other")
+def admin_sports_other(request: Request,
+                       key: str | None = Query(default=None),
+                       limit: int = Query(default=2000)):
+    """JSON export of listings currently tagged sport='other'."""
+    if not _admin_key_ok(key):
+        return JSONResponse({"error": "denied"}, status_code=403)
+    try:
+        with db.get_conn() as conn:
+            total = conn.execute(
+                "SELECT COUNT(*) FROM breaks WHERE sport = 'other'").fetchone()[0]
+            rows = conn.execute(
+                """SELECT id, title_raw, product_normalized, breaker, source
+                   FROM breaks WHERE sport = 'other'
+                   ORDER BY id DESC LIMIT %s""",
+                (min(limit, 5000),),
+            ).fetchall()
+            return JSONResponse({
+                "total_other": total,
+                "returned": len(rows),
+                "listings": [
+                    {"id": r["id"], "title": r["title_raw"],
+                     "product": r["product_normalized"],
+                     "breaker": r["breaker"], "source": r["source"]}
+                    for r in rows
+                ],
+            })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/admin/sports-backfill")
+async def admin_sports_backfill(request: Request,
+                                key: str | None = Query(default=None)):
+    """Re-run sport detection on 'other' rows; apply explicit overrides."""
+    if not _admin_key_ok(key):
+        return JSONResponse({"error": "denied"}, status_code=403)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    overrides = body.get("assign") or {}
+    # Sanitize overrides: {str(id): sport} with sport in the known set.
+    from .normalizer import SPORTS, detect_sport, detect_sports
+    clean = {}
+    for k, v in overrides.items():
+        try:
+            clean[int(k)] = v
+        except (ValueError, TypeError):
+            continue
+    clean = {i: s for i, s in clean.items() if s in SPORTS}
+    try:
+        with db.get_conn() as conn:
+            other_before = conn.execute(
+                "SELECT COUNT(*) FROM breaks WHERE sport = 'other'").fetchone()[0]
+            rows = conn.execute(
+                "SELECT id, title_raw FROM breaks WHERE sport = 'other'").fetchall()
+            by_rules = 0
+            for r in rows:
+                sport = detect_sport(r["title_raw"] or "")
+                if sport != "other":
+                    sports = detect_sports(r["title_raw"] or "")
+                    conn.execute(
+                        "UPDATE breaks SET sport = %s, sports = %s WHERE id = %s",
+                        (sport, sports, r["id"]))
+                    by_rules += 1
+            by_direct = 0
+            for bid, sport in clean.items():
+                cur = conn.execute(
+                    "SELECT sport FROM breaks WHERE id = %s", (bid,)).fetchone()
+                if cur and cur["sport"] == "other":
+                    sports = [sport]
+                    conn.execute(
+                        "UPDATE breaks SET sport = %s, sports = %s WHERE id = %s",
+                        (sport, sports, bid))
+                    by_direct += 1
+            other_after = conn.execute(
+                "SELECT COUNT(*) FROM breaks WHERE sport = 'other'").fetchone()[0]
+            return JSONResponse({
+                "other_before": other_before,
+                "recategorized_by_rules": by_rules,
+                "recategorized_by_direct": by_direct,
+                "other_after": other_after,
+            })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.get("/admin/signups")
 def admin_signups(request: Request, key: str | None = Query(default=None),
                   since: str | None = Query(default=None)):
