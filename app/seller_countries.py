@@ -59,6 +59,7 @@ TWITCH_COUNTRIES: dict[str, str] = {
     "paymoneywubby": "US",   # PaymoneyWubby, San Diego (TCG sweep 2026-10-11)
     "ruxin34": "US",         # ruxin34, Ohio area (TCG sweep 2026-10-11)
     "rngmart": "AU",         # RNGmart, Australia (TCG sweep 2026-10-11)
+    "dreamitcollectibles": "US",  # DreamItCollectibles, Southern California (Brian approved 2026-10-11, weekly discovery)
 }
 # eBay seller username (lowercased) -> 2-letter country
 # Researched 2026-10-11 (eBay seller pages, listing locations, seller sites).
@@ -235,6 +236,7 @@ FANATICS_SHOP_COUNTRIES: dict[str, str] = {
     "brew town trading co": "US",    # TCG sweep 2026-10-11
     "coach chris cards": "US",       # TCG sweep 2026-10-11
     "wheelhouse breaks": "US",       # TCG sweep 2026-10-11
+    "3rddowndisplays": "GB",        # 3rd Down Trading Card Shop, Keighley West Yorkshire UK (Brian approved 2026-10-11, weekly discovery)
 }
 _MAPS = {
     "twitch": TWITCH_COUNTRIES,

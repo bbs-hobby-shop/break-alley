@@ -146,6 +146,10 @@ KNOWN_COUNTRIES = {
     "UCLsYvea08KZBO8IHv7Ob-cQ": "HK",
     # SportsBoxBreaks.com: Las Vegas NV & Pennsylvania
     "UCDuXqiKkABHh6bSbIUOOxhg": "US",
+    # Rickman Rips: German live group breaks, rickmanbreaks.de (Brian approved 2026-10-11, weekly discovery)
+    "UCXTn7VWwEfWdu2PsXDLbS9A": "DE",
+    # FootballCardsZone: Polish numbered soccer breaks, footballcardszone.com (Brian approved 2026-10-11, weekly discovery)
+    "UCRKndqE4EVtwSusFq60vgRA": "PL",
 }
 
 # Title-substring fallback for discovered channels whose IDs aren't in

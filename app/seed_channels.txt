@@ -174,3 +174,6 @@ UCl2q4smdYKwvr2_5hGlVtVQ  # Mojobreak Gaming — dedicated TCG arm (SWU/MTG/YGO/
 UCbM1typ_JOwRLyJ3IA10c-g  # PandaTCG — weekly Sunday multi-TCG breaks
 UCA6TW9oRRj7kZDnIG68kSVA  # #RAREPULL — live multi-TCG rips, sparse weekly cadence
 UCzm8YqSFfek1PyMS5w9VhIQ  # RNGmart (AU) — frequent Aussie Pokemon/One Piece rip & ship
+UCDjbAH0YB4XiNvsbv15QuGQ  # High Society Trading — PYT YouTube breaks, spot reservations at highsocietytrading.com (Brian approved 2026-10-11, weekly discovery)
+UCXTn7VWwEfWdu2PsXDLbS9A  # Rickman Rips — German live group breaks + personals (NBA/NFL/UFC/soccer), spots at rickmanbreaks.de (Brian approved 2026-10-11, weekly discovery)
+UCRKndqE4EVtwSusFq60vgRA  # FootballCardsZone — Polish numbered live soccer breaks (#91-141), signup at footballcardszone.com (Brian approved 2026-10-11, weekly discovery)
