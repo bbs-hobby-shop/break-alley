@@ -18,6 +18,7 @@ SPORT_KEYWORDS = {
     # Only unambiguous sport words here. Brand words (panini, topps, bowman,
     # upper deck) span multiple sports and are handled via the product table.
     "football": [r"\bfootball\b", r"\bnfl\b", r"\bcollege football\b", r"\bcfb\b",
+                 r"\bphoenix\b",
                  "🏈"],
     "baseball": [r"\bbaseball\b", r"\bmlb\b", r"[xX]mlb\b",
                r"allen\s+(?:and|&)\s+ginter\b", r"\bginter\b",
@@ -35,7 +36,7 @@ SPORT_KEYWORDS = {
                r"\bsapphire\b", r"\bdiamond kings\b", r"\btopps heritage\b",
                r"\btopps gilded\b", r"\btopps tier one\b",
                r"\btopps\b.{0,20}\bset-break\b",
-               r"\bflagship\b", "⚾"],
+               r"\bflagship\b", r"\bdelight\b", r"\bjumbo\b", "⚾"],
     "basketball": [r"\bbasketball\b", r"\bnba\b", r"\bwnba\b",
                    r"\bprizm\b.{0,15}\bdraft picks\b",
                    r"\bpanini select\b", "🏀"],
@@ -44,7 +45,8 @@ SPORT_KEYWORDS = {
                r"\bmls\b", r"\bchampions league\b", r"\bworld cup\b", r"\bla liga\b",
                "⚽"],
     "hockey": [r"\bhockey\b", r"\bnhl\b", r"\bupper deck\b",
-               r"\bopc\b", r"\bo-pee-chee\b", r"\bteam canada\b", "🏒"],
+               r"\bopc\b", r"\bo-pee-chee\b", r"\bteam canada\b",
+               r"\bmetal universe\b", r"\bud series\b", "🏒"],
     # Brian 2026-10-09: TCG breaks (Pokemon etc.) are real box breaks too —
     # they get their own sport so buyers can filter for them.
     "tcg": [r"\bpok[eé]mon\b", r"\btcg\b", r"\bmagic\b.{0,15}\bgathering\b",
@@ -72,7 +74,9 @@ SPORT_KEYWORDS = {
             # Brian 2026-10-11: Star Wars / Marvel / Disney trading-card
             # breaks (Topps Chrome Star Wars, Marvel Neon/Mint, Disney
             # Chrome) — all TCG in the break world.
-            r"\bstar wars\b", r"\bmarvel\b", r"\bdisney\b"],
+            r"\bstar wars\b", r"\bmarvel\b", r"\bdisney\b",
+            r"\bmars attacks\b", r"\brayquaza\b", r"\broaring skies\b",
+            r"\bygo\b"],
     # Brian 2026-10-09: racing, wrestling/combat, golf, tennis all get their
     # own sport + thumbnail — no break settles for "other".
     "racing": [r"\bnascar\b", r"\bf1\b", r"\bformula\s?1\b", r"\bindycar\b",
