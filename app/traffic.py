@@ -20,17 +20,25 @@ SESSION_TIMEOUT = 1800  # 30 min of inactivity starts a new session
 _SKIP_PREFIXES = ("/static", "/admin", "/api", "/go", "/.well-known")
 
 # Bot / crawler / monitoring user-agents that must not count as visitors.
+# Brian 2026-10-11: site has no marketing, so real human traffic is ~zero;
+# be aggressive — cookie-less bots were inflating "visitors" 100x.
 _BOT_HINTS = (
     "bot", "crawler", "spider", "crawl", "slurp", "mediapartners",
     "baidu", "yandex", "sogou", "exabot", "facebot", "ia_archiver",
     "ahrefs", "semrush", "mj12", "dotbot", "petal", "bytespider",
     "python-requests", "httpx", "curl", "wget", "go-http-client",
     "uptimerobot", "pingdom", "datadog", "newrelic",
+    "headless", "phantom", "selenium", "puppeteer", "playwright",
+    "scrapy", "okhttp", "httpclient", "java/", "libwww-perl",
+    "shodan", "censys", "zgrab", "masscan", "nmap",
 )
 
 
 def is_bot(user_agent: str) -> bool:
     ua = (user_agent or "").lower()
+    # Empty user-agent: no real browser does this — it's a script/scanner.
+    if not ua.strip():
+        return True
     return any(h in ua for h in _BOT_HINTS)
 
 
