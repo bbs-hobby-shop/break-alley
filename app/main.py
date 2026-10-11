@@ -959,6 +959,67 @@ def admin_whatnot(request: Request, key: str | None = Query(default=None)):
     })
 
 
+    return templates.TemplateResponse(request, "admin_whatnot.html", {
+        "denied": False, "pending": pending, "reviewed": reviewed,
+        "key": key or "",
+    })
+
+
+# ---------------------------------------------------------------------------
+# "Breaking Tonight" social content (Brian 2026-10-11): daily flagship post
+# auto-generated from live + upcoming breaks. Preview page + PNG asset.
+# ---------------------------------------------------------------------------
+
+@app.get("/admin/breaking-tonight", response_class=HTMLResponse)
+def admin_breaking_tonight(request: Request, key: str | None = Query(default=None)):
+    """Preview page: tonight's card + copy-paste caption (ADMIN_KEY-gated)."""
+    if not _admin_key_ok(key):
+        return HTMLResponse("denied", status_code=403)
+    from . import breaking_tonight
+    try:
+        with db.get_conn() as conn:
+            breaks = breaking_tonight.get_tonight_breaks(conn)
+        caption = breaking_tonight.build_caption(breaks)
+    except Exception as exc:
+        return HTMLResponse(f"Database unavailable: {exc}", status_code=500)
+    rows = "".join(
+        f"<li><b>{'LIVE' if b.get('is_live') else 'UPCOMING'}</b> — "
+        f"{(b.get('breaker') or '').strip()} — "
+        f"{(b.get('title_raw') or b.get('product_normalized') or '').strip()[:80]}</li>"
+        for b in breaks
+    )
+    return HTMLResponse(f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Breaking Tonight — preview</title>
+<style>body{{background:#0a1628;color:#f0f4f8;font-family:sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem}}
+img{{max-width:100%;border-radius:12px}}pre{{background:#11223a;padding:1rem;border-radius:8px;white-space:pre-wrap}}
+button{{background:#00e676;border:0;padding:.6rem 1.2rem;border-radius:8px;font-weight:700;cursor:pointer}}
+a{{color:#00e676}}</style></head><body>
+<h1>\U0001f534 Breaking Tonight — preview</h1>
+<p>{len(breaks)} breaks tonight. <a href="/admin/breaking-tonight.png?key={key}">Download PNG</a></p>
+<img src="/admin/breaking-tonight.png?key={key}" alt="Breaking Tonight card">
+<h2>Caption (X / Threads)</h2>
+<pre id="cap">{caption}</pre>
+<button onclick="navigator.clipboard.writeText(document.getElementById('cap').innerText);this.innerText='Copied!'">Copy caption</button>
+<h2>Breaks included</h2><ul>{rows}</ul>
+</body></html>""")
+
+
+@app.get("/admin/breaking-tonight.png")
+def admin_breaking_tonight_png(key: str | None = Query(default=None)):
+    """The 9:16 PNG card itself (ADMIN_KEY-gated)."""
+    if not _admin_key_ok(key):
+        return HTMLResponse("denied", status_code=403)
+    from . import breaking_tonight
+    from fastapi.responses import Response
+    try:
+        with db.get_conn() as conn:
+            breaks = breaking_tonight.get_tonight_breaks(conn)
+        png = breaking_tonight.render_card(breaks)
+    except Exception as exc:
+        return HTMLResponse(f"Render failed: {exc}", status_code=500)
+    return Response(content=png, media_type="image/png")
+
+
 @app.get("/admin/feedback-json")
 def admin_feedback_json(request: Request, key: str | None = Query(default=None),
                         since: str | None = Query(default=None)):
