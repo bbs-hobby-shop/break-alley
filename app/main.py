@@ -583,7 +583,7 @@ def admin_purge_ebay_junk(request: Request, key: str | None = Query(default=None
     from .normalizer import detect_format, looks_like_real_break
     with db.get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, title, breaker FROM breaks WHERE source='ebay'")
+            cur.execute("SELECT id, title_raw, breaker FROM breaks WHERE source='ebay'")
             rows = cur.fetchall()
     junk_ids: list = []
     junk_sample: list = []
