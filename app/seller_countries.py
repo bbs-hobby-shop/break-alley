@@ -180,6 +180,12 @@ EBAY_SELLER_COUNTRIES: dict[str, str] = {
     "funkohub": "AU",                # Australia (TCG sweep 2026-10-11)
     "ccjamesinc": "CA",              # Montreal (TCG sweep 2026-10-11)
     "slabsharkslive": "CA",          # Canada (TCG sweep 2026-10-11)
+    "card.colosseum": "US",         # Card Colosseum, eBay seller page shows Location: United States (99.5% pos, ~2.6K feedback) (Brian approved 2026-10-11, weekly discovery)
+    "3rddowndisplays": "GB",        # 3rd Down Trading Card Shop, Keighley West Yorkshire UK (Brian approved 2026-10-11, weekly discovery) — moved from Fanatics map 2026-10-12 (eBay-only seller)
+    "718breaks": "US",              # 718Breaks, Brooklyn NY (Brian approved 2026-10-12, weekly discovery) — moved from Fanatics map 2026-10-12 (eBay-only seller)
+    "jetbreakers": "US",            # Jet Breakers, eBay Live NBA/NFL mixers (Brian approved 2026-10-12, weekly discovery) — moved from Fanatics map 2026-10-12 (eBay-only seller)
+    "elites-breaks": "AU",          # Elites Breaks, Australia (Brian approved 2026-10-12, weekly discovery) — moved from Fanatics map 2026-10-12 (eBay-only seller)
+    "northwestbreaks": "GB",        # Northwest Breaks, UK (Brian approved 2026-10-12, weekly discovery) — moved from Fanatics map 2026-10-12 (eBay-only seller)
 }
 # Fanatics Live shop name -> 2-letter country
 # Researched 2026-10-11 (shop sites, addresses, web search).
@@ -239,11 +245,6 @@ FANATICS_SHOP_COUNTRIES: dict[str, str] = {
     "brew town trading co": "US",    # TCG sweep 2026-10-11
     "coach chris cards": "US",       # TCG sweep 2026-10-11
     "wheelhouse breaks": "US",       # TCG sweep 2026-10-11
-    "3rddowndisplays": "GB",        # 3rd Down Trading Card Shop, Keighley West Yorkshire UK (Brian approved 2026-10-11, weekly discovery)
-    "718breaks": "US",              # 718Breaks, Brooklyn NY (Brian approved 2026-10-12, weekly discovery)
-    "jetbreakers": "US",            # Jet Breakers, eBay Live NBA/NFL mixers (Brian approved 2026-10-12, weekly discovery)
-    "elites-breaks": "AU",          # Elites Breaks, Australia (Brian approved 2026-10-12, weekly discovery)
-    "northwestbreaks": "GB",        # Northwest Breaks, UK (Brian approved 2026-10-12, weekly discovery)
 }
 _MAPS = {
     "twitch": TWITCH_COUNTRIES,
