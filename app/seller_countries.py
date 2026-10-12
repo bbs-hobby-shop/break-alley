@@ -60,6 +60,9 @@ TWITCH_COUNTRIES: dict[str, str] = {
     "ruxin34": "US",         # ruxin34, Ohio area (TCG sweep 2026-10-11)
     "rngmart": "AU",         # RNGmart, Australia (TCG sweep 2026-10-11)
     "dreamitcollectibles": "US",  # DreamItCollectibles, Southern California (Brian approved 2026-10-11, weekly discovery)
+    "cardcollectivenz": "NZ",  # Card Collective, New Zealand (Brian approved 2026-10-12, weekly discovery)
+    "thegamecapital": "US",  # The Game Capital, De Pere WI (Brian approved 2026-10-12, weekly discovery)
+    "deriumandwifey": "US",  # Derium & Wifey, Cuyahoga Falls OH (Brian approved 2026-10-12, weekly discovery)
 }
 # eBay seller username (lowercased) -> 2-letter country
 # Researched 2026-10-11 (eBay seller pages, listing locations, seller sites).
@@ -237,6 +240,10 @@ FANATICS_SHOP_COUNTRIES: dict[str, str] = {
     "coach chris cards": "US",       # TCG sweep 2026-10-11
     "wheelhouse breaks": "US",       # TCG sweep 2026-10-11
     "3rddowndisplays": "GB",        # 3rd Down Trading Card Shop, Keighley West Yorkshire UK (Brian approved 2026-10-11, weekly discovery)
+    "718breaks": "US",              # 718Breaks, Brooklyn NY (Brian approved 2026-10-12, weekly discovery)
+    "jetbreakers": "US",            # Jet Breakers, eBay Live NBA/NFL mixers (Brian approved 2026-10-12, weekly discovery)
+    "elites-breaks": "AU",          # Elites Breaks, Australia (Brian approved 2026-10-12, weekly discovery)
+    "northwestbreaks": "GB",        # Northwest Breaks, UK (Brian approved 2026-10-12, weekly discovery)
 }
 _MAPS = {
     "twitch": TWITCH_COUNTRIES,
