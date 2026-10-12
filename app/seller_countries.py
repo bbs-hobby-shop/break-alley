@@ -63,6 +63,7 @@ TWITCH_COUNTRIES: dict[str, str] = {
     "cardcollectivenz": "NZ",  # Card Collective, New Zealand (Brian approved 2026-10-12, weekly discovery)
     "thegamecapital": "US",  # The Game Capital, De Pere WI (Brian approved 2026-10-12, weekly discovery)
     "deriumandwifey": "US",  # Derium & Wifey, Cuyahoga Falls OH (Brian approved 2026-10-12, weekly discovery)
+    "pushdich_tcg": "DE",  # pushdich_tcg, Germany (Brian approved 2026-10-12, weekly discovery PM)
 }
 # eBay seller username (lowercased) -> 2-letter country
 # Researched 2026-10-11 (eBay seller pages, listing locations, seller sites).
@@ -186,6 +187,10 @@ EBAY_SELLER_COUNTRIES: dict[str, str] = {
     "jetbreakers": "US",            # Jet Breakers, eBay Live NBA/NFL mixers (Brian approved 2026-10-12, weekly discovery) — moved from Fanatics map 2026-10-12 (eBay-only seller)
     "elites-breaks": "AU",          # Elites Breaks, Australia (Brian approved 2026-10-12, weekly discovery) — moved from Fanatics map 2026-10-12 (eBay-only seller)
     "northwestbreaks": "GB",        # Northwest Breaks, UK (Brian approved 2026-10-12, weekly discovery) — moved from Fanatics map 2026-10-12 (eBay-only seller)
+    "maniasports": "GB",            # maniasports, UK (Brian approved 2026-10-12, weekly discovery PM)
+    "midasbreaks": "GB",            # midasbreaks, UK (Brian approved 2026-10-12, weekly discovery PM)
+    "gridcardsuk": "GB",            # gridcardsuk, UK (Brian approved 2026-10-12, weekly discovery PM)
+    "westlondonjoe91": "GB",        # westlondonjoe91, UK (Brian approved 2026-10-12, weekly discovery PM)
 }
 # Fanatics Live shop name -> 2-letter country
 # Researched 2026-10-11 (shop sites, addresses, web search).
