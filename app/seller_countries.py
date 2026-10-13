@@ -70,6 +70,7 @@ TWITCH_COUNTRIES: dict[str, str] = {
     "ipoketcg": "US",  # iPokeTCG, US rip & ship (Brian approved 2026-10-13, weekly discovery overnight)
     "collectibleno": "NO",  # Collectible.no, Norway (Brian approved 2026-10-13, weekly discovery overnight)
     "migueltcgbreaks": "PT",  # MiguelTcgBreaks, Portugal (Brian approved 2026-10-13, weekly discovery overnight)
+    "dannybartok": "US",  # dannybartok, US rip & ship (Brian approved 2026-10-13, weekly discovery PM)
 }
 # eBay seller username (lowercased) -> 2-letter country
 # Researched 2026-10-11 (eBay seller pages, listing locations, seller sites).
@@ -204,6 +205,9 @@ EBAY_SELLER_COUNTRIES: dict[str, str] = {
     "yunaversetcg": "US",           # YunaverseTCG, US (Brian approved 2026-10-13, weekly discovery overnight)
     "savage.cards": "CA",           # Savage Cards, Piedmont QC (Brian approved 2026-10-13, weekly discovery overnight)
     "collect540": "CA",             # Collect540, Montreal (Brian approved 2026-10-13, weekly discovery overnight)
+    "sportycardsit": "IT",          # Sporty Cards IT, Italy (Brian approved 2026-10-13, weekly discovery PM)
+    "fgdef_uk_sportscards": "GB",   # FGDEF UK Sportscards, UK (Brian approved 2026-10-13, weekly discovery PM)
+    "the-hobby-au": "AU",           # The Hobby AU, Australia (Brian approved 2026-10-13, weekly discovery PM)
 }
 # Fanatics Live shop name -> 2-letter country
 # Researched 2026-10-11 (shop sites, addresses, web search).

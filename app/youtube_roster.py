@@ -152,6 +152,8 @@ KNOWN_COUNTRIES = {
     "UCRKndqE4EVtwSusFq60vgRA": "PL",
     # GP Sports Cards: Canadian hockey group breaks, gpsportscards.com (Brian approved 2026-10-13, weekly discovery)
     "UC_r23ILOYKMgrwF5--zO3oQ": "CA",
+    # JC CardsMania (Jonas Carlsson): Swedish NHL group breaks incl. SHL product; region inferred from Swedish metadata (Brian approved 2026-10-13, weekly discovery PM)
+    "UCpS0vGkENx48k0s146NUm7w": "SE",
 }
 
 # Title-substring fallback for discovered channels whose IDs aren't in

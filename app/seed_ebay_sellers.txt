@@ -147,3 +147,6 @@ replaysportscards  # Replay Sports Cards (US) — $1-start PYT on eBay Live, 100
 YunaverseTCG  # YunaverseTCG (US) — $1-start Pokémon energy breaks on eBay Live, 100% (Brian approved 2026-10-13, weekly discovery overnight)
 savage.cards  # Savage Cards (CA) — $1-start random-team hockey breaks, 99.9% (~59K) (Brian approved 2026-10-13, weekly discovery overnight)
 collect540  # Collect540 (CA) — PYT/random hockey breaks on eBay Live, 100% (~7.1K) (Brian approved 2026-10-13, weekly discovery overnight)
+sportycardsit  # Sporty Cards IT (IT) — EUR1-start PYT soccer breaks on eBay Live, 99.6% (Brian approved 2026-10-13, weekly discovery PM)
+fgdef_uk_sportscards  # FGDEF UK Sportscards (GB) — GBP1-start PYT/random soccer breaks, 100% (Brian approved 2026-10-13, weekly discovery PM)
+the-hobby-au  # The Hobby AU (AU) — rip & ship / PYT Live breaks, 99.9% (Brian approved 2026-10-13, weekly discovery PM)

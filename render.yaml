@@ -44,8 +44,8 @@ services:
     name: break-alley-poll-ebay
     runtime: docker
     dockerfilePath: ./Dockerfile
-    # Normal cadence: every 30 min. (Was TEMPORARILY slowed 2026-10-11 → 60 min, 2026-10-12 → 3h for the eBay 429 throttle; throttle cleared 2026-10-13, reverted per Brian.)
-    schedule: "*/30 * * * *"
+    # TEMPORARY slowdown (Brian 2026-10-13): 30-min cadence re-triggered the eBay 429 penalty within an hour (12 straight failures); back to every 3 hours, which ran clean. Revert to */30 when the throttle clears for good.
+    schedule: "0 */3 * * *"
     dockerCommand: python -m app.ingest --source ebay
     envVars:
       - key: DATABASE_URL
