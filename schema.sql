@@ -27,7 +27,6 @@ CREATE TABLE IF NOT EXISTS breaks (
     channel_id      TEXT,                       -- YouTube channelId (roster discovery + backfill)
     country         TEXT,                       -- 2-letter breaker country (US, CA, AU, ...) NULL = unknown
     group_key       TEXT,                       -- eBay: groups team-by-team listings of one break
-    country         TEXT,                       -- 2-letter breaker country (US, CA, AU, ...) NULL = unknown
     UNIQUE (source, source_url)
 );
 

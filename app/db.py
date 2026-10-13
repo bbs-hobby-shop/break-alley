@@ -1113,10 +1113,15 @@ CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (ac
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_breaks_channel_id ON breaks (channel_id);
 -- /results speed (2026-10-13): MAX(fetched_at) backs the "updated X ago"
--- stamp on every results page; the group index serves the grouping
--- window's partition + price order for grouped (eBay) rows.
+-- stamp on every results page; the expression index matches the search
+-- query's grouping window exactly (partition expression + price order),
+-- so the representative-row pick streams from the index instead of
+-- sorting the whole table — benchmarked ~2x faster on a 38k-row copy.
+-- It replaces the plain (group_key, price, id) index added earlier the
+-- same day (plain group_key equality still uses idx_breaks_group_key).
 CREATE INDEX IF NOT EXISTS idx_breaks_fetched_at ON breaks (fetched_at DESC);
-CREATE INDEX IF NOT EXISTS idx_breaks_group_price ON breaks (group_key, price, id);
+DROP INDEX IF EXISTS idx_breaks_group_price;
+CREATE INDEX IF NOT EXISTS idx_breaks_group_expr ON breaks ((COALESCE(group_key, 'ungrouped-' || id::text)), price, id);
 
 -- Community breaker suggestions (public form -> review queue -> roster).
 CREATE TABLE IF NOT EXISTS breaker_suggestions (
