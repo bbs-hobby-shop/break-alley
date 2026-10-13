@@ -140,3 +140,6 @@ maniasports  # maniasports — UK (GB) box breaks on eBay (Brian approved 2026-1
 midasbreaks  # midasbreaks — UK (GB) box breaks on eBay (Brian approved 2026-10-12, weekly discovery PM)
 gridcardsuk  # gridcardsuk — UK (GB) box breaks on eBay (Brian approved 2026-10-12, weekly discovery PM)
 westlondonjoe91  # westlondonjoe91 — UK (GB) box breaks on eBay (Brian approved 2026-10-12, weekly discovery PM)
+tidy.collectables  # Tidy Collectables (AU) — $1-start rip & ship breaks on eBay, 100% (~5.6K) (Brian approved 2026-10-13, weekly discovery AM)
+jsr-collectables  # JSR Collectables (GB) — £1-start rip & ship breaks on eBay UK, 99.8% (Brian approved 2026-10-13, weekly discovery AM)
+gamedaylr  # GameDayLR (US) — Little Rock AR random teams breaks on eBay, 99.8% (Brian approved 2026-10-13, weekly discovery AM)

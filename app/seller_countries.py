@@ -64,6 +64,9 @@ TWITCH_COUNTRIES: dict[str, str] = {
     "thegamecapital": "US",  # The Game Capital, De Pere WI (Brian approved 2026-10-12, weekly discovery)
     "deriumandwifey": "US",  # Derium & Wifey, Cuyahoga Falls OH (Brian approved 2026-10-12, weekly discovery)
     "pushdich_tcg": "DE",  # pushdich_tcg, Germany (Brian approved 2026-10-12, weekly discovery PM)
+    "mysticalspark": "CA",  # mysticalspark, Canada (Brian approved 2026-10-13, weekly discovery AM)
+    "thejokershouse_live": "ZA",  # The Joker's House Live, South Africa (Brian approved 2026-10-13, weekly discovery AM)
+    "ripwithc50g": "US",  # ripwithc50g, US (Brian approved 2026-10-13, weekly discovery AM)
 }
 # eBay seller username (lowercased) -> 2-letter country
 # Researched 2026-10-11 (eBay seller pages, listing locations, seller sites).
@@ -191,6 +194,9 @@ EBAY_SELLER_COUNTRIES: dict[str, str] = {
     "midasbreaks": "GB",            # midasbreaks, UK (Brian approved 2026-10-12, weekly discovery PM)
     "gridcardsuk": "GB",            # gridcardsuk, UK (Brian approved 2026-10-12, weekly discovery PM)
     "westlondonjoe91": "GB",        # westlondonjoe91, UK (Brian approved 2026-10-12, weekly discovery PM)
+    "tidy.collectables": "AU",      # Tidy Collectables, Australia (Brian approved 2026-10-13, weekly discovery AM)
+    "jsr-collectables": "GB",       # JSR Collectables, UK (Brian approved 2026-10-13, weekly discovery AM)
+    "gamedaylr": "US",              # GameDayLR, Little Rock AR (Brian approved 2026-10-13, weekly discovery AM)
 }
 # Fanatics Live shop name -> 2-letter country
 # Researched 2026-10-11 (shop sites, addresses, web search).

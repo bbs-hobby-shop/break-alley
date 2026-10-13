@@ -72,3 +72,6 @@ biggiebreaks  # BiggieBreaks — Pokemon TCG live breaks, Whatnot 5.0/14K review
 djdeemo  # DJdeemO — Pokemon TCG personal-break shop, packs/boxes opened live on Twitch (Brian approved 2026-10-12, weekly discovery)
 yimtcg  # yimtcg — Pokemon rip shop live breaks on Twitch (Brian approved 2026-10-12, weekly discovery PM)
 pushdich_tcg  # pushdich_tcg — German Pokemon TCG live-break shop, Twitch Partner (Brian approved 2026-10-12, weekly discovery PM)
+mysticalspark  # mysticalspark (CA) — Canadian TCG rip shop, active Oct 12 (Brian approved 2026-10-13, weekly discovery AM)
+thejokershouse_live  # The Joker's House Live (ZA) — South African live breaks (Brian approved 2026-10-13, weekly discovery AM)
+ripwithc50g  # ripwithc50g (US) — US live breaks, marginal scale per Brian's call (Brian approved 2026-10-13, weekly discovery AM)
