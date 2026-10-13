@@ -227,11 +227,15 @@ def fetch_roster_breaks(conn):
     """Poll active roster channels and return kept break rows.
 
     Returns (rows, hit_channel_ids, checked_channel_ids, channel_of_video,
-    stats). channel_of_video maps every seen video id to its channel (all
-    from successfully checked channels) — the caller uses it to demote live
-    rows the roster no longer sees. Writes nothing — the caller upserts rows
-    and stamps the roster, so a total API failure leaves existing data
-    untouched (no slice wipe here at all).
+    not_live_vids, stats). channel_of_video maps every seen video id to its
+    channel (all from successfully checked channels) — the caller uses it
+    to demote live rows the roster no longer sees. not_live_vids holds seen
+    video ids whose details were fetched and show the stream is over (not
+    broadcasting, not upcoming) — the caller demotes those too, since the
+    not-in-window rule alone misses ended streams still in the window.
+    Writes nothing — the caller upserts rows and stamps the roster, so a
+    total API failure leaves existing data untouched (no slice wipe here
+    at all).
     """
     get_api_key()  # fail fast with a clear message when the key is missing
 
@@ -239,7 +243,7 @@ def fetch_roster_breaks(conn):
     if not channels:
         print("youtube-roster: roster is empty — discovery hook will fill it "
               "as the search poller keeps breaks.")
-        return [], [], [], {}, {
+        return [], [], [], {}, set(), {
             "n_channels": 0, "n_api_ok": 0, "units": 0,
             "n_kept": 0, "n_non_break": 0, "n_past": 0, "n_no_date": 0,
         }
@@ -305,11 +309,20 @@ def fetch_roster_breaks(conn):
     # 4. normalize + keep only real, joinable breaks (same filter as search)
     rows: list[dict] = []
     hit_channels: set[str] = set()
+    not_live_vids: set[str] = set()
     n_non_break = n_past = n_no_date = 0
     for vid in video_ids:
         row = normalize_youtube_video(vid, None, details.get(vid))
         if not (row and row.get("source_url")):
             continue
+        # Confirmed-over evidence for the caller's demote pass: a row here
+        # means the details fetch succeeded, and YouTube says this video is
+        # neither broadcasting now nor scheduled ahead — an ended stream
+        # still sitting in the playlist window (front-end audit 2026-10-12:
+        # ~50 such streams stayed tagged LIVE). Videos whose details fetch
+        # failed never produce a row, so they can't be demoted on a guess.
+        if not row.get("is_live") and not is_upcoming_or_live(row):
+            not_live_vids.add(vid)
         if not looks_like_real_break(row["title_raw"], row.get("format"),
                                        row.get("breaker")):
             n_non_break += 1
@@ -329,7 +342,7 @@ def fetch_roster_breaks(conn):
           f"= ~{units} quota units across {len(checked)} channels; "
           f"{len(rows)} upcoming breaks kept, "
           f"{n_non_break} non-break / {n_past} past / {n_no_date} no-date dropped")
-    return rows, sorted(hit_channels), checked, channel_of_video, {
+    return rows, sorted(hit_channels), checked, channel_of_video, not_live_vids, {
         "n_channels": len(channels),
         "n_api_ok": n_playlist_calls,
         "units": units,

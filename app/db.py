@@ -1112,6 +1112,11 @@ ALTER TABLE breaks ADD COLUMN IF NOT EXISTS video_checked_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_active   ON youtube_channels (active);
 CREATE INDEX IF NOT EXISTS idx_youtube_channels_last_hit ON youtube_channels (last_hit_at DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_breaks_channel_id ON breaks (channel_id);
+-- /results speed (2026-10-13): MAX(fetched_at) backs the "updated X ago"
+-- stamp on every results page; the group index serves the grouping
+-- window's partition + price order for grouped (eBay) rows.
+CREATE INDEX IF NOT EXISTS idx_breaks_fetched_at ON breaks (fetched_at DESC);
+CREATE INDEX IF NOT EXISTS idx_breaks_group_price ON breaks (group_key, price, id);
 
 -- Community breaker suggestions (public form -> review queue -> roster).
 CREATE TABLE IF NOT EXISTS breaker_suggestions (
@@ -1231,25 +1236,7 @@ def ensure_schema(conn) -> None:
     conn.execute(SCHEMA_MIGRATIONS)
 
 
-SEARCH_BASE = """
--- Brian 2026-10-07: grouping happens IN SQL via window functions, so LIMIT
--- applies after dedup. (The old Python-side grouping after LIMIT 1000 let
--- eBay's 4k rows crowd out other platforms in the All view.)
-SELECT id, source, source_url, breaker, product_raw, product_normalized,
-       sport, sports, format, formats, price, currency, starts_at, is_live,
-       slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
-       country, group_key, video_url, video_platform, break_time_text, video_links,
-       is_auction, auction_ends_at, current_bid, group_count
-FROM (
-  SELECT breaks.*,
-         ROW_NUMBER() OVER (
-           PARTITION BY COALESCE(group_key, 'ungrouped-' || id::text)
-           ORDER BY price NULLS LAST, id
-         ) AS rn,
-         COUNT(*) OVER (
-           PARTITION BY COALESCE(group_key, 'ungrouped-' || id::text)
-         ) AS group_count
-  FROM breaks
+SEARCH_WHERE = """
   WHERE (CAST(%(q)s AS TEXT) IS NULL OR title_raw ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
          OR COALESCE(product_normalized, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%'
          OR COALESCE(breaker, '') ILIKE '%%' || CAST(%(q)s AS TEXT) || '%%')
@@ -1285,6 +1272,28 @@ FROM (
     -- results 6h after start (covers show duration + buffer).
     AND NOT (source = 'whatnot' AND starts_at IS NOT NULL
              AND starts_at < NOW() - INTERVAL '6 hours')
+"""
+
+SEARCH_BASE = """
+-- Brian 2026-10-07: grouping happens IN SQL via window functions, so LIMIT
+-- applies after dedup. (The old Python-side grouping after LIMIT 1000 let
+-- eBay's 4k rows crowd out other platforms in the All view.)
+SELECT id, source, source_url, breaker, product_raw, product_normalized,
+       sport, sports, format, formats, price, currency, starts_at, is_live,
+       slots_total, slots_remaining, thumbnail_url, title_raw, affiliate_url,
+       country, group_key, video_url, video_platform, break_time_text, video_links,
+       is_auction, auction_ends_at, current_bid, group_count
+FROM (
+  SELECT breaks.*,
+         ROW_NUMBER() OVER (
+           PARTITION BY COALESCE(group_key, 'ungrouped-' || id::text)
+           ORDER BY price NULLS LAST, id
+         ) AS rn,
+         COUNT(*) OVER (
+           PARTITION BY COALESCE(group_key, 'ungrouped-' || id::text)
+         ) AS group_count
+  FROM breaks
+""" + SEARCH_WHERE + """
 ) ranked
 WHERE rn = 1
 """
@@ -1302,7 +1311,15 @@ SORT_SQL = {
 }
 DEFAULT_SORT_SQL = "is_live DESC, starts_at NULLS LAST, fetched_at DESC, id"
 
-COUNT_SEARCH_SQL = "SELECT COUNT(*) FROM (" + SEARCH_BASE + ") AS c;"
+# Brian 2026-10-13: the count used to wrap the whole window-function
+# query (full sort of every row, twice per page load). Counting distinct
+# groups with the same WHERE gets the identical total via a hash
+# aggregate — no ROW_NUMBER, no sort.
+COUNT_SEARCH_SQL = (
+    "SELECT COUNT(*) AS count FROM (SELECT 1 FROM breaks "
+    + SEARCH_WHERE
+    + " GROUP BY COALESCE(group_key, 'ungrouped-' || id::text)) AS c;"
+)
 
 
 def search_breaks(conn, q=None, sport=None, format=None, max_price=None,

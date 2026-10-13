@@ -370,7 +370,7 @@ def run_youtube_roster() -> int:
             n_manual = db.seed_manual_channels(conn, lines)
             if n_manual:
                 print(f"youtube-roster: seeded {n_manual} manual channels")
-        rows, hit_channel_ids, checked, channel_of_video, stats = youtube_roster.fetch_roster_breaks(conn)
+        rows, hit_channel_ids, checked, channel_of_video, not_live_vids, stats = youtube_roster.fetch_roster_breaks(conn)
         if stats["n_channels"] > 0 and stats["n_api_ok"] == 0:
             # Total API failure (quota exhausted, rate-limited, or outage):
             # nothing was checked, so there is nothing to write. Unlike the
@@ -402,12 +402,16 @@ def run_youtube_roster() -> int:
         ).rowcount
         if n_pruned:
             print(f"youtube-roster: pruned {n_pruned} stale breaks")
-        # Demote live rows the roster no longer sees (front-end audit
+        # Demote live rows the roster no longer sees as live (front-end audit
         # 2026-10-11: the prune above kept is_live rows forever, so ended
         # streams stayed marked live). Only channels successfully checked
         # this run count — a failed playlist fetch leaves that channel's
-        # rows untouched. seen_vids is playlist-level, so a videos.list
-        # failure can't demote a still-live stream; rows with no parseable
+        # rows untouched. Two demote rules: (1) the video fell out of the
+        # playlist window entirely (seen_vids is playlist-level, so a
+        # videos.list failure can't demote a still-live stream); (2) the
+        # video is still in the window but its fetched details confirm the
+        # stream ended (not_live_vids, front-end audit 2026-10-12 — rule 1
+        # alone left ~50 ended streams tagged LIVE). Rows with no parseable
         # video id are left alone.
         seen_vids = set(channel_of_video)
         demote_ids = []
@@ -419,7 +423,7 @@ def run_youtube_roster() -> int:
             ).fetchall()
             for r in live_rows:
                 vid = _youtube_video_id(r.get("source_url"))
-                if vid and vid not in seen_vids:
+                if vid and (vid not in seen_vids or vid in not_live_vids):
                     demote_ids.append(r["id"])
         if demote_ids:
             conn.execute(

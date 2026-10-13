@@ -102,19 +102,27 @@ def _video_resource(vid, channel_id, title, live=None, scheduled=None,
     return {"id": vid, "snippet": snippet, "liveStreamingDetails": live_details}
 
 
+def _ts(days=0, hours=0):
+    """Fixture timestamps relative to now — absolute dates rot within a
+    week because is_upcoming_or_live compares against the wall clock."""
+    from datetime import datetime, timedelta, timezone
+    dt = datetime.now(timezone.utc) + timedelta(days=days, hours=hours)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 VIDEO_DETAILS = {
     VID_BREAK: _video_resource(
         VID_BREAK, CH_A, "2024 Topps Chrome Baseball 2 Box Break PYT #5",
-        scheduled="2026-10-07T20:00:00Z"),
+        scheduled=_ts(days=1)),
     VID_LIVE: _video_resource(
         VID_LIVE, CH_A, "LIVE 5 Box 2024 Mosaic Basketball Mixer Division Break",
-        live=True, started="2026-10-06T01:00:00Z"),
+        live=True, started=_ts(hours=-1)),
     VID_VLOG: _video_resource(
         VID_VLOG, CH_B, "My weekend vlog — card shop visit and mail day",
-        scheduled="2026-10-07T20:00:00Z"),
+        scheduled=_ts(days=1)),
     VID_PAST: _video_resource(
         VID_PAST, CH_B, "2023 Bowman 1 Box Break Personal #3",
-        scheduled="2026-10-02T20:00:00Z"),
+        scheduled=_ts(days=-3)),
 }
 
 
@@ -203,7 +211,7 @@ def test_roster_fetch_filters_and_attributes():
                 (youtube_roster, "channel_countries",
                  lambda ids: {CH_A: "US"}),
                 (config, "YOUTUBE_API_KEY", "fake-key")]):
-        rows, hit_cids, checked, channel_of_video, stats = youtube_roster.fetch_roster_breaks(conn)
+        rows, hit_cids, checked, channel_of_video, not_live_vids, stats = youtube_roster.fetch_roster_breaks(conn)
 
     kept = sorted(r["title_raw"] for r in rows)
     assert kept == ["2024 Topps Chrome Baseball 2 Box Break PYT #5",
@@ -213,6 +221,9 @@ def test_roster_fetch_filters_and_attributes():
     assert stats["units"] == 4, stats            # 2 playlist + 1 detail + 1 country call
     assert stats["n_non_break"] == 1, stats       # the vlog
     assert stats["n_past"] == 1, stats            # the 3-day-old break
+    # confirmed-over set: only the past break (the vlog is upcoming, the
+    # live break is broadcasting, the kept break is scheduled ahead)
+    assert not_live_vids == {VID_PAST}, not_live_vids
     # kept rows carry channel_id for the discovery/backfill loop
     assert all(r["channel_id"] == CH_A for r in rows), rows
     # kept rows carry the backfilled channel country
@@ -234,7 +245,7 @@ def test_roster_country_known_override():
                 (youtube_roster, "channel_countries", lambda ids: {}),
                 (youtube_roster, "KNOWN_COUNTRIES", {CH_A: "CA"}),
                 (config, "YOUTUBE_API_KEY", "fake-key")]):
-        rows, _, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
+        rows, _, _, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
     assert rows and all(r["country"] == "CA" for r in rows), rows
     updates = [(s, p) for s, p in conn.executes
                if "UPDATE youtube_channels SET country" in s]
@@ -253,7 +264,7 @@ def test_roster_country_title_fallback():
                 (youtube_roster, "KNOWN_COUNTRIES", {}),
                 (youtube_roster, "KNOWN_COUNTRIES_BY_TITLE", {"bythacard": "TW"}),
                 (config, "YOUTUBE_API_KEY", "fake-key")]):
-        rows, _, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
+        rows, _, _, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
     assert rows and all(r["country"] == "TW" for r in rows), rows
     print("ok test_roster_country_title_fallback")
 
@@ -270,7 +281,7 @@ def test_roster_country_details_title_fallback():
                 (youtube_roster, "KNOWN_COUNTRIES", {}),
                 (youtube_roster, "KNOWN_COUNTRIES_BY_TITLE", {"channel": "TW"}),
                 (config, "YOUTUBE_API_KEY", "fake-key")]):
-        rows, _, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
+        rows, _, _, _, _, _ = youtube_roster.fetch_roster_breaks(conn)
     assert rows and all(r["country"] == "TW" for r in rows), rows
     print("ok test_roster_country_details_title_fallback")
 
@@ -334,7 +345,12 @@ def test_ingest_run_writes():
             rc = ingest.run_youtube_roster()
     assert rc == 0
     assert len(conn.sqls_containing("INSERT INTO breaks")) == 2, "2 kept rows upserted"
-    assert not conn.sqls_containing("DELETE FROM breaks"), "roster never wipes the slice"
+    # The roster prunes stale rows but never wipes the slice: every DELETE
+    # must be the guarded prune (keeps live rows + future starts). The old
+    # blanket "no DELETE" assertion predates the prune — the roster became
+    # the sole YouTube source and owns stale-row cleanup.
+    for sql in conn.sqls_containing("DELETE FROM breaks"):
+        assert "NOT COALESCE(is_live, FALSE)" in sql, f"unguarded wipe: {sql}"
     hit_upserts = [p for s, p in conn.executes
                    if "ON CONFLICT (channel_id)" in s and "VALUES" in s
                    and "last_hit_at" in s]  # hit stamps only, not manual seeds
@@ -362,7 +378,7 @@ def test_roster_demotes_unseen_live_rows():
         assert "/videos" in url, f"unexpected call: {url}"
         return {"items": [_video_resource(
             VID_LIVE, CH, "LIVE 2 Box 2024 Prizm Basketball Break PYT #7",
-            live=True, started="2026-10-11T01:00:00Z")]}
+            live=True, started=_ts(hours=-1))]}
 
     live_rows = [
         {"id": 101, "channel_id": CH,
@@ -389,6 +405,64 @@ def test_roster_demotes_unseen_live_rows():
     demoted_ids = demotes[0][1][0]
     assert demoted_ids == [102], f"only the ended video demotes, got {demoted_ids}"
     print("ok test_roster_demotes_unseen_live_rows")
+
+
+def test_roster_demotes_in_window_ended_rows():
+    # Front-end audit 2026-10-12: ended streams still inside the playlist
+    # window were dropped as "past" but never demoted — ~50 stayed tagged
+    # LIVE for days. The details fetch confirms the end (actualEndTime
+    # set), so the live row must demote even though the video is still
+    # seen in the window.
+    CH = "UCinwindowchannel1"
+    VID_LIVE = "lIvElIvElI1"      # 11 chars, broadcasting now
+    VID_ENDED = "eNdEdeNdEd2"     # 11 chars, in window, stream over
+
+    def ended_resource(vid):
+        return {"id": vid,
+                "snippet": {"title": "2024 Topps Chrome 2 Box Break PYT #9",
+                            "channelId": CH, "channelTitle": "In Window",
+                            "liveBroadcastContent": "none",
+                            "thumbnails": {"default": {"url": "http://thumb/x.jpg"}}},
+                "liveStreamingDetails": {"actualStartTime": _ts(days=-2),
+                                         "actualEndTime": _ts(days=-2, hours=2)}}
+
+    def fake_get(url, params):
+        if "playlistItems" in url:
+            return {"items": [{"contentDetails": {"videoId": v}}
+                              for v in (VID_LIVE, VID_ENDED)]}
+        assert "/videos" in url, f"unexpected call: {url}"
+        items = []
+        for v in params["id"].split(","):
+            if v == VID_LIVE:
+                items.append(_video_resource(
+                    VID_LIVE, CH, "LIVE 2 Box 2024 Prizm Basketball Break PYT #7",
+                    live=True, started=_ts(hours=-1)))
+            else:
+                items.append(ended_resource(v))
+        return {"items": items}
+
+    live_rows = [
+        {"id": 201, "channel_id": CH,
+         "source_url": f"https://www.youtube.com/watch?v={VID_LIVE}"},
+        {"id": 202, "channel_id": CH,
+         "source_url": f"https://www.youtube.com/watch?v={VID_ENDED}"},
+    ]
+    conn = FakeConn(
+        roster_channels=[{"channel_id": CH, "title": "In Window", "country": "US"}],
+        live_rows=live_rows)
+    with patch([(youtube_roster, "_get", fake_get),
+                (youtube, "_get", fake_get),
+                (youtube_roster, "channel_countries", lambda ids: {}),
+                (config, "YOUTUBE_API_KEY", "fake-key")]):
+        with fake_db_conn(conn):
+            rc = ingest.run_youtube_roster()
+    assert rc == 0
+    demotes = [(s, p) for s, p in conn.executes
+               if "SET is_live=FALSE" in s]
+    assert len(demotes) == 1, f"expected one demote UPDATE, got {len(demotes)}"
+    assert demotes[0][1][0] == [202], \
+        f"only the ended in-window video demotes, got {demotes[0][1][0]}"
+    print("ok test_roster_demotes_in_window_ended_rows")
 
 
 def test_discovery_hook_in_search_poller():
