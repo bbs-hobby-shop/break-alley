@@ -75,3 +75,7 @@ pushdich_tcg  # pushdich_tcg — German Pokemon TCG live-break shop, Twitch Part
 mysticalspark  # mysticalspark (CA) — Canadian TCG rip shop, active Oct 12 (Brian approved 2026-10-13, weekly discovery AM)
 thejokershouse_live  # The Joker's House Live (ZA) — South African live breaks (Brian approved 2026-10-13, weekly discovery AM)
 ripwithc50g  # ripwithc50g (US) — US live breaks, marginal scale per Brian's call (Brian approved 2026-10-13, weekly discovery AM)
+ipoketcg  # iPokeTCG (US) — rip & ship store, Partner 21.5K (Brian approved 2026-10-13, weekly discovery overnight)
+led_gengar  # LedGengar's Ghosty Games — live breaks Wed/Fri/Sat/Sun, Partner 13.9K; region unknown (Brian approved 2026-10-13, weekly discovery overnight)
+collectibleno  # Collectible.no (NO) — Norwegian rip & ship, new NO coverage (Brian approved 2026-10-13, weekly discovery overnight)
+migueltcgbreaks  # MiguelTcgBreaks (PT) — Portuguese Pokémon breaks, Partner 19.1K (Brian approved 2026-10-13, weekly discovery overnight)

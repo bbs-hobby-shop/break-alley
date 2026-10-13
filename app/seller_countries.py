@@ -67,6 +67,9 @@ TWITCH_COUNTRIES: dict[str, str] = {
     "mysticalspark": "CA",  # mysticalspark, Canada (Brian approved 2026-10-13, weekly discovery AM)
     "thejokershouse_live": "ZA",  # The Joker's House Live, South Africa (Brian approved 2026-10-13, weekly discovery AM)
     "ripwithc50g": "US",  # ripwithc50g, US (Brian approved 2026-10-13, weekly discovery AM)
+    "ipoketcg": "US",  # iPokeTCG, US rip & ship (Brian approved 2026-10-13, weekly discovery overnight)
+    "collectibleno": "NO",  # Collectible.no, Norway (Brian approved 2026-10-13, weekly discovery overnight)
+    "migueltcgbreaks": "PT",  # MiguelTcgBreaks, Portugal (Brian approved 2026-10-13, weekly discovery overnight)
 }
 # eBay seller username (lowercased) -> 2-letter country
 # Researched 2026-10-11 (eBay seller pages, listing locations, seller sites).
@@ -197,6 +200,10 @@ EBAY_SELLER_COUNTRIES: dict[str, str] = {
     "tidy.collectables": "AU",      # Tidy Collectables, Australia (Brian approved 2026-10-13, weekly discovery AM)
     "jsr-collectables": "GB",       # JSR Collectables, UK (Brian approved 2026-10-13, weekly discovery AM)
     "gamedaylr": "US",              # GameDayLR, Little Rock AR (Brian approved 2026-10-13, weekly discovery AM)
+    "replaysportscards": "US",      # Replay Sports Cards, US (Brian approved 2026-10-13, weekly discovery overnight)
+    "yunaversetcg": "US",           # YunaverseTCG, US (Brian approved 2026-10-13, weekly discovery overnight)
+    "savage.cards": "CA",           # Savage Cards, Piedmont QC (Brian approved 2026-10-13, weekly discovery overnight)
+    "collect540": "CA",             # Collect540, Montreal (Brian approved 2026-10-13, weekly discovery overnight)
 }
 # Fanatics Live shop name -> 2-letter country
 # Researched 2026-10-11 (shop sites, addresses, web search).

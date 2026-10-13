@@ -150,6 +150,8 @@ KNOWN_COUNTRIES = {
     "UCXTn7VWwEfWdu2PsXDLbS9A": "DE",
     # FootballCardsZone: Polish numbered soccer breaks, footballcardszone.com (Brian approved 2026-10-11, weekly discovery)
     "UCRKndqE4EVtwSusFq60vgRA": "PL",
+    # GP Sports Cards: Canadian hockey group breaks, gpsportscards.com (Brian approved 2026-10-13, weekly discovery)
+    "UC_r23ILOYKMgrwF5--zO3oQ": "CA",
 }
 
 # Title-substring fallback for discovered channels whose IDs aren't in

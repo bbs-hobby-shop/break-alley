@@ -143,3 +143,7 @@ westlondonjoe91  # westlondonjoe91 — UK (GB) box breaks on eBay (Brian approve
 tidy.collectables  # Tidy Collectables (AU) — $1-start rip & ship breaks on eBay, 100% (~5.6K) (Brian approved 2026-10-13, weekly discovery AM)
 jsr-collectables  # JSR Collectables (GB) — £1-start rip & ship breaks on eBay UK, 99.8% (Brian approved 2026-10-13, weekly discovery AM)
 gamedaylr  # GameDayLR (US) — Little Rock AR random teams breaks on eBay, 99.8% (Brian approved 2026-10-13, weekly discovery AM)
+replaysportscards  # Replay Sports Cards (US) — $1-start PYT on eBay Live, 100% (~1.9K) Top-rated (Brian approved 2026-10-13, weekly discovery overnight)
+YunaverseTCG  # YunaverseTCG (US) — $1-start Pokémon energy breaks on eBay Live, 100% (Brian approved 2026-10-13, weekly discovery overnight)
+savage.cards  # Savage Cards (CA) — $1-start random-team hockey breaks, 99.9% (~59K) (Brian approved 2026-10-13, weekly discovery overnight)
+collect540  # Collect540 (CA) — PYT/random hockey breaks on eBay Live, 100% (~7.1K) (Brian approved 2026-10-13, weekly discovery overnight)
