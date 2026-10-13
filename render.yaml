@@ -44,8 +44,8 @@ services:
     name: break-alley-poll-ebay
     runtime: docker
     dockerfilePath: ./Dockerfile
-    # Brian 2026-10-11: slowed 30 -> 60 min TEMPORARILY to ease eBay 429 throttling (revert when throttle clears)
-    schedule: "0 * * * *"
+    # Brian 2026-10-11: slowed 30 -> 60 min TEMPORARILY to ease eBay 429 throttling; Brian 2026-10-12: slowed further to every 3 hours (revert both when throttle clears)
+    schedule: "0 */3 * * *"
     dockerCommand: python -m app.ingest --source ebay
     envVars:
       - key: DATABASE_URL
