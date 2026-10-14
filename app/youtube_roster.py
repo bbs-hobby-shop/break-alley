@@ -154,6 +154,10 @@ KNOWN_COUNTRIES = {
     "UC_r23ILOYKMgrwF5--zO3oQ": "CA",
     # JC CardsMania (Jonas Carlsson): Swedish NHL group breaks incl. SHL product; region inferred from Swedish metadata (Brian approved 2026-10-13, weekly discovery PM)
     "UCpS0vGkENx48k0s146NUm7w": "SE",
+    # Monmouth Cards: West Long Branch NJ store chain; channel sets no country (Brian approved 2026-10-14, weekly discovery)
+    "UCkPJNVsN_0sfPRIAjZ6FT4w": "US",
+    # Project Mozi Breaks: Hong Kong per its own channel description; channel sets no country (Brian approved 2026-10-14, weekly discovery)
+    "UC6-QP4dT9fqzQccR3tRp4fQ": "HK",
 }
 
 # Title-substring fallback for discovered channels whose IDs aren't in

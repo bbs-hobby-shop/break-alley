@@ -150,3 +150,6 @@ collect540  # Collect540 (CA) — PYT/random hockey breaks on eBay Live, 100% (~
 sportycardsit  # Sporty Cards IT (IT) — EUR1-start PYT soccer breaks on eBay Live, 99.6% (Brian approved 2026-10-13, weekly discovery PM)
 fgdef_uk_sportscards  # FGDEF UK Sportscards (GB) — GBP1-start PYT/random soccer breaks, 100% (Brian approved 2026-10-13, weekly discovery PM)
 the-hobby-au  # The Hobby AU (AU) — rip & ship / PYT Live breaks, 99.9% (Brian approved 2026-10-13, weekly discovery PM)
+camscards12  # Cam's Cards (US) — per-team mixer auctions, 99.9% (Brian approved 2026-10-14, weekly discovery; promoted from hold)
+pristineworldwide  # Pristine Worldwide (CA) — PYT breaks, 100% (Brian approved 2026-10-14, weekly discovery)
+hot_ice_breaks_collectables  # Hot Ice Breaks (US) — Pick Your Player breaks, 99.9% (Brian approved 2026-10-14, weekly discovery)

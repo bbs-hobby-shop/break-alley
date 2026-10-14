@@ -71,6 +71,8 @@ TWITCH_COUNTRIES: dict[str, str] = {
     "collectibleno": "NO",  # Collectible.no, Norway (Brian approved 2026-10-13, weekly discovery overnight)
     "migueltcgbreaks": "PT",  # MiguelTcgBreaks, Portugal (Brian approved 2026-10-13, weekly discovery overnight)
     "dannybartok": "US",  # dannybartok, US rip & ship (Brian approved 2026-10-13, weekly discovery PM)
+    "trainer_trav": "US",  # trainer_trav, US shop (streams from Japan; Brian approved 2026-10-14, weekly discovery)
+    "hhaxi": "US",  # hhaxi, US-only shop (Brian approved 2026-10-14, weekly discovery)
 }
 # eBay seller username (lowercased) -> 2-letter country
 # Researched 2026-10-11 (eBay seller pages, listing locations, seller sites).
@@ -208,6 +210,9 @@ EBAY_SELLER_COUNTRIES: dict[str, str] = {
     "sportycardsit": "IT",          # Sporty Cards IT, Italy (Brian approved 2026-10-13, weekly discovery PM)
     "fgdef_uk_sportscards": "GB",   # FGDEF UK Sportscards, UK (Brian approved 2026-10-13, weekly discovery PM)
     "the-hobby-au": "AU",           # The Hobby AU, Australia (Brian approved 2026-10-13, weekly discovery PM)
+    "camscards12": "US",            # Cam's Cards, Oklahoma City (Brian approved 2026-10-14, weekly discovery)
+    "pristineworldwide": "CA",      # Pristine Worldwide, Kelowna BC (Brian approved 2026-10-14, weekly discovery)
+    "hot_ice_breaks_collectables": "US",  # Hot Ice Breaks, New York (Brian approved 2026-10-14, weekly discovery)
 }
 # Fanatics Live shop name -> 2-letter country
 # Researched 2026-10-11 (shop sites, addresses, web search).
