@@ -156,3 +156,6 @@ hot_ice_breaks_collectables  # Hot Ice Breaks (US) — Pick Your Player breaks, 
 breakmachine-it  # Break Machine IT (IT) — numbered PYT breaks on eBay Live, 99.9% (Brian approved 2026-10-14, weekly discovery AM)
 eastside.collectables  # Eastside Collectables (AU) — Random Team breaks #1700s, 99.9% (Brian approved 2026-10-14, weekly discovery AM)
 sccardsroma  # SC Cards Roma (IT) — WWE rip & ship box breaks, 100% (Brian approved 2026-10-14, weekly discovery AM)
+3gsports  # 3G Sports (US) — Pick Your Player case breaks, 99.3% (Brian approved 2026-10-14, weekly discovery PM)
+toyboxtradingco  # Toybox Trading Co (CA) — weekly $1-start Pokemon rip & ship, 99.8% (Brian approved 2026-10-14, weekly discovery PM)
+liaanaqc  # LiaanaQC (CA) — Pick Your Wrestler WWE breaks, 99.9% (Brian approved 2026-10-14, weekly discovery PM)

@@ -74,6 +74,7 @@ TWITCH_COUNTRIES: dict[str, str] = {
     "trainer_trav": "US",  # trainer_trav, US shop (streams from Japan; Brian approved 2026-10-14, weekly discovery)
     "hhaxi": "US",  # hhaxi, US-only shop (Brian approved 2026-10-14, weekly discovery)
     "kaartkamer": "NL",  # KaartKamer, Netherlands-only webshop (Brian approved 2026-10-14, weekly discovery AM)
+    "team_arti": "NL",  # Team Arti, Dutch rip & ship shops (Brian approved 2026-10-14, weekly discovery PM)
 }
 # eBay seller username (lowercased) -> 2-letter country
 # Researched 2026-10-11 (eBay seller pages, listing locations, seller sites).
@@ -217,6 +218,9 @@ EBAY_SELLER_COUNTRIES: dict[str, str] = {
     "breakmachine-it": "IT",        # Break Machine IT, Napoli (Brian approved 2026-10-14, weekly discovery AM)
     "eastside.collectables": "AU",  # Eastside Collectables, NSW (Brian approved 2026-10-14, weekly discovery AM)
     "sccardsroma": "IT",            # SC Cards Roma, Roma (Brian approved 2026-10-14, weekly discovery AM)
+    "3gsports": "US",               # 3G Sports, Birmingham AL (Brian approved 2026-10-14, weekly discovery PM)
+    "toyboxtradingco": "CA",        # Toybox Trading Co, Canada (Brian approved 2026-10-14, weekly discovery PM)
+    "liaanaqc": "CA",               # LiaanaQC, Quebec (Brian approved 2026-10-14, weekly discovery PM)
 }
 # Fanatics Live shop name -> 2-letter country
 # Researched 2026-10-11 (shop sites, addresses, web search).

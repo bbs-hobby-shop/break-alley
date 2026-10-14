@@ -160,6 +160,10 @@ KNOWN_COUNTRIES = {
     "UC6-QP4dT9fqzQccR3tRp4fQ": "HK",
     # Vito Cards: Prague, CZ per its own e-shop terms (VMSC s.r.o.); channel sets no country (Brian approved 2026-10-14, weekly discovery AM)
     "UCF_4tHmDYlMnVX5AzDI4RxQ": "CZ",
+    # KARTZ (Jcob Kolekcjonuje): Polish break shop kartz.pl; channel country PL (Brian approved 2026-10-14, weekly discovery PM)
+    "UC5ibXUAbj8EXqKfUHGamhQw": "PL",
+    # Planeta Kart: Polish shop planetakart.pl; channel country PL (Brian approved 2026-10-14, weekly discovery PM)
+    "UCZVBvmKpNW9tmYWA32EQ0Pg": "PL",
 }
 
 # Title-substring fallback for discovered channels whose IDs aren't in

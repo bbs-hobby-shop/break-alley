@@ -187,3 +187,5 @@ UCpS0vGkENx48k0s146NUm7w  # JC CardsMania (@jc.cardsmania, Jonas Carlsson, SE) �
 UCkPJNVsN_0sfPRIAjZ6FT4w  # Monmouth Cards (@MonmouthCards, Monmouth Trading Cards & Collectibles, US/NJ) — PYT case breaks (Brian approved 2026-10-14, weekly discovery)
 UC6-QP4dT9fqzQccR3tRp4fQ  # Project Mozi Breaks (@ProjectMoziBreaks, HK) — numbered PYT/PYD case breaks to #769 (Brian approved 2026-10-14, weekly discovery)
 UCF_4tHmDYlMnVX5AzDI4RxQ  # Vito Cards (@vitocards, CZ) — NFL/MLB PYT group breaks (Brian approved 2026-10-14, weekly discovery AM)
+UC5ibXUAbj8EXqKfUHGamhQw  # KARTZ (@jcobkolekcjonuje "Jcob Kolekcjonuje", PL) — numbered PYT/PYP breaks to #802 via kartz.pl (Brian approved 2026-10-14, weekly discovery PM)
+UCZVBvmKpNW9tmYWA32EQ0Pg  # Planeta Kart (@planetakart, PL) — PYT soccer breaks via planetakart.pl (Brian approved 2026-10-14, weekly discovery PM)
