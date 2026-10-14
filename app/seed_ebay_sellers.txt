@@ -153,3 +153,6 @@ the-hobby-au  # The Hobby AU (AU) — rip & ship / PYT Live breaks, 99.9% (Brian
 camscards12  # Cam's Cards (US) — per-team mixer auctions, 99.9% (Brian approved 2026-10-14, weekly discovery; promoted from hold)
 pristineworldwide  # Pristine Worldwide (CA) — PYT breaks, 100% (Brian approved 2026-10-14, weekly discovery)
 hot_ice_breaks_collectables  # Hot Ice Breaks (US) — Pick Your Player breaks, 99.9% (Brian approved 2026-10-14, weekly discovery)
+breakmachine-it  # Break Machine IT (IT) — numbered PYT breaks on eBay Live, 99.9% (Brian approved 2026-10-14, weekly discovery AM)
+eastside.collectables  # Eastside Collectables (AU) — Random Team breaks #1700s, 99.9% (Brian approved 2026-10-14, weekly discovery AM)
+sccardsroma  # SC Cards Roma (IT) — WWE rip & ship box breaks, 100% (Brian approved 2026-10-14, weekly discovery AM)
