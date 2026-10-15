@@ -126,6 +126,11 @@ def parse_break_time(text: str) -> str | None:
         return None
     hour, minute, ampm, tz_abbr = m.groups()
     hour, minute = int(hour), int(minute or 0)
+    if not (1 <= hour <= 12 and 0 <= minute <= 59):
+        # Garbage like "13:00 PM" or "24:70" in listing text — unparseable,
+        # and constructing a datetime from it raises ("hour must be in
+        # 0..23"), which used to abort the whole parse pass for the run.
+        return None
     if ampm.lower() == "pm" and hour != 12:
         hour += 12
     if ampm.lower() == "am" and hour == 12:
