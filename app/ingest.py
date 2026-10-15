@@ -145,14 +145,14 @@ def run_ebay() -> int:
             for r in rows:
                 parsed = parse_break_time(r["break_time_text"])
                 if parsed:
-                    # Mark as live if started within last 4h (Brian 2026-10-06)
+                    # Mark as live if started within last 2h (Brian 2026-10-06)
                     is_live = False
                     try:
                         dt = datetime.fromisoformat(parsed.replace("Z", "+00:00"))
                         if dt.tzinfo is None:
                             dt = dt.replace(tzinfo=timezone.utc)
                         now = datetime.now(timezone.utc)
-                        if timedelta(hours=-4) < (dt - now) < timedelta(minutes=15):
+                        if timedelta(hours=-2) < (dt - now) < timedelta(minutes=15):
                             is_live = True
                     except Exception:
                         pass
@@ -178,7 +178,7 @@ def run_ebay() -> int:
                     if dt.tzinfo is None:
                         dt = dt.replace(tzinfo=timezone.utc)
                     now = datetime.now(timezone.utc)
-                    if timedelta(hours=-4) < (dt - now) < timedelta(minutes=15):
+                    if timedelta(hours=-2) < (dt - now) < timedelta(minutes=15):
                         conn.execute(
                             "UPDATE breaks SET is_live=TRUE, fetched_at=NOW() WHERE id=%s",
                             (r["id"],),
@@ -258,7 +258,7 @@ def run_ebay() -> int:
                     # Standardize eBay break times to match other platforms (Brian 2026-10-06)
                     if video.get("break_starts_at") and not row.get("starts_at"):
                         row["starts_at"] = video["break_starts_at"]
-                    # If break started recently (within 4h), mark as live (Brian 2026-10-06)
+                    # If break started recently (within 2h), mark as live (Brian 2026-10-06)
                     if row.get("starts_at"):
                         try:
                             from datetime import datetime, timezone, timedelta
@@ -268,8 +268,8 @@ def run_ebay() -> int:
                             if starts_at.tzinfo is None:
                                 starts_at = starts_at.replace(tzinfo=timezone.utc)
                             now = datetime.now(timezone.utc)
-                            # Started within last 4 hours and not more than 15 min in future
-                            if timedelta(hours=-4) < (starts_at - now) < timedelta(minutes=15):
+                            # Started within last 2 hours and not more than 15 min in future
+                            if timedelta(hours=-2) < (starts_at - now) < timedelta(minutes=15):
                                 row["is_live"] = True
                         except Exception:
                             pass

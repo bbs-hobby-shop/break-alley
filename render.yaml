@@ -63,7 +63,10 @@ services:
     name: break-alley-poll-youtube-roster
     runtime: docker
     dockerfilePath: ./Dockerfile
-    schedule: "0 */3 * * *"
+    # Hourly (was every 3h) — Brian 2026-10-14: ended YouTube streams kept
+    # their LIVE flag for up to 3h between roster polls. Roster calls are
+    # cheap (~1 unit/channel playlist fetch + batched videos.list).
+    schedule: "0 * * * *"
     dockerCommand: python -m app.ingest --source youtube-roster
     # YOUTUBE_API_KEY comes from the break-alley-shared environment group
     # (dashboard). Do NOT re-add it here as sync:false.

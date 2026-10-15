@@ -45,6 +45,28 @@ def main() -> int:
         with db.get_conn() as conn:
             skip_vanished = not feed_is_fresh(conn)
             pruned = db.prune_ended_ebay(conn, skip_vanished=skip_vanished)
+            # Demote stale LIVE flags (Brian 2026-10-14: "live only" search
+            # showed 1,158 eBay listings that were not streaming — the flag
+            # was granted by a clock heuristic and never revoked, and 429
+            # throttling meant rows were never re-polled to clear it).
+            # eBay: live is only credible inside the same window the
+            # granters use — started within the last 2h and not more than
+            # 15 min in the future. Anything outside it is not live.
+            n_ebay_demoted = conn.execute(
+                """UPDATE breaks SET is_live = FALSE
+                   WHERE source = 'ebay' AND COALESCE(is_live, FALSE)
+                     AND (starts_at IS NULL
+                          OR starts_at < NOW() - INTERVAL '2 hours'
+                          OR starts_at > NOW() + INTERVAL '15 minutes')"""
+            ).rowcount
+            # YouTube backstop: the roster poller demotes ended streams on
+            # every run; if polls have been down for 4h+, no live flag is
+            # trustworthy anymore (fetched_at = last time a poll saw it).
+            n_yt_demoted = conn.execute(
+                """UPDATE breaks SET is_live = FALSE
+                   WHERE source = 'youtube' AND COALESCE(is_live, FALSE)
+                     AND fetched_at < NOW() - INTERVAL '4 hours'"""
+            ).rowcount
     except Exception as exc:
         # Brian 2026-10-08: a dead prune must NEVER fail silently.
         print(f"PRUNE FAILED: {exc}", file=sys.stderr)
@@ -52,7 +74,8 @@ def main() -> int:
     total = sum(pruned.values())
     print(f"prune: removed {total} dead eBay listings "
           f"(ended={pruned['ended_auctions']}, sold={pruned['sold_out']}, "
-          f"vanished={pruned['vanished']}, skip_vanished={skip_vanished})")
+          f"vanished={pruned['vanished']}, skip_vanished={skip_vanished}); "
+          f"demoted stale-live: ebay={n_ebay_demoted}, youtube={n_yt_demoted}")
     return 0
 
 

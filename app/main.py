@@ -1213,7 +1213,7 @@ def admin_maintenance(
                     )
                     n_parsed += 1
             results.append(f"parsed {n_parsed} break times")
-            # 2. Mark as live if started within 4h
+            # 2. Mark as live if started within 2h
             rows2 = conn.execute(
                 "SELECT id, starts_at FROM breaks WHERE source='ebay' "
                 "AND starts_at IS NOT NULL AND NOT COALESCE(is_live, FALSE)"
@@ -1227,7 +1227,7 @@ def admin_maintenance(
                     if dt.tzinfo is None:
                         dt = dt.replace(tzinfo=timezone.utc)
                     now = datetime.now(timezone.utc)
-                    if timedelta(hours=-4) < (dt - now) < timedelta(minutes=15):
+                    if timedelta(hours=-2) < (dt - now) < timedelta(minutes=15):
                         conn.execute(
                             "UPDATE breaks SET is_live=TRUE WHERE id=%s",
                             (r["id"],),

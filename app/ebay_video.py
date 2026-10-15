@@ -34,15 +34,90 @@ TZ_MAP = {
 }
 
 
+_MONTHS = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+
+# Date expressions seen in real listings (2026-10-14 false-live investigation):
+# item-specifics "Date: 10/16/26", description "FRIDAY, OCTOBER 16TH @ 7:50 PM".
+_DATE_PATTERNS = [
+    re.compile(r"(\d{1,2})/(\d{1,2})/(\d{2,4})"),  # 10/16/2026 or 10/16/26
+    re.compile(
+        r"(january|february|march|april|may|june|july|august|september|"
+        r"october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|"
+        r"oct|nov|dec)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,?\s*(\d{4}))?",
+        re.IGNORECASE,
+    ),  # October 16th / Oct 16, 2026
+    re.compile(r"(\d{1,2})/(\d{1,2})(?!\d)"),  # 10/16 (no year)
+]
+
+
+def find_date_in_text(text: str, now=None, allow_yearless_numeric: bool = True):
+    """Find an explicit calendar date in listing text. Returns a date or None.
+
+    Yearless dates resolve to the next occurrence (a date more than a day in
+    the past is next year's — sellers advertise upcoming breaks, not past
+    ones). allow_yearless_numeric=False skips the bare M/D pattern: in free
+    description text it false-matches case fractions like "1/4 Case Break".
+    Only structured fields (the Date item specific) may use it."""
+    if not text:
+        return None
+    from datetime import date, datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    if now is None:
+        now = datetime.now(ZoneInfo("America/Chicago"))
+    today = now.date()
+    patterns = _DATE_PATTERNS if allow_yearless_numeric else _DATE_PATTERNS[:2]
+    for pat in patterns:
+        m = pat.search(text)
+        if not m:
+            continue
+        g = m.groups()
+        try:
+            if len(g) == 3 and g[0].isdigit() and g[2]:
+                month, day = int(g[0]), int(g[1])
+                year = int(g[2])
+                if year < 100:
+                    year += 2000
+                return date(year, month, day)
+            if len(g) == 3 and not g[0].isdigit():
+                month = _MONTHS[g[0].lower()[:3]]
+                day = int(g[1])
+                if g[2]:
+                    return date(int(g[2]), month, day)
+                candidate = date(today.year, month, day)
+                if candidate < today - timedelta(days=1):
+                    candidate = date(today.year + 1, month, day)
+                return candidate
+            if len(g) == 2:
+                month, day = int(g[0]), int(g[1])
+                candidate = date(today.year, month, day)
+                if candidate < today - timedelta(days=1):
+                    candidate = date(today.year + 1, month, day)
+                return candidate
+        except (ValueError, KeyError):
+            continue
+    return None
+
+
 def parse_break_time(text: str) -> str | None:
-    """Parse '1:30PM PST' style text into an ISO datetime string (assumes today,
-    or tomorrow if the time already passed). Returns None if unparseable."""
+    """Parse break time text into an ISO datetime string.
+
+    If the text carries an explicit DATE (e.g. '10/16/26 9:00 PM EST' or
+    'October 16th 7:50 PM CST'), that date is used as-is — NEVER rolled to
+    today/tomorrow. The old today/tomorrow invention stamped future breaks
+    as starting 'today at that time', which flagged ~1,100 not-live eBay
+    listings as LIVE (Brian, 2026-10-14). Only a bare time-of-day (a daily
+    showtime with no date anywhere) keeps the legacy today/tomorrow roll.
+    Returns None if unparseable."""
     if not text:
         return None
     from datetime import datetime
     from zoneinfo import ZoneInfo
 
-    m = re.match(
+    m = re.search(
         r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*([A-Z]{2,4})?",
         text.strip(),
         re.IGNORECASE,
@@ -59,8 +134,15 @@ def parse_break_time(text: str) -> str | None:
     tz_name = TZ_MAP.get((tz_abbr or "CT").upper(), "America/Chicago")
     tz = ZoneInfo(tz_name)
     now = datetime.now(tz)
+    explicit_date = find_date_in_text(text, now=now)
+    if explicit_date is not None:
+        dt = datetime(
+            explicit_date.year, explicit_date.month, explicit_date.day,
+            hour, minute, tzinfo=tz,
+        )
+        return dt.isoformat()
     dt = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    # If the time already passed today, assume tomorrow
+    # Bare time-of-day (daily showtime): if it already passed today, tomorrow
     if dt <= now:
         from datetime import timedelta
         dt = dt + timedelta(days=1)
@@ -99,6 +181,7 @@ def extract_video_info(item: dict) -> dict:
     aspects = item.get("localizedAspects") or []
     streaming_service = None
     break_time_text = None
+    break_date_text = None
     for aspect in aspects:
         name = (aspect.get("name") or "").lower()
         value = (aspect.get("value") or "").strip()
@@ -106,6 +189,8 @@ def extract_video_info(item: dict) -> dict:
             streaming_service = value
         elif name == "time" and value and value.lower() not in ("tbd", "see break calendar"):
             break_time_text = value
+        elif name == "date" and value and value.lower() not in ("tbd", "see break calendar"):
+            break_date_text = value
 
     # Description HTML
     desc = item.get("description") or ""
@@ -149,6 +234,18 @@ def extract_video_info(item: dict) -> dict:
             if m:
                 break_time_text = m.group(1).strip()
                 break
+
+    # Attach the break's calendar DATE to the time text whenever one exists —
+    # a "Date" item specific wins, else any explicit date in the description
+    # ("FRIDAY, OCTOBER 16TH @ 7:50 PM"). Without it, parse_break_time must
+    # invent today/tomorrow for the time-of-day, which stamped future breaks
+    # as live (2026-10-14 false-live investigation).
+    if break_time_text and find_date_in_text(break_time_text) is None:
+        found = find_date_in_text(break_date_text) if break_date_text else None
+        if found is None and desc:
+            found = find_date_in_text(desc, allow_yearless_numeric=False)
+        if found is not None:
+            break_time_text = f"{found.month}/{found.day}/{found.year} {break_time_text}"
 
     # Backwards compat: first link as video_url/video_platform
     video_url = links[0]["url"] if links else None
