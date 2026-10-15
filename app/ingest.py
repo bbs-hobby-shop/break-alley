@@ -134,7 +134,7 @@ def run_ebay() -> int:
     # One-time: parse existing break_time_text into starts_at for standard format
     # (Brian 2026-10-06: eBay times must match other platforms)
     try:
-        from .ebay_video import parse_break_time, has_stream_evidence
+        from .ebay_video import parse_break_time, has_ebay_live_destination
         from datetime import datetime, timezone, timedelta
         with db.get_conn() as conn:
             rows = conn.execute(
@@ -146,9 +146,10 @@ def run_ebay() -> int:
             for r in rows:
                 parsed = parse_break_time(r["break_time_text"])
                 if parsed:
-                    # Mark as live if started within last 2h AND the listing
-                    # carries a stream destination (Brian 2026-10-14: clock
-                    # alone flagged ~1,100 future breaks as LIVE)
+                    # Mark as live if started within last 2h AND the
+                    # stream is hosted on eBay Live (Brian 2026-10-14:
+                    # clock + a channel link flagged ~1,100 future breaks
+                    # and dark channels as LIVE)
                     is_live = False
                     try:
                         dt = datetime.fromisoformat(parsed.replace("Z", "+00:00"))
@@ -156,7 +157,7 @@ def run_ebay() -> int:
                             dt = dt.replace(tzinfo=timezone.utc)
                         now = datetime.now(timezone.utc)
                         if timedelta(hours=-2) < (dt - now) < timedelta(minutes=15) \
-                                and has_stream_evidence(r.get("video_platform"), r.get("video_links")):
+                                and has_ebay_live_destination(r.get("video_links")):
                             is_live = True
                     except Exception:
                         pass
@@ -168,7 +169,7 @@ def run_ebay() -> int:
             if n_parsed:
                 print(f"ebay: parsed {n_parsed} break times into starts_at")
             # Update is_live for existing listings with starts_at (Brian 2026-10-06;
-            # stream-evidence requirement added 2026-10-14)
+            # eBay-Live-hosted requirement added 2026-10-14)
             rows2 = conn.execute(
                 "SELECT id, starts_at, video_platform, video_links FROM breaks "
                 "WHERE source='ebay' "
@@ -185,7 +186,7 @@ def run_ebay() -> int:
                         dt = dt.replace(tzinfo=timezone.utc)
                     now = datetime.now(timezone.utc)
                     if timedelta(hours=-2) < (dt - now) < timedelta(minutes=15) \
-                            and has_stream_evidence(r.get("video_platform"), r.get("video_links")):
+                            and has_ebay_live_destination(r.get("video_links")):
                         conn.execute(
                             "UPDATE breaks SET is_live=TRUE, fetched_at=NOW() WHERE id=%s",
                             (r["id"],),
@@ -256,7 +257,7 @@ def run_ebay() -> int:
             if db.needs_video_info(conn, row["source_url"]):
                 checked_video = True
                 try:
-                    from .ebay_video import extract_for_listing
+                    from .ebay_video import extract_for_listing, has_ebay_live_destination
                     video = extract_for_listing(row["source_url"])
                     row["video_url"] = video["video_url"]
                     row["video_platform"] = video["video_platform"]
@@ -266,9 +267,9 @@ def run_ebay() -> int:
                     if video.get("break_starts_at") and not row.get("starts_at"):
                         row["starts_at"] = video["break_starts_at"]
                     # If break started recently (within 2h), mark as live
-                    # (Brian 2026-10-06) — only when the listing carries a
-                    # stream destination (2026-10-14 false-live fix)
-                    if row.get("starts_at") and video.get("video_links"):
+                    # (Brian 2026-10-06) — only when the stream is hosted
+                    # on eBay Live (2026-10-14 false-live fix)
+                    if row.get("starts_at") and has_ebay_live_destination(video.get("video_links")):
                         try:
                             from datetime import datetime, timezone, timedelta
                             starts_at = row["starts_at"]
@@ -588,7 +589,7 @@ def run_ebay_video_backfill() -> int:
     platform, and break time from the description. Run manually via:
         python -m app.ingest --source ebay-video-backfill
     """
-    from .ebay_video import extract_for_listing
+    from .ebay_video import extract_for_listing, has_ebay_live_destination
     import time
     with db.get_conn() as conn:
         rows = conn.execute(

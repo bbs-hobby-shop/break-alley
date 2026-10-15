@@ -148,22 +148,29 @@ def parse_break_time(text: str) -> str | None:
         dt = dt + timedelta(days=1)
     return dt.isoformat()
 
-def has_stream_evidence(video_platform, video_links) -> bool:
-    """True when a listing carries an actual stream destination (a video
-    platform or at least one extracted video link).
+def has_ebay_live_destination(video_links) -> bool:
+    """True when the listing's stream destination is eBay Live itself.
 
-    A live claim with no stream destination rests on the clock alone —
-    that is what flagged ~1,100 future eBay breaks as LIVE on 2026-10-14.
-    Granters and the prune demoter both require this evidence."""
-    if video_platform:
-        return True
+    eBay "live" semantics (Brian 2026-10-14, after two fix rounds): a
+    channel-page link (youtube.com/@seller) is a destination, not a live
+    stream — sellers with such links sat flagged LIVE for hours while
+    their channels were dark, because a scheduled time + a link is not
+    evidence of a running stream. Off-platform streams are carried as
+    their own YouTube/Twitch rows when they are actually live, so eBay
+    rows may claim live ONLY for streams hosted on eBay Live, inside the
+    grant window. Everything else is an upcoming break."""
     links = video_links
     if isinstance(links, str):
         try:
             links = json.loads(links)
         except Exception:
             links = None
-    return bool(links)
+    if not links:
+        return False
+    return any(
+        isinstance(link, dict) and link.get("platform") == "eBay Live"
+        for link in links
+    )
 
 
 # Platform URL patterns: (regex, platform name)

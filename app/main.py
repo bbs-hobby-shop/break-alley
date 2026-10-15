@@ -1213,9 +1213,9 @@ def admin_maintenance(
                     )
                     n_parsed += 1
             results.append(f"parsed {n_parsed} break times")
-            # 2. Mark as live if started within 2h AND the listing carries a
-            # stream destination (2026-10-14 false-live fix)
-            from .ebay_video import has_stream_evidence
+            # 2. Mark as live if started within 2h AND the stream is
+            # hosted on eBay Live (2026-10-14 false-live fix)
+            from .ebay_video import has_ebay_live_destination
             rows2 = conn.execute(
                 "SELECT id, starts_at, video_platform, video_links FROM breaks "
                 "WHERE source='ebay' "
@@ -1231,7 +1231,7 @@ def admin_maintenance(
                         dt = dt.replace(tzinfo=timezone.utc)
                     now = datetime.now(timezone.utc)
                     if timedelta(hours=-2) < (dt - now) < timedelta(minutes=15) \
-                            and has_stream_evidence(r.get("video_platform"), r.get("video_links")):
+                            and has_ebay_live_destination(r.get("video_links")):
                         conn.execute(
                             "UPDATE breaks SET is_live=TRUE WHERE id=%s",
                             (r["id"],),
