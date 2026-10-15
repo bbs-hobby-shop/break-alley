@@ -51,13 +51,21 @@ def main() -> int:
             # throttling meant rows were never re-polled to clear it).
             # eBay: live is only credible inside the same window the
             # granters use — started within the last 2h and not more than
-            # 15 min in the future. Anything outside it is not live.
+            # 15 min in the future — AND the listing must carry a stream
+            # destination (video platform or extracted video link). A
+            # clock-only live claim is not live: that is what kept 279
+            # future-break auctions flagged after the first demote —
+            # their time-of-day stamps happened to fall in tonight's
+            # window even though the breaks are days away.
             n_ebay_demoted = conn.execute(
                 """UPDATE breaks SET is_live = FALSE
                    WHERE source = 'ebay' AND COALESCE(is_live, FALSE)
                      AND (starts_at IS NULL
                           OR starts_at < NOW() - INTERVAL '2 hours'
-                          OR starts_at > NOW() + INTERVAL '15 minutes')"""
+                          OR starts_at > NOW() + INTERVAL '15 minutes'
+                          OR (video_platform IS NULL
+                              AND (video_links IS NULL
+                                   OR video_links::text IN ('[]', 'null'))))"""
             ).rowcount
             # YouTube backstop: the roster poller demotes ended streams on
             # every run; if polls have been down for 4h+, no live flag is

@@ -134,25 +134,29 @@ def run_ebay() -> int:
     # One-time: parse existing break_time_text into starts_at for standard format
     # (Brian 2026-10-06: eBay times must match other platforms)
     try:
-        from .ebay_video import parse_break_time
+        from .ebay_video import parse_break_time, has_stream_evidence
         from datetime import datetime, timezone, timedelta
         with db.get_conn() as conn:
             rows = conn.execute(
-                "SELECT id, break_time_text FROM breaks WHERE source='ebay' "
+                "SELECT id, break_time_text, video_platform, video_links "
+                "FROM breaks WHERE source='ebay' "
                 "AND break_time_text IS NOT NULL AND starts_at IS NULL"
             ).fetchall()
             n_parsed = 0
             for r in rows:
                 parsed = parse_break_time(r["break_time_text"])
                 if parsed:
-                    # Mark as live if started within last 2h (Brian 2026-10-06)
+                    # Mark as live if started within last 2h AND the listing
+                    # carries a stream destination (Brian 2026-10-14: clock
+                    # alone flagged ~1,100 future breaks as LIVE)
                     is_live = False
                     try:
                         dt = datetime.fromisoformat(parsed.replace("Z", "+00:00"))
                         if dt.tzinfo is None:
                             dt = dt.replace(tzinfo=timezone.utc)
                         now = datetime.now(timezone.utc)
-                        if timedelta(hours=-2) < (dt - now) < timedelta(minutes=15):
+                        if timedelta(hours=-2) < (dt - now) < timedelta(minutes=15) \
+                                and has_stream_evidence(r.get("video_platform"), r.get("video_links")):
                             is_live = True
                     except Exception:
                         pass
@@ -163,9 +167,11 @@ def run_ebay() -> int:
                     n_parsed += 1
             if n_parsed:
                 print(f"ebay: parsed {n_parsed} break times into starts_at")
-            # Update is_live for existing listings with starts_at (Brian 2026-10-06)
+            # Update is_live for existing listings with starts_at (Brian 2026-10-06;
+            # stream-evidence requirement added 2026-10-14)
             rows2 = conn.execute(
-                "SELECT id, starts_at FROM breaks WHERE source='ebay' "
+                "SELECT id, starts_at, video_platform, video_links FROM breaks "
+                "WHERE source='ebay' "
                 "AND starts_at IS NOT NULL AND NOT COALESCE(is_live, FALSE)"
             ).fetchall()
             n_live = 0
@@ -178,7 +184,8 @@ def run_ebay() -> int:
                     if dt.tzinfo is None:
                         dt = dt.replace(tzinfo=timezone.utc)
                     now = datetime.now(timezone.utc)
-                    if timedelta(hours=-2) < (dt - now) < timedelta(minutes=15):
+                    if timedelta(hours=-2) < (dt - now) < timedelta(minutes=15) \
+                            and has_stream_evidence(r.get("video_platform"), r.get("video_links")):
                         conn.execute(
                             "UPDATE breaks SET is_live=TRUE, fetched_at=NOW() WHERE id=%s",
                             (r["id"],),
@@ -258,8 +265,10 @@ def run_ebay() -> int:
                     # Standardize eBay break times to match other platforms (Brian 2026-10-06)
                     if video.get("break_starts_at") and not row.get("starts_at"):
                         row["starts_at"] = video["break_starts_at"]
-                    # If break started recently (within 2h), mark as live (Brian 2026-10-06)
-                    if row.get("starts_at"):
+                    # If break started recently (within 2h), mark as live
+                    # (Brian 2026-10-06) — only when the listing carries a
+                    # stream destination (2026-10-14 false-live fix)
+                    if row.get("starts_at") and video.get("video_links"):
                         try:
                             from datetime import datetime, timezone, timedelta
                             starts_at = row["starts_at"]
