@@ -75,6 +75,16 @@ def main() -> int:
                    WHERE source = 'youtube' AND COALESCE(is_live, FALSE)
                      AND fetched_at < NOW() - INTERVAL '4 hours'"""
             ).rowcount
+            # Delete past-dated eBay breaks (mirrors the refresh sweep in
+            # main.py: an eBay break that started >4h ago is over). The
+            # refresh sweep only runs when someone hits refresh; without
+            # this, un-flagged phantom rows from the 2026-10-14 false-live
+            # pool lingered as "stale upcoming" (health check: 636).
+            n_past_deleted = conn.execute(
+                """DELETE FROM breaks
+                   WHERE source = 'ebay'
+                     AND starts_at < NOW() - INTERVAL '4 hours'"""
+            ).rowcount
     except Exception as exc:
         # Brian 2026-10-08: a dead prune must NEVER fail silently.
         print(f"PRUNE FAILED: {exc}", file=sys.stderr)
@@ -83,7 +93,8 @@ def main() -> int:
     print(f"prune: removed {total} dead eBay listings "
           f"(ended={pruned['ended_auctions']}, sold={pruned['sold_out']}, "
           f"vanished={pruned['vanished']}, skip_vanished={skip_vanished}); "
-          f"demoted stale-live: ebay={n_ebay_demoted}, youtube={n_yt_demoted}")
+          f"demoted stale-live: ebay={n_ebay_demoted}, youtube={n_yt_demoted}; "
+          f"deleted past-dated ebay={n_past_deleted}")
     return 0
 
 
