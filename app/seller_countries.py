@@ -78,6 +78,9 @@ TWITCH_COUNTRIES: dict[str, str] = {
     "dominate": "SE",  # Dominate / Kortjakten.se, Sweden (Brian approved 2026-10-15, weekly discovery)
     "packsonpackss": "SE",  # PacksOnPacks, Sweden (Brian approved 2026-10-15, weekly discovery)
     "pokebua": "NO",  # POKEBUA, Norway (Brian approved 2026-10-15, weekly discovery)
+    "cardcenternorge": "NO",  # Cardcenter.no, Norway (Brian approved 2026-10-16, weekly discovery)
+    "spelparken": "SE",  # Spelparken, Sweden (Brian approved 2026-10-16, weekly discovery)
+    "cardbindercom": "NL",  # Card-Binder.com, Netherlands (Brian approved 2026-10-16, weekly discovery)
 }
 # eBay seller username (lowercased) -> 2-letter country
 # Researched 2026-10-11 (eBay seller pages, listing locations, seller sites).
@@ -226,6 +229,10 @@ EBAY_SELLER_COUNTRIES: dict[str, str] = {
     "liaanaqc": "CA",               # LiaanaQC, Quebec (Brian approved 2026-10-14, weekly discovery PM)
     "ropersrips": "US",               # Ropers Rips, Tennessee (Brian approved 2026-10-15, weekly discovery)
     "450sportsblainville": "CA",      # 450 Sports, Blainville QC (Brian approved 2026-10-15, weekly discovery)
+    "sportstradingcardsuk": "GB",     # Sports Trading Cards UK, Edenbridge Kent (Brian approved 2026-10-16, weekly discovery)
+    "onthepulltcg": "GB",             # On The Pull TCG, Hayes London (Brian approved 2026-10-16, weekly discovery)
+    "kollectaworld2018": "AU",        # Kollecta World, Australia (Brian approved 2026-10-16, weekly discovery)
+    "partypullz": "US",               # Party Pullz, US (Brian approved 2026-10-16, weekly discovery)
 }
 # Fanatics Live shop name -> 2-letter country
 # Researched 2026-10-11 (shop sites, addresses, web search).
