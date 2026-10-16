@@ -39,8 +39,8 @@ CHECKS = []  # (name, passed, detail)
 # 2h "live breaks fresh" bar false-alarmed every morning on YouTube, whose
 # roster poll runs on a longer cadence than the other platforms.)
 POLLER_FRESHNESS = {
-    # ebay freshness: 1h at the normal 30-min cadence; TEMPORARILY 4h while the poller is slowed to 3-hourly (Brian 2026-10-13, 429 throttle returned at 30-min cadence). Revert to 1h with the cadence.
-    "ebay": timedelta(hours=4),
+    # ebay freshness: 1h at the normal 30-min cadence; 4h at the 3-hour cadence; TEMPORARILY 26h while the poller runs once daily (Brian 2026-10-15, 429 throttle persisted at 3-hourly). Revert with the cadence.
+    "ebay": timedelta(hours=26),
     "youtube": timedelta(hours=8),
     "twitch": timedelta(hours=1),
     "fanatics": timedelta(hours=1),
