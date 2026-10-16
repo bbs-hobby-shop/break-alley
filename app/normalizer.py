@@ -137,10 +137,12 @@ SPORTS = ["football", "baseball", "basketball", "hockey", "soccer", "tcg",
 # Five buyer-facing categories. Specific formats are checked first; anything
 # else a real break is still a box break, so the generic bucket catches it.
 FORMAT_PATTERNS = [
-    ("pyt", [r"\bpyt\b", r"pick your team", r"\bteam break\b", r"\bplayer break\b"]),
+    ("pyt", [r"\bpy[tp]s?\b", r"\bpycs?\b", r"pick your team", r"\bteam break\b", r"\bplayer break\b"]),
     ("random", [r"\brandom\b", r"\brandom team\b", r"\bdivisions?\b.{0,20}\bbreak\b"]),
     ("personal", [r"\bpersonals?\b"]),
-    ("case_break", [r"\bcase break\b", r"\bcase\b.*\bbreak\b"]),
+    ("case_break", [r"\bcase break\b", r"\bcase\b.*\bbreak\b",
+                    r"\b\d+\s*-?\s*cases?\b",
+                    r"\b(?:full|half|dual|double|triple|quad)\s+cases?\b"]),
     ("box_break", [r"\bbox break\b", r"\bgroup\s*breaks?\b", r"#groupbreaks?\b"]),
 ]
 
