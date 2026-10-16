@@ -233,6 +233,7 @@ EBAY_SELLER_COUNTRIES: dict[str, str] = {
     "onthepulltcg": "GB",             # On The Pull TCG, Hayes London (Brian approved 2026-10-16, weekly discovery)
     "kollectaworld2018": "AU",        # Kollecta World, Australia (Brian approved 2026-10-16, weekly discovery)
     "partypullz": "US",               # Party Pullz, US (Brian approved 2026-10-16, weekly discovery)
+    "goldenpullscards": "US",         # Golden Pulls Cards, US (Brian approved 2026-10-16, weekly discovery)
 }
 # Fanatics Live shop name -> 2-letter country
 # Researched 2026-10-11 (shop sites, addresses, web search).
@@ -292,6 +293,7 @@ FANATICS_SHOP_COUNTRIES: dict[str, str] = {
     "brew town trading co": "US",    # TCG sweep 2026-10-11
     "coach chris cards": "US",       # TCG sweep 2026-10-11
     "wheelhouse breaks": "US",       # TCG sweep 2026-10-11
+    "casebreakz": "US",              # Casebreakz, Peoria AZ (Brian approved 2026-10-16, weekly discovery)
 }
 _MAPS = {
     "twitch": TWITCH_COUNTRIES,
