@@ -80,3 +80,5 @@ Magic City  # Magic City (region UNCONFIRMED) — full case breaks (Brian approv
 Throne Sports Cards  # Throne Sports Cards (region UNCONFIRMED) — daily PYT streams (Brian approved 2026-10-16, weekly discovery)
 Cards and Culture  # Cards and Culture (US-LA) — PYP/PYT case breaks, Baton Rouge LA (Brian approved 2026-10-16, weekly discovery)
 Real Sportscards  # Real Sportscards (US-MN) — daily PYT/PYP case breaks (Brian approved 2026-10-16, weekly discovery)
+Rips Society  # Rips Society (region UNCONFIRMED) — Bowman Chrome PYT case breaks (Brian approved 2026-10-17, weekly discovery)
+Celebrities & Cardbreaks  # Celebrities & Cardbreaks (region UNCONFIRMED) — PYT case breaks (Brian approved 2026-10-17, weekly discovery)
