@@ -299,6 +299,14 @@ FANATICS_SHOP_COUNTRIES: dict[str, str] = {
     "casebreakz": "US",              # Casebreakz, Peoria AZ (Brian approved 2026-10-16, weekly discovery)
     "cards and culture": "US",       # Cards and Culture, Baton Rouge LA (Brian approved 2026-10-16, weekly discovery)
     "real sportscards": "US",        # Real Sportscards, Champlin MN (Brian approved 2026-10-16, weekly discovery)
+    "big bodegas breaks": "US",        # = eBay bodegacards, Hoboken/Jersey City NJ (Brian approved 2026-10-17, weekly discovery)
+    "triple diamond sports breaks": "US",  # = YouTube Triple Diamond Sports, Eagan MN (Brian approved 2026-10-17, weekly discovery)
+    "house of cards nola": "US",       # = eBay houseofcards-nola, New Orleans LA (Brian approved 2026-10-17, weekly discovery)
+    "528 collectibles": "US",          # = eBay 528breaks, MT (Brian approved 2026-10-17, weekly discovery)
+    "cardcollector2": "US",            # = YouTube CardCollector2_Breaks, Grove City OH (Brian approved 2026-10-17, weekly discovery)
+    "odeezy sports cards": "US",       # = joshodeezy (Twitch/eBay), Bardstown KY (Brian approved 2026-10-17, weekly discovery)
+    "goldenpulls": "US",               # = eBay goldenpullscards, US (Brian approved 2026-10-17, weekly discovery)
+    "cardshop live": "US",             # = eBay card-shop-live, Henderson NV (Brian approved 2026-10-17, weekly discovery)
 }
 _MAPS = {
     "twitch": TWITCH_COUNTRIES,
