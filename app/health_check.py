@@ -40,7 +40,7 @@ CHECKS = []  # (name, passed, detail)
 # roster poll runs on a longer cadence than the other platforms.)
 POLLER_FRESHNESS = {
     # ebay freshness: 1h at the normal 30-min cadence; 4h at the 3-hour cadence; TEMPORARILY 26h while the poller runs once daily (Brian 2026-10-15, 429 throttle persisted at 3-hourly). Revert with the cadence.
-    "ebay": timedelta(hours=26),
+    "ebay": timedelta(hours=8),
     "youtube": timedelta(hours=8),
     "twitch": timedelta(hours=1),
     "fanatics": timedelta(hours=1),
